@@ -35,6 +35,18 @@ def setup_headless_emulator(profile=None, is_test_run: bool = False):
 
     context.testing = is_test_run
     context.config = Config(POKEBOT_ROOT / "modules" / "config" / "templates")
+
+    from modules.config.schemas_v1 import Battle
+
+    # Unattended operation: never drop to manual mode for move learning, learn
+    # the best move automatically; allow evolutions (we want evolved dex entries).
+    context.config.battle = Battle(
+        new_move="learn_best",
+        stop_evolution=False,
+        lead_cannot_battle_action="rotate",
+        faint_action="rotate",
+        hp_threshold=10,
+    )
     context.profile = profile
     set_rom(profile.rom)
     context.emulator = LibmgbaEmulator(profile, lambda: None, is_test_run=is_test_run)

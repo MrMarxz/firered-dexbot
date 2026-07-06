@@ -1,5 +1,26 @@
 # DEVLOG
 
+## 2026-07-06 — M6: Deterministic dex planner (+ M9 pulled forward)
+
+**Done**
+- `dexbot/planner.py`: deterministic priority queue — missing species × accessible maps (flag-gated annotations in `data/dependencies.json` `maps` section; unannotated = off-limits, coverage grows with story) sorted by encounter rate. Loop: plan → catch → update dex → repeat. `grind_levels` fights wilds at Route 2 south grass with heal cycles.
+- **M9 pulled forward** (no emulator needed): `dexbot/llm_planner.py` — optional Ollama planner behind `config.json`, consulted only at objective boundaries with the enumerated valid-objective list; validator rejects anything not in the list and falls back to the deterministic queue head. 8 tests inject garbage/hallucinated/broken responses + connection failures.
+- `run.py`: living-dex entry point — persistent profile resume, telemetry + 5-minute auto-savestate frame hooks, fresh-save bootstrap.
+- Unattended-operation config overrides (`emulator.py`): `new_move=learn_best`, `stop_evolution=False`, `faint_action/lead_cannot_battle_action=rotate`, `hp_threshold=10`.
+
+**Failure archaeology (5 failed runs, each a real lesson)**
+1. Grind fled every battle — wild "trash" encounters default to RunAway; `BattleAction.Fight` must be explicit.
+2. Grind switched to Manual — Squirtle learning Withdraw at L10 with `new_move: stop`.
+3. Party wiped during grind — battles won but *never healed*; chip damage + Weedle poison → lead was a 2 HP Rattata. Grind now checks the starter (slot 0), heals below 40% or on any status.
+4. Route 22 rival = Bulbasaur, the built-in Squirtle counter (Bubble resisted, Vine Whip super-effective) — party of L3 fodder couldn't rotate. **Solved by geometry**: his ambush trigger is a 3-tile line at (33, 4–6); the Mankey/Spearow grass at (38, 11) is reachable from the east entrance without crossing it. No fight, no grind needed.
+5. Infinite spin↔no-heal loop hunting Pikachu — **Static paralyzed** Squirtle while HP stayed above the heal threshold; `needs_heal` triggered on status but `ensure_healthy` only checked HP. Both now consider status conditions.
+
+**Verified**
+- Full autonomous run from `m4_pokedex.ss1`: all 9 pre-Brock species (Rattata, Pidgey, Mankey, Caterpie, Weedle, Kakuna, Spearow, Metapod, Pikachu) caught; queue drains to empty. Fixture `m6_pre_brock_dex.ss1`. Suite: 24 passed.
+
+**Risky / notes**
+- The rival fight is deferred, not solved — M7 needs an answer to Bulbasaur (Butterfree's Confusion is super-effective on Grass/Poison; or overlevel for Bite at L16).
+- Ball economy held (~15 balls for 9 species thanks to weakening) but money is nearly zero; M7 trainer fights fund M8.
 ## 2026-07-06 — M5: Catch loop
 
 **Done**

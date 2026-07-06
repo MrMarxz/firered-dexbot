@@ -23,6 +23,10 @@ class SkillTimeout(SkillError):
 
 _events_path = PROJECT_ROOT / "logs" / "skills.jsonl"
 
+# Called once per emulated frame from run_skill — used by run.py for telemetry
+# logging and periodic auto-savestates.
+frame_hooks: list = []
+
 
 def _log_event(**fields) -> None:
     _events_path.parent.mkdir(exist_ok=True)
@@ -75,7 +79,7 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
     try:
         while len(context.controller_stack) > 0:
             if context.bot_mode == "Manual":
-                raise SkillError(f"Skill {name!r} was aborted (bot switched to Manual mode)")
+                raise SkillError(f"Skill {name!r} was aborted (bot switched to Manual mode: {context.message!r})")
 
             script_context = get_global_script_context()
             script_stack = script_context.stack if script_context is not None and script_context.is_active else []
@@ -100,6 +104,8 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
 
             context.emulator.run_single_frame()
             frames += 1
+            for hook in frame_hooks:
+                hook()
             previous_frame_info = frame_info
             previous_frame_info.previous_frame = None
             if frames > timeout_frames:

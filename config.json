@@ -1,0 +1,8 @@
+{
+  "llm_planner": {
+    "enabled": false,
+    "base_url": "http://localhost:11434/v1",
+    "model": "qwen2.5:7b",
+    "timeout_seconds": 20
+  }
+}

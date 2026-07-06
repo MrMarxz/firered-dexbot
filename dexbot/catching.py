@@ -35,32 +35,76 @@ def _encounter_tiles(map_group_and_number: tuple[int, int]) -> list[tuple[int, i
     return sorted(tiles, key=lambda t: abs(t[0] - center_x) + abs(t[1] - center_y))
 
 
+class WeakeningCatchStrategy:
+    """CatchStrategy that first chips the target down (never risking a KO) to
+    roughly double per-ball catch odds — halves ball spend vs. full-HP throws."""
+
+    def __new__(cls):
+        from modules.battle_strategies import BattleStrategyUtil, TurnAction
+        from modules.battle_strategies.catch import CatchStrategy
+
+        class _Strategy(CatchStrategy):
+            def decide_turn(self, battle_state):
+                opponent = battle_state.opponent.active_battler
+                if opponent.current_hp / opponent.total_hp > 0.4:
+                    util = BattleStrategyUtil(battle_state)
+                    own = battle_state.own_side.active_battler
+                    best = None
+                    for index, learned in enumerate(own.moves):
+                        if learned is None or learned.pp == 0 or learned.move.base_power == 0:
+                            continue
+                        damage = util.calculate_move_damage_range(learned.move, own, opponent)
+                        # Worst case (max roll, crit) must not KO the target.
+                        crit_max = util.calculate_move_damage_range(learned.move, own, opponent, True).max
+                        if crit_max < opponent.current_hp and (best is None or damage.max > best[1]):
+                            best = (index, damage.max)
+                    if best is not None:
+                        return TurnAction.use_move(best[0])
+                return super().decide_turn(battle_state)
+
+        return _Strategy()
+
+
 def make_catch_decider(target_species: str):
-    """on_battle_started callback: catch the target, flee from everything else."""
+    """on_battle_started callback: catch the target, fight trainers (no choice),
+    flee from other wild encounters."""
 
     def on_battle_started(encounter):
-        from modules.battle_strategies.catch import CatchStrategy
         from modules.modes._interface import BattleAction
 
-        if encounter is not None and encounter.pokemon.species.name == target_species:
-            return CatchStrategy()
+        if encounter is None:
+            return None  # trainer battle — default strategy fights it
+        if encounter.pokemon.species.name == target_species:
+            return WeakeningCatchStrategy()
         return BattleAction.RunAway
 
     return on_battle_started
 
 
-def ensure_healthy(minimum_fraction: float = 0.5) -> Generator:
-    """Heal at the Viridian Pokémon Center if the lead is below `minimum_fraction` HP."""
-    # ponytail: hardcoded to Viridian — use find_closest_pokemon_center once
-    # catching moves beyond the starting area (M6).
-    from modules.map_data import MapFRLG, PokemonCenter
+def ensure_healthy(minimum_fraction: float = 0.5, center=None) -> Generator:
+    """Heal at a Pokémon Center if the lead is below `minimum_fraction` HP.
+
+    :param center: a modules.map_data.PokemonCenter member; defaults to Viridian.
+    """
+    # ponytail: caller picks the center — switch to find_closest_pokemon_center
+    # when catching spreads across Kanto.
+    from modules.map_data import PokemonCenter
     from modules.modes.util.higher_level_actions import heal_in_pokemon_center
     from modules.pokemon_party import get_party
 
+    from modules.pokemon import StatusCondition
+
+    if center is None:
+        center = PokemonCenter.ViridianCity
     lead = get_party().first_non_fainted
-    if lead is None or lead.current_hp / lead.total_hp < minimum_fraction:
-        yield from navigate_to(MapFRLG.VIRIDIAN_CITY, (26, 27))
-        yield from heal_in_pokemon_center(PokemonCenter.ViridianCity)
+    if (
+        lead is None
+        or lead.current_hp / lead.total_hp < minimum_fraction
+        or lead.status_condition != StatusCondition.Healthy
+        or get_party()[0].status_condition != StatusCondition.Healthy
+    ):
+        yield from navigate_to(center.value[0], (center.value[1][0], center.value[1][1] + 1))
+        yield from heal_in_pokemon_center(center)
 
 
 def catch_species(
@@ -90,18 +134,29 @@ def catch_species(
         map_key, _rate = best_encounter_map(species_name)
     candidates = [tile] if tile is not None else _encounter_tiles(map_key)[:5]
 
-    arrived = False
-    for candidate in candidates:
-        try:
-            yield from navigate_to(map_key, candidate)
-            arrived = True
-            break
-        except BotModeError:
-            continue
-    if not arrived:
-        raise SkillError(f"Could not reach an encounter tile on {MapFRLG(map_key).name}")
+    from modules.pokemon import StatusCondition
+    from modules.pokemon_party import get_party
 
-    yield from spin(stop_condition=lambda: _species_is_owned(species_name))
+    def needs_heal() -> bool:
+        starter = get_party()[0]
+        return starter.current_hp / starter.total_hp < 0.3 or starter.status_condition != StatusCondition.Healthy
+
+    while not _species_is_owned(species_name):
+        yield from ensure_healthy(minimum_fraction=0.5)
+        arrived = False
+        for candidate in candidates:
+            try:
+                yield from navigate_to(map_key, candidate)
+                arrived = True
+                break
+            except BotModeError:
+                continue
+        if not arrived:
+            raise SkillError(f"Could not reach an encounter tile on {MapFRLG(map_key).name}")
+
+        # Spin until caught — or break out to heal when the starter is chipped
+        # down (fled encounters and catch battles still deal damage over time).
+        yield from spin(stop_condition=lambda: _species_is_owned(species_name) or needs_heal())
 
 
 # (species, explicit map or None, explicit tile or None) — forest tiles chosen
