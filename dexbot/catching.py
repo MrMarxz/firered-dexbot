@@ -65,11 +65,33 @@ class WeakeningCatchStrategy:
         return _Strategy()
 
 
-def fight_all_battles(encounter):
-    """on_battle_started policy: fight every battle (grinding, gym runs)."""
-    from modules.modes._interface import BattleAction
+def make_healing_battle_strategy():
+    """DefaultBattleStrategy + drink a potion when the active mon drops low.
 
-    return BattleAction.Fight
+    Long trainer gauntlets (Mt Moon, gyms) chain fights without a Pokémon
+    Center; without in-battle healing the party attrits to a whiteout.
+    """
+    from modules.battle_strategies import DefaultBattleStrategy, TurnAction
+    from modules.items import get_item_bag, get_item_by_name
+
+    class HealingBattleStrategy(DefaultBattleStrategy):
+        def decide_turn(self, battle_state):
+            own = battle_state.own_side.active_battler
+            if own is not None and own.current_hp / own.total_hp < 0.35:
+                bag = get_item_bag()
+                for name in ("Potion", "Super Potion", "Hyper Potion"):
+                    item = get_item_by_name(name)
+                    if bag.quantity_of(item) > 0:
+                        return TurnAction.use_item_on(item, own.party_index)
+            return super().decide_turn(battle_state)
+
+    return HealingBattleStrategy()
+
+
+def fight_all_battles(encounter):
+    """on_battle_started policy: fight every battle (grinding, gym runs),
+    drinking potions when low."""
+    return make_healing_battle_strategy()
 
 
 def make_catch_decider(target_species: str):
@@ -102,7 +124,11 @@ def ensure_healthy(minimum_fraction: float = 0.5, center=None) -> Generator:
     from modules.pokemon import StatusCondition
 
     if center is None:
-        center = PokemonCenter.ViridianCity
+        from modules.memory import get_event_flag
+
+        # ponytail: crude "nearest center" by story progress; replace with
+        # find_closest_pokemon_center when catching spreads across Kanto.
+        center = PokemonCenter.PewterCity if get_event_flag("BADGE01_GET") else PokemonCenter.ViridianCity
     lead = get_party().first_non_fainted
     if (
         lead is None

@@ -67,12 +67,20 @@ def missing_catchable() -> list[tuple[str, tuple[int, int], int, dict]]:
 # Route 2 south grass: mostly Rattata/Pidgey (Weedle only 5%, so little poison),
 # no trainers, one screen from the Viridian Pokémon Center.
 GRIND_SPOT = ((3, 20), (9, 58))
+# Route 3 east grass: L6-8 wilds (double the XP), unlocked with badge 1.
+GRIND_SPOT_BADGE1 = ((3, 21), (71, 14))
+
+
+def _default_grind_spot() -> tuple[tuple[int, int], tuple[int, int]]:
+    from modules.memory import get_event_flag
+
+    return GRIND_SPOT_BADGE1 if get_event_flag("BADGE01_GET") else GRIND_SPOT
 
 
 def grind_levels(
     target_level: int,
-    map_key: tuple[int, int] = GRIND_SPOT[0],
-    tile: tuple[int, int] | None = GRIND_SPOT[1],
+    map_key: tuple[int, int] | None = None,
+    tile: tuple[int, int] | None = None,
 ) -> Generator:
     """Fight wild encounters until the party's slot-0 Pokémon (the starter)
     reaches `target_level`, healing at a Pokémon Center between stints —
@@ -91,11 +99,43 @@ def grind_levels(
         return lead.current_hp / lead.total_hp < 0.4 or lead.status_condition != StatusCondition.Healthy
 
     from dexbot.catching import _encounter_tiles
+    from dexbot.runner import _log_event
+
+    if map_key is None:
+        map_key, tile = _default_grind_spot()
 
     while not done():
+        _log_event(
+            skill="grind_levels",
+            status="progress",
+            levels=[(p.species.name, p.level) for p in get_party()],
+        )
         yield from ensure_healthy(minimum_fraction=0.95)
         yield from navigate_to(map_key, tile or _encounter_tiles(map_key)[0])
         yield from spin(stop_condition=lambda: done() or needs_heal())
+
+
+def restock_pokeballs_if_low(minimum: int = 10) -> None:
+    """Top up Poké Balls to at least `minimum` before a catch trip (as affordable).
+
+    Catch trips can be deep (Mt Moon B1F is ~10 minutes from a mart), so running
+    dry mid-trip aborts the objective — stock up generously beforehand.
+    """
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG
+    from modules.memory import get_event_flag
+    from modules.player import get_player
+
+    from dexbot.openings import buy_pokeballs
+
+    balls = get_item_bag().quantity_of(get_item_by_name("Poké Ball"))
+    affordable = get_player().money // 200
+    needed = minimum - balls
+    if needed <= 0 or affordable < 1:
+        return
+    quantity = min(needed + 5, affordable, 40)
+    mart = MapFRLG.PEWTER_CITY_MART if get_event_flag("BADGE01_GET") else MapFRLG.VIRIDIAN_CITY_MART
+    run_skill(buy_pokeballs(quantity, mart), f"restock_{quantity}_pokeballs", timeout_frames=120_000)
 
 
 def plan_and_catch_all() -> int:
@@ -110,6 +150,7 @@ def plan_and_catch_all() -> int:
         queue = missing_catchable()
         if not queue:
             return caught
+        restock_pokeballs_if_low()
         # Objective boundary: the optional LLM planner may pick any valid queue
         # entry; invalid/disabled/error → deterministic queue head (queue[0]).
         by_name = {f"catch_{entry[0]}": entry for entry in queue}
@@ -142,15 +183,16 @@ def plan_and_catch_all() -> int:
 
 
 def main() -> None:
+    import sys
+
     from dexbot.emulator import setup_headless_emulator
 
+    fixture = sys.argv[1] if len(sys.argv) > 1 else "m4_pokedex.ss1"
+    out = sys.argv[2] if len(sys.argv) > 2 else "m6_pre_brock_dex.ss1"
+
     context = setup_headless_emulator(is_test_run=True)
-    context.emulator.load_save_state((PROJECT_ROOT / "fixtures" / "m4_pokedex.ss1").read_bytes())
+    context.emulator.load_save_state((PROJECT_ROOT / "fixtures" / fixture).read_bytes())
     context.emulator.run_single_frame()
-
-    from dexbot.openings import buy_pokeballs
-
-    run_skill(buy_pokeballs(5), "buy_more_pokeballs", timeout_frames=60_000)
 
     total = plan_and_catch_all()
 
@@ -158,7 +200,7 @@ def main() -> None:
 
     owned = sorted(s.name for s in get_pokedex().owned_species)
     print(f"[planner] done — caught {total}, dex owns {len(owned)}: {owned}")
-    (PROJECT_ROOT / "fixtures" / "m6_pre_brock_dex.ss1").write_bytes(context.emulator.get_save_state())
+    (PROJECT_ROOT / "fixtures" / out).write_bytes(context.emulator.get_save_state())
 
 
 if __name__ == "__main__":

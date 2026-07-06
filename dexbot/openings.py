@@ -129,8 +129,9 @@ def deliver_parcel_get_pokedex() -> Generator:
         raise SkillError("Pokédex flag not set after talking to Oak")
 
 
-def buy_pokeballs(quantity: int = 10) -> Generator:
-    """Buy Poké Balls at the Viridian Mart (proves they are purchasable post-parcel).
+def buy_items(shopping_list, mart=None) -> Generator:
+    """Buy a list of (item_name, quantity) at a mart (default: Viridian). FRLG
+    mart interiors share one layout, so the counter position works everywhere.
 
     FRLG's mart flow (observed): clerk script → Buy/Sell/Quit list (A picks Buy)
     → Task_BuyMenu item list → Task_BuyHowManyDialogueHandleInput → yes/no.
@@ -141,13 +142,15 @@ def buy_pokeballs(quantity: int = 10) -> Generator:
     from modules.map_data import MapFRLG
     from modules.mart import get_mart_buy_menu_scroll_position, get_mart_buyable_items
     from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_until_task_is_active
-    from modules.modes.util.walking import ensure_facing_direction
+    from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_controllable
     from modules.tasks import get_task
 
-    ball = get_item_by_name("Poké Ball")
-    starting_quantity = get_item_bag().quantity_of(ball)
+    if mart is None:
+        mart = MapFRLG.VIRIDIAN_CITY_MART
+    wanted = [(get_item_by_name(name), quantity) for name, quantity in shopping_list]
+    starting = {item.index: get_item_bag().quantity_of(item) for item, _ in wanted}
 
-    yield from navigate_to(MapFRLG.VIRIDIAN_CITY_MART, (4, 3))
+    yield from navigate_to(mart, (4, 3))
     yield from ensure_facing_direction("Left")
     _ctx().emulator.press_button("A")
     yield
@@ -155,26 +158,35 @@ def buy_pokeballs(quantity: int = 10) -> Generator:
     for _ in range(20):
         yield
 
-    slot = get_mart_buyable_items().index(ball)
-    while get_mart_buy_menu_scroll_position() != slot:
-        _ctx().emulator.press_button("Up" if get_mart_buy_menu_scroll_position() > slot else "Down")
-        yield
-        yield
-    yield from wait_until_task_is_active("Task_BuyHowManyDialogueHandleInput", "A")
-    while (current := get_task("Task_BuyHowManyDialogueHandleInput").data_value(1)) != quantity:
-        _ctx().emulator.press_button("Up" if current < quantity else "Down")
-        yield
-        yield
-    # A-mash confirms the quantity, the price yes/no, and the "Here you are!"
-    # message, landing back in the item list.
-    yield from wait_until_task_is_active("Task_BuyMenu", "A")
+    buyable = get_mart_buyable_items()
+    for item, quantity in wanted:
+        if item not in buyable:
+            continue
+        slot = buyable.index(item)
+        while get_mart_buy_menu_scroll_position() != slot:
+            _ctx().emulator.press_button("Up" if get_mart_buy_menu_scroll_position() > slot else "Down")
+            yield
+            yield
+        yield from wait_until_task_is_active("Task_BuyHowManyDialogueHandleInput", "A")
+        while (current := get_task("Task_BuyHowManyDialogueHandleInput").data_value(1)) != quantity:
+            _ctx().emulator.press_button("Up" if current < quantity else "Down")
+            yield
+            yield
+        # A-mash confirms the quantity, the price yes/no, and the "Here you
+        # are!" message, landing back in the item list.
+        yield from wait_until_task_is_active("Task_BuyMenu", "A")
+        for _ in range(20):
+            yield
     yield from wait_for_no_script_to_run("B")
-    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
-
     yield from wait_for_player_avatar_to_be_controllable("B")
 
-    if get_item_bag().quantity_of(ball) < starting_quantity + quantity:
-        raise SkillError("Poké Ball purchase failed")
+    for item, quantity in wanted:
+        if item in buyable and get_item_bag().quantity_of(item) < starting[item.index] + quantity:
+            raise SkillError(f"Purchase of {item.name} failed")
+
+
+def buy_pokeballs(quantity: int = 10, mart=None) -> Generator:
+    yield from buy_items([("Poké Ball", quantity)], mart)
 
 
 def scripted_opening() -> Generator:

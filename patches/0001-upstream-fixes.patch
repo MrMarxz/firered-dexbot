@@ -1,0 +1,42 @@
+diff --git a/modules/battle_strategies/default.py b/modules/battle_strategies/default.py
+index c77149f..dca5fb4 100644
+--- a/modules/battle_strategies/default.py
++++ b/modules/battle_strategies/default.py
+@@ -36,6 +36,11 @@ class DefaultBattleStrategy(BattleStrategy):
+             context.message = f"{new_move.name} is on the block list, so {pokemon.name} will skip learning it."
+             return 4
+ 
++        # A Pokémon with a free move slot can just learn into it.
++        for index, learned_move in enumerate(pokemon.moves):
++            if learned_move is None:
++                return index
++
+         move_choices = [*[move.move for move in pokemon.moves], new_move]
+ 
+         # Get the effective power of each move
+diff --git a/modules/map_path.py b/modules/map_path.py
+index 6135ac4..c6643ef 100644
+--- a/modules/map_path.py
++++ b/modules/map_path.py
+@@ -289,7 +289,7 @@ class PathMap:
+                 if key in warp_cache:
+                     for destination in warp_cache[key]:
+                         extra_warp_direction = None
+-                        if tile.tile_type.endswith(" Arrow Warp"):
++                        if tile.tile_type.endswith(" Arrow Warp") or tile.tile_type.startswith("Stair Warp"):
+                             match tile.tile_type:
+                                 case "North Arrow Warp":
+                                     extra_warp_direction = Direction.North
+@@ -299,6 +299,12 @@ class PathMap:
+                                     extra_warp_direction = Direction.East
+                                 case "West Arrow Warp":
+                                     extra_warp_direction = Direction.West
++                                # FRLG diagonal staircases: the warp fires when walking in the
++                                # stair's horizontal direction while standing on the tile.
++                                case "Stair Warp Up/Right" | "Stair Warp Down/Right":
++                                    extra_warp_direction = Direction.East
++                                case "Stair Warp Up/Left" | "Stair Warp Down/Left":
++                                    extra_warp_direction = Direction.West
+                         warps_to = (
+                             (destination.map_group, destination.map_number),
+                             destination.local_position,
