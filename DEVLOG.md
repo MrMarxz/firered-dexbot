@@ -1,5 +1,22 @@
 # DEVLOG
 
+## 2026-07-06 — M2: Knowledge base
+
+**Done**
+- `dexbot/build_kb.py` generates `data/` from the **verified ROM itself** via pret symbol tables — no hand-copied game facts:
+  - `encounters.json`: 124 maps, all encounter types with per-slot % rates + level ranges (from `gWildMonHeaders`).
+  - `trainers.json`: all 742 trainer parties decoded from `gTrainers` (pret `struct Trainer`, 0x28 bytes; handles held-item/custom-move party layouts).
+  - `tmhm.json`: TM01–50 + HM01–08 → move, from upstream's pret-derived items/moves JSON.
+- Species/catch-rate/evolution data: reused from `pokebot-gen3/modules/data/species.json` (pret-extracted), not duplicated.
+- `data/dependencies.json`: hand-authored story/badge/HM dependency graph (cited: Bulbapedia walkthrough + badge field-move gating), consumed by the M6 planner. Structure validated acyclic in tests.
+
+**Verified**
+- `tests/test_m2_kb.py` (9 tests total now, all passing): Pikachu 5% / Caterpie 40% in Viridian Forest, Abra 15% @ L8–14 on Route 24, old rod = 100% Magikarp, Brock = Geodude 12 + Onix 14, HM01=Cut / HM03=Surf / HM04=Strength / TM26=Earthquake, exactly 50 TMs, Squirtle catch rate 45 & evolves at 16, dependency graph acyclic with only known flag references.
+
+**Risky / notes**
+- `dependencies.json` gating details (esp. Sevii access, Flash aide's 10-dex requirement) are from documentation, not yet verified in-game — verify as milestones reach them.
+- Trainer `iv_strength` is the raw 0–255 fixed-IV field; convert with `iv * 31 // 255` when the M7 damage calc needs real IVs.
+
 ## 2026-07-06 — M1: State telemetry
 
 **Done**

@@ -1,0 +1,234 @@
+{
+ "TM01": {
+  "item_index": 289,
+  "move": "Focus Punch"
+ },
+ "TM02": {
+  "item_index": 290,
+  "move": "Dragon Claw"
+ },
+ "TM03": {
+  "item_index": 291,
+  "move": "Water Pulse"
+ },
+ "TM04": {
+  "item_index": 292,
+  "move": "Calm Mind"
+ },
+ "TM05": {
+  "item_index": 293,
+  "move": "Roar"
+ },
+ "TM06": {
+  "item_index": 294,
+  "move": "Toxic"
+ },
+ "TM07": {
+  "item_index": 295,
+  "move": "Hail"
+ },
+ "TM08": {
+  "item_index": 296,
+  "move": "Bulk Up"
+ },
+ "TM09": {
+  "item_index": 297,
+  "move": "Bullet Seed"
+ },
+ "TM10": {
+  "item_index": 298,
+  "move": "Hidden Power"
+ },
+ "TM11": {
+  "item_index": 299,
+  "move": "Sunny Day"
+ },
+ "TM12": {
+  "item_index": 300,
+  "move": "Taunt"
+ },
+ "TM13": {
+  "item_index": 301,
+  "move": "Ice Beam"
+ },
+ "TM14": {
+  "item_index": 302,
+  "move": "Blizzard"
+ },
+ "TM15": {
+  "item_index": 303,
+  "move": "Hyper Beam"
+ },
+ "TM16": {
+  "item_index": 304,
+  "move": "Light Screen"
+ },
+ "TM17": {
+  "item_index": 305,
+  "move": "Protect"
+ },
+ "TM18": {
+  "item_index": 306,
+  "move": "Rain Dance"
+ },
+ "TM19": {
+  "item_index": 307,
+  "move": "Giga Drain"
+ },
+ "TM20": {
+  "item_index": 308,
+  "move": "Safeguard"
+ },
+ "TM21": {
+  "item_index": 309,
+  "move": "Frustration"
+ },
+ "TM22": {
+  "item_index": 310,
+  "move": "Solarbeam"
+ },
+ "TM23": {
+  "item_index": 311,
+  "move": "Iron Tail"
+ },
+ "TM24": {
+  "item_index": 312,
+  "move": "Thunderbolt"
+ },
+ "TM25": {
+  "item_index": 313,
+  "move": "Thunder"
+ },
+ "TM26": {
+  "item_index": 314,
+  "move": "Earthquake"
+ },
+ "TM27": {
+  "item_index": 315,
+  "move": "Return"
+ },
+ "TM28": {
+  "item_index": 316,
+  "move": "Dig"
+ },
+ "TM29": {
+  "item_index": 317,
+  "move": "Psychic"
+ },
+ "TM30": {
+  "item_index": 318,
+  "move": "Shadow Ball"
+ },
+ "TM31": {
+  "item_index": 319,
+  "move": "Brick Break"
+ },
+ "TM32": {
+  "item_index": 320,
+  "move": "Double Team"
+ },
+ "TM33": {
+  "item_index": 321,
+  "move": "Reflect"
+ },
+ "TM34": {
+  "item_index": 322,
+  "move": "Shock Wave"
+ },
+ "TM35": {
+  "item_index": 323,
+  "move": "Flamethrower"
+ },
+ "TM36": {
+  "item_index": 324,
+  "move": "Sludge Bomb"
+ },
+ "TM37": {
+  "item_index": 325,
+  "move": "Sandstorm"
+ },
+ "TM38": {
+  "item_index": 326,
+  "move": "Fire Blast"
+ },
+ "TM39": {
+  "item_index": 327,
+  "move": "Rock Tomb"
+ },
+ "TM40": {
+  "item_index": 328,
+  "move": "Aerial Ace"
+ },
+ "TM41": {
+  "item_index": 329,
+  "move": "Torment"
+ },
+ "TM42": {
+  "item_index": 330,
+  "move": "Facade"
+ },
+ "TM43": {
+  "item_index": 331,
+  "move": "Secret Power"
+ },
+ "TM44": {
+  "item_index": 332,
+  "move": "Rest"
+ },
+ "TM45": {
+  "item_index": 333,
+  "move": "Attract"
+ },
+ "TM46": {
+  "item_index": 334,
+  "move": "Thief"
+ },
+ "TM47": {
+  "item_index": 335,
+  "move": "Steel Wing"
+ },
+ "TM48": {
+  "item_index": 336,
+  "move": "Skill Swap"
+ },
+ "TM49": {
+  "item_index": 337,
+  "move": "Snatch"
+ },
+ "TM50": {
+  "item_index": 338,
+  "move": "Overheat"
+ },
+ "HM01": {
+  "item_index": 339,
+  "move": "Cut"
+ },
+ "HM02": {
+  "item_index": 340,
+  "move": "Fly"
+ },
+ "HM03": {
+  "item_index": 341,
+  "move": "Surf"
+ },
+ "HM04": {
+  "item_index": 342,
+  "move": "Strength"
+ },
+ "HM05": {
+  "item_index": 343,
+  "move": "Flash"
+ },
+ "HM06": {
+  "item_index": 344,
+  "move": "Rock Smash"
+ },
+ "HM07": {
+  "item_index": 345,
+  "move": "Waterfall"
+ },
+ "HM08": {
+  "item_index": 346,
+  "move": "Dive"
+ }
+}
