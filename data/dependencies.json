@@ -40,7 +40,9 @@
       "requires": [
         "BADGE01_GET",
         "GOT_FOSSIL_FROM_MT_MOON"
-      ]
+      ],
+      "visit_last": true,
+      "_note": "Route 4 east is a one-way descent into Cerulean; going there strands the bot away from western Kanto until Diglett's Cave"
     },
     "1,1": {
       "requires": [

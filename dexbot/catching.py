@@ -123,21 +123,44 @@ def ensure_healthy(minimum_fraction: float = 0.5, center=None) -> Generator:
 
     from modules.pokemon import StatusCondition
 
-    if center is None:
-        from modules.memory import get_event_flag
-
-        # ponytail: crude "nearest center" by story progress; replace with
-        # find_closest_pokemon_center when catching spreads across Kanto.
-        center = PokemonCenter.PewterCity if get_event_flag("BADGE01_GET") else PokemonCenter.ViridianCity
     lead = get_party().first_non_fainted
-    if (
+    if not (
         lead is None
         or lead.current_hp / lead.total_hp < minimum_fraction
         or lead.status_condition != StatusCondition.Healthy
         or get_party()[0].status_condition != StatusCondition.Healthy
     ):
-        yield from navigate_to(center.value[0], (center.value[1][0], center.value[1][1] + 1))
-        yield from heal_in_pokemon_center(center)
+        return
+
+    if center is None:
+        # Pick the closest *reachable* known center by planning a route to each
+        # (one-way ledges make story-order proximity wrong, e.g. Route 4 east
+        # can only reach Cerulean).
+        from dexbot.navigation import _plan_warp_route
+        from modules.player import get_player_avatar
+
+        avatar = get_player_avatar()
+        position = (avatar.map_group_and_number, avatar.local_coordinates)
+        candidates = [
+            PokemonCenter.ViridianCity,
+            PokemonCenter.PewterCity,
+            PokemonCenter.Route4,
+            PokemonCenter.CeruleanCity,
+        ]
+        best = None
+        for candidate in candidates:
+            try:
+                route = _plan_warp_route(position, (candidate.value[0].value, candidate.value[1]))
+            except Exception:
+                continue
+            if best is None or len(route) < best[1]:
+                best = (candidate, len(route))
+        if best is None:
+            raise SkillError("No reachable Pokémon Center from here")
+        center = best[0]
+
+    yield from navigate_to(center.value[0], (center.value[1][0], center.value[1][1] + 1))
+    yield from heal_in_pokemon_center(center)
 
 
 def catch_species(
@@ -160,6 +183,11 @@ def catch_species(
 
     if _species_is_owned(species_name):
         return
+
+    from modules.items import get_item_bag, get_item_by_name
+
+    if get_item_bag().quantity_of(get_item_by_name("Poké Ball")) == 0:
+        raise SkillError(f"No Poké Balls — cannot catch {species_name}")
 
     yield from ensure_healthy()
 

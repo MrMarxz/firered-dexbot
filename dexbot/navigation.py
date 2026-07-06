@@ -74,12 +74,20 @@ def _get_warp_edges() -> dict:
     return _warp_edges
 
 
+from functools import lru_cache
+
+
+@lru_cache(maxsize=4096)
 def _walkable(source: tuple[tuple[int, int], tuple[int, int]], dest: tuple[tuple[int, int], tuple[int, int]]) -> bool:
     """Whether the A* finds a walking path between two positions (no player needed).
 
     Map "levels" are not internally connected (Kanto's outdoors is split by the
     forest, caves, ...), so warp-route planning verifies every same-level leg
     with the real pathfinder instead of trusting level identity.
+
+    Cached: route planning re-tests the same (position, warp) pairs constantly.
+    A stale hit (an NPC moved into a choke point, a story flag cleared a tile)
+    is corrected by the navigation retry/blacklist machinery at execution time.
     """
     from modules.map_path import PathFindingError, calculate_path
 

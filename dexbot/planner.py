@@ -60,7 +60,8 @@ def missing_catchable() -> list[tuple[str, tuple[int, int], int, dict]]:
             if species not in best or rate > best[species][1]:
                 best[species] = (map_key, rate, annotation)
     queue = [(species, *info) for species, info in best.items()]
-    queue.sort(key=lambda item: (-item[2], item[0]))
+    # visit_last maps (one-way descents) go to the back regardless of rate.
+    queue.sort(key=lambda item: (item[3].get("visit_last", False), -item[2], item[0]))
     return queue
 
 
@@ -145,9 +146,12 @@ def plan_and_catch_all() -> int:
     from dexbot.llm_planner import choose_objective
     from dexbot.telemetry import capture_state
 
+    from dexbot.runner import SkillError, _log_event
+
     caught = 0
+    deferred: set = set()
     while True:
-        queue = missing_catchable()
+        queue = [q for q in missing_catchable() if q[0] not in deferred]
         if not queue:
             return caught
         restock_pokeballs_if_low()
@@ -172,12 +176,20 @@ def plan_and_catch_all() -> int:
                 on_battle_started=fight_all_battles,
             )
 
-        run_skill(
-            catch_species(species, map_key, tile),
-            f"catch_{species}",
-            timeout_frames=600_000,
-            on_battle_started=make_catch_decider(species),
-        )
+        try:
+            run_skill(
+                catch_species(species, map_key, tile),
+                f"catch_{species}",
+                timeout_frames=600_000,
+                on_battle_started=make_catch_decider(species),
+            )
+        except SkillError as e:
+            # Objective failed (unreachable, stranded, ...): defer it and move
+            # on — a later story unlock usually fixes it. Never abort the loop.
+            deferred.add(species)
+            print(f"[planner] deferred {species}: {e}")
+            _log_event(skill=f"catch_{species}", status="deferred", error=str(e))
+            continue
         caught += 1
         print(f"[planner] caught {species} ({rate}% on {map_key})")
 
