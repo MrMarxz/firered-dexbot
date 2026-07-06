@@ -1,0 +1,9 @@
+roms/
+*.gba
+*.zip
+.venv/
+logs/
+__pycache__/
+*.pyc
+pokebot-gen3/
+vendor/
