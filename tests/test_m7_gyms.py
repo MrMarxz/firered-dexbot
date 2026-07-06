@@ -34,4 +34,6 @@ def test_badge_unlocks_more_maps():
     assert (1, 1) in maps  # Mt Moon 1F
 
     new_targets = {species for species, *_ in missing_catchable()}
-    assert {"Nidoran♂", "Jigglypuff", "Ekans", "Zubat", "Geodude", "Paras", "Clefairy"} <= new_targets
+    # Ekans (Route 4 east) additionally needs the Mt Moon fossil gate cleared.
+    assert {"Nidoran♂", "Jigglypuff", "Zubat", "Geodude", "Paras", "Clefairy"} <= new_targets
+    assert "Ekans" not in new_targets
