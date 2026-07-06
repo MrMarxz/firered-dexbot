@@ -1,5 +1,18 @@
 # DEVLOG
 
+## 2026-07-06 — M1: State telemetry
+
+**Done**
+- `dexbot/telemetry.py`: `capture_state()` decodes frame, game state, player name, money, map group/number, coords, facing, party (species/level/hp/status), all 8 badge flags, configurable story flags, dex seen/owned counts, and battle state — all via pokebot memory decoders, zero pixel reads. `TelemetryLogger` appends JSONL to `logs/` every N frames via `tick()`.
+- Upstream's FireRed test savestates are **v1.1** (CRC 0x84EE4776); our cart is v1.0 (0xDD88761C), so they're unusable. Generated our own: `dexbot/new_game.py` drives fresh-boot → New Game → Oak intro → naming screens (3×A, START, A) → controllable overworld, purely off `gMain.callback2` state. Worked first try; saved as `fixtures/m1_game_start.ss1`.
+
+**Verified**
+- `tests/test_m1_telemetry.py`: loads the fixture, runs 100 frames with a 30-frame logging interval, asserts ≥3 entries, exact known values (name "AA", ₽3000, map (4,1) @ (6,6), empty party, no badges, not in battle) and monotonically increasing frame numbers. All tests pass.
+
+**Risky / notes**
+- `new_game.py` naming-screen handling is timing-based (fixed frame offsets); robust enough headless+deterministic, but M4 should replace it with task/menu-state-driven input if it ever flakes.
+- v1.0 vs v1.1 matters everywhere: symbol tables differ. All fixtures must come from our own runs — documented in `fixtures/README.md`.
+
 ## 2026-07-06 — M0: Environment
 
 **Done**
