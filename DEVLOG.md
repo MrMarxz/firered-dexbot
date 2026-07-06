@@ -1,5 +1,24 @@
 # DEVLOG
 
+## 2026-07-06 — M3: navigate_to (part 1 — warp-spanning navigation works)
+
+**Done**
+- `dexbot/navigation.py`: L1 `navigate_to(map, coords)` — BFS over the warp graph (levels = upstream's connected-map components, edges = warp events read from ROM map data), each leg delegated to upstream's A* (`calculate_path`/`navigate_to`), which already handles collision, ledges, NPCs, and connections.
+- `dexbot/runner.py`: `run_skill()` frame loop with timeout + JSONL skill telemetry (`logs/skills.jsonl`) — no skill can hang silently.
+- **Found + fixed an upstream bug**: FRLG diagonal stair warps ("Stair Warp Up/Left" etc., behaviours 0x6C–0x6F) got no `extra_warp_direction` in `map_path.py` (only RSE-style arrow warps did), so the pathfinder parked on the stair tile and the warp never fired — then mGBA eventually segfaulted. Patch kept minimal, saved as `patches/0001-frlg-diagonal-stair-warps.patch`, auto-applied by `setup.sh`.
+- **Second gotcha**: map warp *events* on tiles with behaviour "Normal" (e.g. two of the three exit-warp events in the player's house) are ignored by the game engine. The warp graph now only uses warps sitting on actual warp-triggering behaviours (`WARP_BEHAVIOURS`).
+
+**Verified**
+- `tests/test_m3_navigation.py`: bedroom → Oak's lab (stair warp + exit mat + door warp, 3 maps) lands exactly at (4,3)(6,10) in ~1050 frames. Suite: 10 passed.
+
+**Pending for M3 completion**
+- The brief's acceptance (Pallet Town → Viridian Mart) needs a post-Oak's-lab savestate — pre-starter, the Oak cutscene intercepts at Route 1. M4's opening script produces that state; the test gets added then.
+- 🧍 checkpoint: human should watch one non-headless navigation run (any time; `python -m dexbot.new_game` then a navigate call without headless flags).
+
+**Risky / notes**
+- Warp-graph BFS minimizes warp count, not distance (`ponytail` comment in code); fine until routes look dumb.
+- Dynamic warps (elevators, group 127/127) are excluded from the graph — story scripts handle those when we get there.
+
 ## 2026-07-06 — M2: Knowledge base
 
 **Done**

@@ -13,6 +13,9 @@ if [ ! -d pokebot-gen3 ]; then
 fi
 git -C pokebot-gen3 checkout -q "$POKEBOT_COMMIT"
 
+# Minimal upstream patches (documented in patches/)
+git -C pokebot-gen3 apply --check ../patches/*.patch 2>/dev/null && git -C pokebot-gen3 apply ../patches/*.patch || true
+
 # 2. venv + python deps
 if [ ! -d .venv ]; then
     python3.12 -m venv .venv
