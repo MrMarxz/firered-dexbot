@@ -75,9 +75,11 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
 
     _log_event(skill=name, status="start", frame=context.emulator.get_frame_count())
     frames = 0
+    calm_overworld_frames = 0
     previous_frame_info = None
     try:
         while len(context.controller_stack) > 0:
+            context.frame += 1
             if context.bot_mode == "Manual":
                 raise SkillError(f"Skill {name!r} was aborted (bot switched to Manual mode: {context.message!r})")
 
@@ -96,11 +98,34 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
             for listener in context.bot_listeners.copy():
                 listener.handle_frame(bot_mode, frame_info)
 
+            # Stale-controller cleanup: a battle handler can survive its battle
+            # when script-started fights desync the BattleListener, leaving a
+            # generator that waits forever and swallows the next battle. After
+            # a sustained calm overworld stretch, drop leftovers and reset the
+            # listeners so the next battle is handled from a clean slate.
+            from modules.memory import GameState
+
+            if frame_info.game_state == GameState.OVERWORLD and not frame_info.script_stack:
+                calm_overworld_frames += 1
+                if calm_overworld_frames == 180 and len(context.controller_stack) > 1:
+                    while len(context.controller_stack) > 1:
+                        context.controller_stack.pop()
+                    context.bot_listeners = get_bot_listeners(context.rom)
+                    _log_event(skill=name, status="cleaned_stale_battle_controllers")
+            else:
+                calm_overworld_frames = 0
+
             try:
-                next(context.controller_stack[-1])
+                if len(context.controller_stack) > 0:
+                    next(context.controller_stack[-1])
             except (StopIteration, GeneratorExit):
+                # Upstream semantics: pop and STILL advance the frame below.
+                # Re-processing the same frame would double-run the listeners,
+                # which re-arms the BattleListener during BATTLE_ENDING and
+                # pushes a duplicate battle handler that never terminates.
                 context.controller_stack.pop()
-                continue
+                if len(context.controller_stack) == 0:
+                    break
 
             context.emulator.run_single_frame()
             frames += 1
