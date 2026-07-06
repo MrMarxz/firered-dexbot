@@ -65,6 +65,13 @@ class WeakeningCatchStrategy:
         return _Strategy()
 
 
+def fight_all_battles(encounter):
+    """on_battle_started policy: fight every battle (grinding, gym runs)."""
+    from modules.modes._interface import BattleAction
+
+    return BattleAction.Fight
+
+
 def make_catch_decider(target_species: str):
     """on_battle_started callback: catch the target, fight trainers (no choice),
     flee from other wild encounters."""

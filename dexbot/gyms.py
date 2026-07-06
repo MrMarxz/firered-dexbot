@@ -29,12 +29,14 @@ def beat_brock(min_level: int = 13) -> Generator:
     if get_event_flag("BADGE01_GET"):
         return
 
-    # Squirtle's Bubble is 4x effective against Geodude/Onix; the level floor is
+    # Water is 4x effective against Geodude/Onix, Fighting 2x; the level floor is
     # the "projected to lose" guard for v1 (proper damage projection in later gyms).
-    if get_party().first_non_fainted.level < min_level:
-        yield from grind_levels(min_level, (1, 0), (4, 58))
-    if not get_party().has_pokemon_with_move("Bubble") and not get_party().has_pokemon_with_move("Water Gun"):
-        raise SkillError("No water move in the party — refusing to fight Brock")
+    if max(p.level for p in get_party() if not p.is_egg) < min_level:
+        yield from grind_levels(min_level)  # caller must run with a Fight policy
+    good_moves = ("Bubble", "Water Gun", "Karate Chop", "Low Kick")
+    if not any(get_party().has_pokemon_with_move(move) for move in good_moves):
+        moves = [(p.species.name, p.level, [m.move.name for m in p.moves if m]) for p in get_party()]
+        raise SkillError(f"No move that beats Rock-types in the party: {moves}")
 
     from modules.map_data import PokemonCenter
 
@@ -60,7 +62,9 @@ def main() -> None:
     context.emulator.load_save_state((PROJECT_ROOT / "fixtures" / "m6_pre_brock_dex.ss1").read_bytes())
     context.emulator.run_single_frame()
 
-    run_skill(GYMS[which](), f"beat_{which}", timeout_frames=600_000)
+    from dexbot.catching import fight_all_battles
+
+    run_skill(GYMS[which](), f"beat_{which}", timeout_frames=900_000, on_battle_started=fight_all_battles)
     print(f"{which} defeated")
     (PROJECT_ROOT / "fixtures" / f"m7_badge_{which}.ss1").write_bytes(context.emulator.get_save_state())
 

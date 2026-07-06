@@ -82,14 +82,13 @@ def grind_levels(
     from modules.pokemon_party import get_party
 
     def done() -> bool:
-        return get_party()[0].level >= target_level
+        # "rotate" on faint/low-HP permanently reorders the party, so track the
+        # strongest member rather than assuming the starter stays in slot 0.
+        return max(p.level for p in get_party() if not p.is_egg) >= target_level
 
     def needs_heal() -> bool:
-        starter = get_party()[0]
-        return (
-            starter.current_hp / starter.total_hp < 0.4
-            or starter.status_condition != StatusCondition.Healthy
-        )
+        lead = get_party()[0]
+        return lead.current_hp / lead.total_hp < 0.4 or lead.status_condition != StatusCondition.Healthy
 
     from dexbot.catching import _encounter_tiles
 
@@ -123,16 +122,13 @@ def plan_and_catch_all() -> int:
         if get_party()[0].level < min_level:
             # Grind somewhere already safe (the forest safe tile) before
             # entering a map with trainer ambushes.
-            def fight_everything(encounter):
-                from modules.modes._interface import BattleAction
-
-                return BattleAction.Fight
+            from dexbot.catching import fight_all_battles
 
             run_skill(
                 grind_levels(min_level),
                 f"grind_to_{min_level}",
                 timeout_frames=600_000,
-                on_battle_started=fight_everything,
+                on_battle_started=fight_all_battles,
             )
 
         run_skill(

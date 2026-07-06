@@ -74,36 +74,49 @@ def _get_warp_edges() -> dict:
     return _warp_edges
 
 
+def _walkable(source: tuple[tuple[int, int], tuple[int, int]], dest: tuple[tuple[int, int], tuple[int, int]]) -> bool:
+    """Whether the A* finds a walking path between two positions (no player needed).
+
+    Map "levels" are not internally connected (Kanto's outdoors is split by the
+    forest, caves, ...), so warp-route planning verifies every same-level leg
+    with the real pathfinder instead of trusting level identity.
+    """
+    from modules.map_path import PathFindingError, calculate_path
+
+    try:
+        calculate_path(source, dest)
+        return True
+    except PathFindingError:
+        return False
+    except Exception:
+        return False
+
+
 def _plan_warp_route(
-    source_level: int,
-    destination_level: int,
+    start: tuple[tuple[int, int], tuple[int, int]],
+    dest: tuple[tuple[int, int], tuple[int, int]],
     blacklist: frozenset = frozenset(),
 ) -> list[tuple[tuple[int, int], tuple[int, int]]]:
-    """BFS over map levels; returns the warp tiles to step on, in order.
+    """BFS over (position, warp) space; returns the warp tiles to step on, in order.
 
-    `blacklist` contains (warp_map, warp_coords) entries that turned out to be
-    unreachable (levels are not always internally connected, e.g. Route 2's
-    north and south segments) — those edges are skipped.
+    `blacklist` contains (warp_map, warp_coords) entries that failed in practice
+    (e.g. an NPC camping the only approach) — those edges are skipped.
     """
-    if source_level == destination_level:
-        return []
     edges = _get_warp_edges()
-    visited = {source_level}
-    queue = [(source_level, [])]
+    visited: set = set()
+    queue: list = [(start, [])]
     while queue:
-        level, route = queue.pop(0)
-        for warp_map, warp_coords, dest_map, dest_coords in edges.get(level, []):
-            if (warp_map, warp_coords) in blacklist:
+        position, route = queue.pop(0)
+        if _map_level(position[0]) == _map_level(dest[0]) and (position == dest or _walkable(position, dest)):
+            return route
+        for warp_map, warp_coords, warp_dest_map, warp_dest_coords in edges.get(_map_level(position[0]), []):
+            key = (warp_map, warp_coords)
+            if key in visited or key in blacklist:
                 continue
-            dest_level = _map_level(dest_map)
-            if dest_level in visited:
-                continue
-            new_route = [*route, (warp_map, warp_coords)]
-            if dest_level == destination_level:
-                return new_route
-            visited.add(dest_level)
-            queue.append((dest_level, new_route))
-    raise SkillError(f"No warp route from map level {source_level} to {destination_level}")
+            if _walkable(position, (warp_map, warp_coords)):
+                visited.add(key)
+                queue.append(((warp_dest_map, warp_dest_coords), [*route, key]))
+    raise SkillError(f"No warp route from {start} to {dest}")
 
 
 def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generator:
@@ -124,21 +137,21 @@ def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generato
     if isinstance(map, MapFRLG):
         map = map.value
 
-    destination_level = _map_level(map)
     interruptions = 0
     blacklist: set = set()
     current_target = None
     target_failures = 0
     while True:
-        current_map = get_player_avatar().map_group_and_number
-        current_level = _map_level(current_map)
+        avatar = get_player_avatar()
+        position = (avatar.map_group_and_number, avatar.local_coordinates)
         try:
-            if current_level == destination_level:
+            route = _plan_warp_route(position, (tuple(map), tuple(coordinates)), frozenset(blacklist))
+            if not route:
                 yield from navigate_same_level(map, coordinates, run=run)
                 return
             # Step onto the first warp of the route; upstream follows the warp
-            # because it is the final waypoint. Then re-plan from the new level.
-            warp_map, warp_coords = _plan_warp_route(current_level, destination_level, frozenset(blacklist))[0]
+            # because it is the final waypoint. Then re-plan from the new position.
+            warp_map, warp_coords = route[0]
             current_target = (warp_map, warp_coords)
             yield from navigate_same_level(warp_map, warp_coords, run=run)
             target_failures = 0

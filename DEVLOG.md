@@ -1,5 +1,20 @@
 # DEVLOG
 
+## 2026-07-06 — M7 (badge 1): Brock beaten unattended
+
+**Done**
+- `dexbot/gyms.py`: `beat_brock` — precondition (strongest party member ≥ L13 + a Rock-beating move: water *or* fighting), heal at Pewter, walk in, fight the junior trainer en route via listeners, talk to Brock, verify `BADGE01_GET`.
+- **Navigation redesign** (forced by "Route 2 south → Pewter" having no same-level path): warp-route BFS now searches *(position, warp)* space and verifies every same-level leg with the real A* offline (`calculate_path` needs no player) instead of trusting map-"level" identity — Kanto's outdoor level is physically split by the forest/caves. Nav tests: bedroom→lab and Pallet→Viridian Mart still green (slower: ~14 s per long route; cache per-region walkability if it ever hurts).
+- **`rotate` reorders the party permanently** — discovered when a grind-to-13 produced a L13 *Mankey* lead and a L6 Squirtle in slot 6. Grind now tracks the strongest non-egg member; Brock's precondition accepts Karate Chop/Low Kick (fighting beats rock too). Mankey ended up doing the job Squirtle couldn't.
+- Fight-vs-flee battle policy centralised (`fight_all_battles` in catching.py) — the third "grind fled everything" incident; policy lives at the run_skill call site by design, so gyms/planner share the helper.
+- Post-badge-1 maps annotated (Route 3/4, Mt Moon 1F/B1F/B2F) → 7 new species enter the planner queue (verified by test).
+
+**Verified**
+- `python -m dexbot.gyms brock` from `m6_pre_brock_dex.ss1`, fully unattended: grind → heal → gym → badge. Fixture `m7_badge_brock.ss1`. Suite: 26 passed.
+
+**Risky / notes**
+- Route 3's trainer gauntlet is unavoidable for Mt Moon trips — heal cycles + rotate should cope, but money for potions/balls is thin until trainer payouts accumulate.
+- The Squirtle-vs-Bulbasaur rival counter still needs a real answer before forced rival fights (Cerulean, SS Anne).
 ## 2026-07-06 — M6: Deterministic dex planner (+ M9 pulled forward)
 
 **Done**
