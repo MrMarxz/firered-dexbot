@@ -9,5 +9,6 @@ mGBA savestates (`.ss1`) for headless tests, all produced with FireRed USA **1.0
 | `m1_game_start.ss1` | `python -m dexbot.new_game` — fresh boot → New Game → Oak intro (A-mash) → naming screens handled via 3×A + START + A (player/rival named "AA") → first controllable overworld frame in player's house 2F, map (4,1) @ (6,6), money 3000, empty party. |
 | `m4_post_lab.ss1` | `python -m dexbot.openings` — after starter (Squirtle) + winning the lab rival fight, still inside Oak's lab. This is the "post-Oak's-lab" state used by the M3 acceptance test. |
 | `m4_pokedex.ss1` | Same run, final state: Pokédex owned, parcel delivered, 10 Poké Balls bought, standing in Viridian Mart. |
+| `m5_five_species.ss1` | `python -m dexbot.catching` from `m4_pokedex.ss1` — Rattata, Pidgey, Caterpie, Weedle, Pikachu caught; dex owns 6 species. |
 
 Regenerate any fixture by re-running the listed command from the project root.

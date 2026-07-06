@@ -74,8 +74,17 @@ def _get_warp_edges() -> dict:
     return _warp_edges
 
 
-def _plan_warp_route(source_level: int, destination_level: int) -> list[tuple[tuple[int, int], tuple[int, int]]]:
-    """BFS over map levels; returns the warp tiles to step on, in order."""
+def _plan_warp_route(
+    source_level: int,
+    destination_level: int,
+    blacklist: frozenset = frozenset(),
+) -> list[tuple[tuple[int, int], tuple[int, int]]]:
+    """BFS over map levels; returns the warp tiles to step on, in order.
+
+    `blacklist` contains (warp_map, warp_coords) entries that turned out to be
+    unreachable (levels are not always internally connected, e.g. Route 2's
+    north and south segments) — those edges are skipped.
+    """
     if source_level == destination_level:
         return []
     edges = _get_warp_edges()
@@ -84,6 +93,8 @@ def _plan_warp_route(source_level: int, destination_level: int) -> list[tuple[tu
     while queue:
         level, route = queue.pop(0)
         for warp_map, warp_coords, dest_map, dest_coords in edges.get(level, []):
+            if (warp_map, warp_coords) in blacklist:
+                continue
             dest_level = _map_level(dest_map)
             if dest_level in visited:
                 continue
@@ -115,6 +126,9 @@ def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generato
 
     destination_level = _map_level(map)
     interruptions = 0
+    blacklist: set = set()
+    current_target = None
+    target_failures = 0
     while True:
         current_map = get_player_avatar().map_group_and_number
         current_level = _map_level(current_map)
@@ -124,14 +138,41 @@ def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generato
                 return
             # Step onto the first warp of the route; upstream follows the warp
             # because it is the final waypoint. Then re-plan from the new level.
-            warp_map, warp_coords = _plan_warp_route(current_level, destination_level)[0]
+            warp_map, warp_coords = _plan_warp_route(current_level, destination_level, frozenset(blacklist))[0]
+            current_target = (warp_map, warp_coords)
             yield from navigate_same_level(warp_map, warp_coords, run=run)
-        except BotModeError:
+            target_failures = 0
+        except BotModeError as e:
             # One-time overworld triggers (tutorial NPCs, etc.) interrupt walking.
             # Mash through the script, then re-plan from wherever we ended up.
             interruptions += 1
-            if interruptions > 10 or not (get_global_script_context() and get_global_script_context().is_active):
+            if interruptions > 30:
                 raise
+            if "Could not find a path" in str(e):
+                # Either a wandering NPC (current + previous tile both count as
+                # blocked) sitting in a choke point — wait it out — or the warp
+                # is genuinely unreachable from this part of the level (levels
+                # are not always internally connected): blacklist and re-plan.
+                target_failures += 1
+                if target_failures >= 3 and current_target is not None:
+                    blacklist.add(current_target)
+                    target_failures = 0
+                    continue
+                for _ in range(120):
+                    yield
+                continue
+            if not (get_global_script_context() and get_global_script_context().is_active):
+                # Not a script interruption — e.g. "player not controllable" right
+                # after a menu/dialogue closed. Give it a moment and retry once.
+                from modules.player import player_avatar_is_controllable
+
+                for _ in range(120):
+                    if player_avatar_is_controllable():
+                        break
+                    yield
+                else:
+                    raise
+                continue
             from modules.context import context
             from modules.tasks import task_is_active
 

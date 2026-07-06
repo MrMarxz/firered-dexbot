@@ -169,6 +169,9 @@ def buy_pokeballs(quantity: int = 10) -> Generator:
     # message, landing back in the item list.
     yield from wait_until_task_is_active("Task_BuyMenu", "A")
     yield from wait_for_no_script_to_run("B")
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+
+    yield from wait_for_player_avatar_to_be_controllable("B")
 
     if get_item_bag().quantity_of(ball) < starting_quantity + quantity:
         raise SkillError("Poké Ball purchase failed")

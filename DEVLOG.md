@@ -1,5 +1,24 @@
 # DEVLOG
 
+## 2026-07-06 — M5: Catch loop
+
+**Done**
+- `dexbot/catching.py`: `catch_species(species, map_key=None, tile=None)` — KB picks the best encounter map, walks to an encounter tile (centroid-sorted, or an explicit safe tile), spins to trigger encounters. Target species → upstream `CatchStrategy` (ball choice by catch-rate math, status moves); everything else → flee. `ensure_healthy()` heals at the Viridian Pokémon Center below 50% lead HP. `dexbot/kb.py`: KB accessors.
+- `runner.run_skill` gained an `on_battle_started` hook so skills can set per-encounter battle policy.
+- Navigation hardening from real failures:
+  - transient path failures (wandering NPC blocking a choke point — its current *and* previous tiles are obstacles) → wait 120 frames, retry;
+  - persistent failures → blacklist that warp and re-plan (map "levels" are not internally connected: the BFS once routed to Route 2's *north* forest gate, unreachable from the south segment);
+  - "not controllable" right after menus → brief wait, retry.
+- KB pick is reachability-blind: Pikachu's globally best map is the Power Plant (Surf-gated). Explicit map override for now; the M6 planner must intersect encounter maps with the dependency graph.
+
+**Verified**
+- From `m4_pokedex.ss1`, fully unattended: bought 5 extra balls, caught Rattata, Pidgey, Caterpie, Weedle and the 5%-rate Pikachu (forest south-entrance grass, away from bug-catcher line of sight); dex owns 6 species. Fixture `m5_five_species.ss1`; suite 14 passed.
+
+**Risky / notes**
+- `CatchStrategy` doesn't weaken targets (status+balls only) — ball burn is ~3/catch for rate-255 commons. Fine for commons; low-catch-rate targets (Abra, legendaries) will need weakening logic (M7's damage calc) and better balls.
+- The Route 22 rival ambush beat a chipped Squirtle earlier — trainer fights during catch trips are the M7 boundary. Until then catch routes avoid trainer maps.
+- Party-full box management deferred to M8 (party has room for now); KNOWN_LIMITATIONS updated.
+
 ## 2026-07-06 — M4: Scripted openings (and M3 completion)
 
 **Done**

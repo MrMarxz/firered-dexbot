@@ -30,7 +30,7 @@ def _log_event(**fields) -> None:
         f.write(json.dumps({"time": round(time.time(), 3), **fields}) + "\n")
 
 
-def _make_bot_mode(skill: Generator):
+def _make_bot_mode(skill: Generator, on_battle_started=None):
     from modules.modes._interface import BotMode
 
     class DexSkillMode(BotMode):
@@ -41,10 +41,15 @@ def _make_bot_mode(skill: Generator):
         def run(self) -> Generator:
             yield from skill
 
+        def on_battle_started(self, encounter):
+            if on_battle_started is not None:
+                return on_battle_started(encounter)
+            return super().on_battle_started(encounter)
+
     return DexSkillMode()
 
 
-def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000) -> None:
+def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_battle_started=None) -> None:
     """Drive a skill generator one frame at a time until it finishes.
 
     Mirrors upstream's main loop: builds FrameInfo, runs bot listeners (which
@@ -57,7 +62,7 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000) -> Non
     from modules.modes import FrameInfo, get_bot_listeners
     from modules.tasks import get_global_script_context, get_tasks
 
-    bot_mode = _make_bot_mode(skill)
+    bot_mode = _make_bot_mode(skill, on_battle_started)
     context.bot_mode_instance = bot_mode
     context._current_bot_mode = bot_mode.name()
     context.bot_listeners = get_bot_listeners(context.rom)
