@@ -40,4 +40,8 @@ def setup_headless_emulator(profile=None, is_test_run: bool = False):
     context.emulator = LibmgbaEmulator(profile, lambda: None, is_test_run=is_test_run)
     context.emulator.set_audio_enabled(False)
     context.emulator.set_throttle(False)
+
+    from modules.stats import StatsDatabase
+
+    context.stats = StatsDatabase(profile)
     return context

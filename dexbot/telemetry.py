@@ -13,12 +13,18 @@ from dexbot import PROJECT_ROOT
 BADGE_FLAGS = [f"BADGE{n:02d}_GET" for n in range(1, 9)]
 
 # Story flags worth tracking for the dex dependency graph (extend as needed).
+# Names must exist in modules/data/event_flags/frlg.txt — get_event_flag()
+# silently returns False for unknown names.
 FLAGS_OF_INTEREST = [
-    "GOT_POKEDEX_FROM_OAK",
-    "GOT_OAKS_PARCEL",
-    "OAK_AIDE_GAVE_HM_FLASH",
-    "GOT_HM01",  # Cut
+    "SYS_POKEDEX_GET",
+    "BEAT_RIVAL_IN_OAKS_LAB",
     "GOT_SS_TICKET",
+    "GOT_HM01",  # Cut
+    "GOT_HM02",  # Fly
+    "GOT_HM03",  # Surf
+    "GOT_HM04",  # Strength
+    "GOT_HM05",  # Flash
+    "GOT_HM06",  # Rock Smash
     *BADGE_FLAGS,
 ]
 

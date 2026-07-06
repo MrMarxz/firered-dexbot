@@ -101,20 +101,58 @@ def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generato
     A generator skill: drive it with dexbot.runner.run_skill.
     """
     from modules.map_data import MapFRLG
-    from modules.modes.util.walking import navigate_to as navigate_same_level
+    from modules.modes._interface import BotModeError
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import (
+        navigate_to as navigate_same_level,
+        wait_for_player_avatar_to_be_controllable,
+    )
     from modules.player import get_player_avatar
+    from modules.tasks import get_global_script_context
 
     if isinstance(map, MapFRLG):
         map = map.value
 
     destination_level = _map_level(map)
+    interruptions = 0
     while True:
         current_map = get_player_avatar().map_group_and_number
         current_level = _map_level(current_map)
-        if current_level == destination_level:
-            yield from navigate_same_level(map, coordinates, run=run)
-            return
-        # Step onto the first warp of the route; upstream follows the warp
-        # because it is the final waypoint. Then re-plan from the new level.
-        warp_map, warp_coords = _plan_warp_route(current_level, destination_level)[0]
-        yield from navigate_same_level(warp_map, warp_coords, run=run)
+        try:
+            if current_level == destination_level:
+                yield from navigate_same_level(map, coordinates, run=run)
+                return
+            # Step onto the first warp of the route; upstream follows the warp
+            # because it is the final waypoint. Then re-plan from the new level.
+            warp_map, warp_coords = _plan_warp_route(current_level, destination_level)[0]
+            yield from navigate_same_level(warp_map, warp_coords, run=run)
+        except BotModeError:
+            # One-time overworld triggers (tutorial NPCs, etc.) interrupt walking.
+            # Mash through the script, then re-plan from wherever we ended up.
+            interruptions += 1
+            if interruptions > 10 or not (get_global_script_context() and get_global_script_context().is_active):
+                raise
+            from modules.context import context
+            from modules.tasks import task_is_active
+
+            # Upstream's error path can leave movement buttons held, and resuming
+            # while an NPC's scripted walk is still in flight can re-trigger the
+            # event and deadlock the game script. Clear both before re-planning.
+            context.emulator.reset_held_buttons()
+            frame = 0
+            while get_global_script_context() and get_global_script_context().is_active:
+                frame += 1
+                if frame % 48 == 24:
+                    # Some FRLG tutorial boxes (sign lady's "press START to open
+                    # the MENU") only dismiss on Start — A/B are swallowed.
+                    context.emulator.press_button("Start")
+                elif frame % 8 == 0:
+                    context.emulator.press_button("A")
+                yield
+            for frame in range(40):  # close a menu if a Start press opened one
+                if frame % 10 == 0:
+                    context.emulator.press_button("B")
+                yield
+            while task_is_active("ScriptMovement_MoveObjects"):
+                yield
+            yield from wait_for_player_avatar_to_be_controllable("A")
