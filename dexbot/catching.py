@@ -235,9 +235,19 @@ def catch_species(
         candidates = [tile]
     else:
         # Spread sample: the N nearest-centroid tiles can all sit in the same
-        # unreachable pocket (Route 24's east grass is water-locked).
+        # unreachable pocket (Route 24's east grass is water-locked). Keep only
+        # graph-plannable ones — a bad candidate otherwise costs a 30s live
+        # search before we try the next.
+        from modules.player import get_player_avatar
+
+        from dexbot.navigation import _plan_via_graph, _walkable
+
         tiles = _encounter_tiles(map_key)
         candidates = tiles[:: max(1, len(tiles) // 5)][:5]
+        avatar = get_player_avatar()
+        pos = (avatar.map_group_and_number, avatar.local_coordinates)
+        feasible = [c for c in candidates if _plan_via_graph(pos, (map_key, c), frozenset(), _walkable) is not None]
+        candidates = feasible or candidates
 
     from modules.pokemon import StatusCondition
     from modules.pokemon_party import get_party
@@ -254,7 +264,9 @@ def catch_species(
                 yield from navigate_to(map_key, candidate)
                 arrived = True
                 break
-            except BotModeError:
+            except (BotModeError, SkillError):
+                # SkillError covers plan failures (no route to THIS tile) —
+                # the next candidate may sit in a reachable pocket.
                 continue
         if not arrived:
             raise SkillError(f"Could not reach an encounter tile on {MapFRLG(map_key).name}")
