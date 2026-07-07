@@ -116,17 +116,19 @@ def _global_coords(map_key: tuple[int, int], local: tuple[int, int]) -> tuple[in
     return (local[0] + pm.offset[0], local[1] + pm.offset[1])
 
 
-_nav_graphs: dict[int, dict | None] = {}  # epoch -> {tile: component_id} | None
+_nav_graphs: dict[int, dict | None] = {}  # epoch -> parsed graph | None
 _rebuild_attempted: set[int] = set()
 
 
 def _load_nav_graph() -> dict | None:
-    """The current story epoch's component map from data/nav_graph.json.
+    """The current story epoch's graph from data/nav_graph.json:
+    {"comp": {tile: component_id}, "walk": {cid: [cid, ...]}} (walk = directed
+    same-level one-way edges: ledges, guard-gated gaps).
 
-    Connectivity depends on story gates, so components are keyed by an epoch
+    Connectivity depends on story gates, so sections are keyed by an epoch
     (= badge count). A missing epoch section is built in-process — pure
-    calculate_path computation, ~10s, no frames advanced. None means graph
-    planning is unavailable (build failed); callers fall back to live search.
+    calculate_path computation, no frames advanced. None means graph planning
+    is unavailable (build failed); callers fall back to live search.
     """
     from modules.memory import get_event_flag
 
@@ -143,13 +145,16 @@ def _load_nav_graph() -> dict | None:
     def read_section() -> dict | None:
         try:
             raw = json.loads(path.read_text())["epochs"][str(epoch)]
+            comp = {}
+            for key, cid in raw["components"].items():
+                mg, mn, x, y = (int(v) for v in key.split(","))
+                comp[((mg, mn), (x, y))] = cid
+            walk: dict[int, list] = {}
+            for a, b in raw["walk_edges"]:
+                walk.setdefault(a, []).append(b)
+            return {"comp": comp, "walk": walk}
         except Exception:
             return None
-        graph = {}
-        for key, cid in raw.items():
-            mg, mn, x, y = (int(v) for v in key.split(","))
-            graph[((mg, mn), (x, y))] = cid
-        return graph
 
     graph = read_section()
     if graph is None and epoch not in _rebuild_attempted:
@@ -165,9 +170,10 @@ def _load_nav_graph() -> dict | None:
     return graph
 
 
-def _find_component(position, graph, walkable, reverse: bool = False) -> int | None:
-    """Which walk-component `position` belongs to, via live A* against one
-    representative portal tile per component on its level (nearest first)."""
+def _find_component(position, comp, walkable) -> int | None:
+    """The first component `position` can WALK TO, via live A* against one
+    representative portal tile per component on its level (nearest first —
+    which in practice is the component the position is inside)."""
     level = _map_level(position[0])
     pos_global = _global_coords(position[0], position[1])
 
@@ -178,57 +184,79 @@ def _find_component(position, graph, walkable, reverse: bool = False) -> int | N
         return abs(g[0] - pos_global[0]) + abs(g[1] - pos_global[1])
 
     nearest_rep: dict[int, tuple] = {}
-    for tile, cid in graph.items():
+    for tile, cid in comp.items():
         if _map_level(tile[0]) != level:
             continue
         if cid not in nearest_rep or distance(tile) < distance(nearest_rep[cid]):
             nearest_rep[cid] = tile
     for cid, tile in sorted(nearest_rep.items(), key=lambda kv: distance(kv[1])):
-        if walkable(tile, position) if reverse else walkable(position, tile):
+        if walkable(position, tile):
             return cid
     return None
 
 
 def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
-    """Instant BFS over precomputed walk-components joined by warp edges.
+    """BFS over precomputed components joined by warp edges (cost 1) and
+    directed one-way walk edges (cost 0: ledge drops etc.).
 
     Returns the warp-tile route, or None to fall back to live planning (graph
-    missing, stale story epoch, or start/dest not matched to a component).
+    missing, no component reachable from start, or no route to dest).
     """
     from collections import deque
 
     graph = _load_nav_graph()
     if graph is None:
         return None
-    start_cid = _find_component(start, graph, walkable)
-    dest_cid = _find_component(dest, graph, walkable, reverse=True)
-    if start_cid is None or dest_cid is None:
+    comp = graph["comp"]
+    entry = _find_component(start, comp, walkable)
+    if entry is None:
         return None
-    if start_cid == dest_cid:
-        return []
-    # Component adjacency: each warp joins its source tile's component to its
+    # Warp adjacency: each warp joins its source tile's component to its
     # landing tile's component, traversed by stepping on the source tile.
-    adjacency: dict[int, list] = {}
+    warp_adj: dict[int, list] = {}
     for elist in _get_warp_edges().values():
         for src_map, src_coords, dst_map, dst_coords in elist:
             src_tile = (src_map, src_coords)
             if src_tile in blacklist:
                 continue
-            a = graph.get(src_tile)
-            b = graph.get((dst_map, dst_coords))
-            if a is not None and b is not None and a != b:
-                adjacency.setdefault(a, []).append((b, src_tile))
-    queue = deque([(start_cid, [])])
-    seen = {start_cid}
+            a = comp.get(src_tile)
+            b = comp.get((dst_map, dst_coords))
+            if a is not None and b is not None:
+                warp_adj.setdefault(a, []).append((b, src_tile))
+    # Lazily test "can this component walk to dest" only for components with a
+    # tile on dest's level, using the component tile nearest to dest.
+    dest_level = _map_level(dest[0])
+    dest_global = _global_coords(dest[0], dest[1])
+
+    def distance_to_dest(tile) -> int:
+        g = _global_coords(tile[0], tile[1])
+        if g is None or dest_global is None:
+            return 0
+        return abs(g[0] - dest_global[0]) + abs(g[1] - dest_global[1])
+
+    dest_reps: dict[int, tuple] = {}
+    for tile, cid in comp.items():
+        if _map_level(tile[0]) != dest_level:
+            continue
+        if cid not in dest_reps or distance_to_dest(tile) < distance_to_dest(dest_reps[cid]):
+            dest_reps[cid] = tile
+
+    # 0-1 BFS: walk edges are free, warp edges cost one leg.
+    queue = deque([(entry, [])])
+    seen = {entry}
     while queue:
         cid, route = queue.popleft()
-        for next_cid, src_tile in adjacency.get(cid, []):
-            if next_cid in seen:
-                continue
-            if next_cid == dest_cid:
-                return [*route, src_tile]
-            seen.add(next_cid)
-            queue.append((next_cid, [*route, src_tile]))
+        rep = dest_reps.get(cid)
+        if rep is not None and walkable(rep, dest):
+            return route
+        for next_cid in graph["walk"].get(cid, []):
+            if next_cid not in seen:
+                seen.add(next_cid)
+                queue.appendleft((next_cid, route))
+        for next_cid, src_tile in warp_adj.get(cid, []):
+            if next_cid not in seen:
+                seen.add(next_cid)
+                queue.append((next_cid, [*route, src_tile]))
     return None  # no graph route (e.g. blacklisted bridge) — let live search try
 
 
@@ -352,7 +380,21 @@ def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generato
             # journey: plan once, then consume warp legs in sequence. A failure
             # clears the cache to force a fresh plan (with any new blacklist).
             if cached_route is None:
-                cached_route = _plan_warp_route(position, (tuple(map), tuple(coordinates)), frozenset(blacklist))
+                for plan_attempt in range(3):
+                    try:
+                        cached_route = _plan_warp_route(position, (tuple(map), tuple(coordinates)), frozenset(blacklist))
+                        break
+                    except SkillError:
+                        # Planning sees the world as it is *right now*: an NPC
+                        # in a choke point (or a mid-door-exit object state)
+                        # can transiently wall us in and fail every check.
+                        # Wait for the world to settle and re-plan.
+                        if plan_attempt == 2:
+                            raise
+                        for _ in range(120):
+                            yield
+                        avatar = get_player_avatar()
+                        position = (avatar.map_group_and_number, avatar.local_coordinates)
             if not cached_route:
                 yield from navigate_same_level(map, coordinates, run=run)
                 return

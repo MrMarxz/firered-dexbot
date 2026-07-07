@@ -2,24 +2,28 @@
 
 The problem it solves: pokebot merges every connection-linked map into one
 "level" (level 180 is most of Kanto — 122 warps). Live route planning A*-checks
-walkability per warp, which is slow (~32s cross-region). But walk-reachability is
-static (given the story state), so we compute it ONCE here and cache it.
+walkability per warp, which is slow (~32s cross-region). But walk-reachability
+is static (given the story state), so we compute it ONCE here and cache it.
 
 For each level we partition its *portal tiles* — every warp's source tile plus
-every warp's landing tile that sits on that level — into walk-connected
-components. Two portal tiles are in the same component iff `calculate_path`
-connects them (which honours collision AND story gates like Saffron's guards).
-Reachability is an equivalence relation, so we assign each tile by testing it
-against one representative per existing component: O(tiles x components), not
-O(tiles^2).
+every warp's landing tile that sits on that level — into components. Two portal
+tiles are in the same component iff `calculate_path` connects them IN BOTH
+DIRECTIONS: walk-reachability is NOT symmetric (ledges are one-way; Cerulean's
+south gap is blocked by a policeman while the reverse approach works), so
+components are strongly-connected sets, found incrementally against one
+representative per existing component. One-way passages are then captured as
+DIRECTED WALK EDGES between same-level components (rep-to-rep A*).
 
 Output: data/nav_graph.json
-    {"epochs": {"<badge count>": {tile_key: component_id, ...}}}   # "mg,mn,x,y"
-Connectivity depends on story gates, so components are keyed by a story epoch
-(= badge count). Sections for different epochs coexist; building only ever
-adds/updates the current epoch's section. (Warp edges are NOT stored — the
-runtime rebuilds them from ROM via _get_warp_edges(), the same source this
-script uses.)
+    {"epochs": {"<badge count>": {
+        "components": {tile_key: component_id, ...},   # tile_key = "mg,mn,x,y"
+        "walk_edges": [[from_id, to_id], ...],         # directed, same-level
+        "levels_done": [level, ...],                   # resume bookkeeping
+    }}}
+Connectivity depends on story gates, so sections are keyed by a story epoch
+(= badge count) and coexist; building only ever touches the current epoch's
+section. (Warp edges are NOT stored — the runtime rebuilds them from ROM via
+_get_warp_edges(), the same source this script uses.)
 
 Build resumably (save after each level) — long emulator runs can die silently.
 
@@ -51,15 +55,18 @@ def build(context, save_every_level: bool = True) -> dict:
             portals.setdefault(level, set()).add((src_map, src_coords))
             portals.setdefault(_map_level(dst_map), set()).add((dst_map, dst_coords))
 
-    # Resume: reuse this epoch's already-computed levels from a prior partial
-    # run. Other epochs' sections are left untouched.
+    # Resume this epoch's prior partial run; other epochs' sections are untouched.
     epoch = sum(1 for n in range(1, 9) if get_event_flag(f"BADGE{n:02d}_GET"))
-    existing = {}
+    section = {"components": {}, "walk_edges": [], "levels_done": []}
     if GRAPH_PATH.exists():
-        existing = json.loads(GRAPH_PATH.read_text()).get("epochs", {}).get(str(epoch), {})
+        prior = json.loads(GRAPH_PATH.read_text()).get("epochs", {}).get(str(epoch))
+        if prior and "levels_done" in prior:
+            section = prior
 
-    components: dict[str, int] = dict(existing)
-    next_id = (max(components.values()) + 1) if components else 0
+    components: dict[str, int] = section["components"]
+    walk_edges = {tuple(e) for e in section["walk_edges"]}
+    levels_done = set(section["levels_done"])
+    next_id = max(components.values(), default=-1) + 1
 
     def _distance(a, b) -> int:
         ga, gb = _global_coords(*a), _global_coords(*b)
@@ -68,43 +75,47 @@ def build(context, save_every_level: bool = True) -> dict:
         return abs(ga[0] - gb[0]) + abs(ga[1] - gb[1])
 
     for level in sorted(portals):
+        if level in levels_done:
+            continue
         tiles = sorted(portals[level])
-        if all(_tile_key(m, c) in components for m, c in tiles):
-            continue  # this level already done (resume)
         reps: list[tuple] = []  # (representative_tile, component_id)
         for tile in tiles:
-            key = _tile_key(*tile)
-            if key in components:
-                # Rehydrate a representative for an already-assigned tile.
-                cid = components[key]
-                if not any(r[1] == cid for r in reps):
-                    reps.append((tile, cid))
-                continue
             assigned = None
             # Nearest rep first: a failed A* must exhaust the whole reachable
             # region (expensive on level 180), so try the likeliest match first.
             for rep_tile, cid in sorted(reps, key=lambda r: _distance(tile, r[0])):
-                if _walkable(tile, rep_tile):
+                if _walkable(tile, rep_tile) and _walkable(rep_tile, tile):
                     assigned = cid
                     break
             if assigned is None:
                 assigned = next_id
                 next_id += 1
                 reps.append((tile, assigned))
-            components[key] = assigned
+            components[_tile_key(*tile)] = assigned
+        # One-way passages (ledges, guard-gated gaps) between this level's
+        # components become directed walk edges.
+        for rep_a, ca in reps:
+            for rep_b, cb in reps:
+                if ca != cb and _walkable(rep_a, rep_b):
+                    walk_edges.add((ca, cb))
+        levels_done.add(level)
         if save_every_level:
-            _write(components, epoch)
+            _write(components, walk_edges, levels_done, epoch)
             print(f"  level {level}: {len(tiles)} portals, {len(reps)} components", flush=True)
 
-    _write(components, epoch)
-    return {"components": components}
+    _write(components, walk_edges, levels_done, epoch)
+    return {"components": components, "walk_edges": walk_edges}
 
 
-def _write(components, epoch: int) -> None:
+def _write(components, walk_edges, levels_done, epoch: int) -> None:
     epochs = {}
     if GRAPH_PATH.exists():
         epochs = json.loads(GRAPH_PATH.read_text()).get("epochs", {})
-    epochs[str(epoch)] = components
+    epochs[str(epoch)] = {
+        "components": components,
+        "walk_edges": sorted(walk_edges),
+        "levels_done": sorted(levels_done),
+    }
     GRAPH_PATH.write_text(json.dumps({"epochs": epochs}) + "\n")
 
 
@@ -121,8 +132,8 @@ def main() -> None:
     t0 = time.time()
     graph = build(context)
     n_components = len(set(graph["components"].values()))
-    print(f"nav graph: {len(graph['components'])} portal tiles, {n_components} components "
-          f"in {time.time() - t0:.0f}s -> {GRAPH_PATH}")
+    print(f"nav graph: {len(graph['components'])} portal tiles, {n_components} components, "
+          f"{len(graph['walk_edges'])} one-way walk edges in {time.time() - t0:.0f}s -> {GRAPH_PATH}")
 
 
 if __name__ == "__main__":
