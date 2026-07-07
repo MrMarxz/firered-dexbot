@@ -1,5 +1,17 @@
 # DEVLOG
 
+## 2026-07-07 — visit_bill (SS Ticket): navigation + object-lookup solved; Bill handshake open
+
+**Status:** `visit_bill` reliably reaches the Sea Cottage and locates the live Bill (both were bugs, both fixed). The remaining open item is the help→teleporter→console→ticket *handshake sequencing*. Exceeded the 3-attempt rule; committing solid progress and handing off with precise state.
+
+**Fixed this pass (committed):**
+- **Cottage navigation** works: `navigate_to(ROUTE25_SEA_COTTAGE, (7,7))` routes Route24→Route25→cottage-door warp cleanly (proven in isolation). The earlier "no warp route to (5,5)" failures were my own bad target — (5,5) is a wall (the teleporter housing). Real interior: door drops at (6-8,9), Bill/console up top.
+- **Live-object lookup** (`_talk_to_live_object`): `get_map_objects()` returns live ObjectEvents keyed by `local_id` with no script symbol; the script lives on the *template* from `get_map_data().objects`. Now cross-references template local_ids (matching a script substring) against live objects, then approaches from a walkable adjacent tile. This is reusable for every future "talk to NPC X" story beat.
+- Confirmed via trace: talking to Bill with "Yes" DOES work — he walks into the teleporter and `removeobject` fires (live Bill list goes empty), so `BILL_IN_TELEPORTER` (FLAG_TEMP_2) is set.
+
+**Open — the console step:** after Bill enters the teleporter, `_face_and_talk((4,6),"Up")` did not set `HELPED_BILL_IN_SEA_COTTAGE`. The pret `Route25_SeaCottage_EventScript_Computer` (a `sign` bg-event at (4,5)) runs `RunCellSeparator` (which sets HELPED) only `goto_if_set BILL_IN_TELEPORTER`. The post-console screenshot shows the player NOT at (4,6) — so either the intra-cottage `navigate_to((4,6))` didn't land there, or the console must be faced from a different tile. **Next step for the next session:** trace the player's actual position after `navigate_to((4,6))`, confirm (4,6) is reachable/where the avatar ends up, and verify facing Up from there targets the (4,5) sign (bg-events are interacted by facing the tile). Then the second `_talk_to_live_object("Bill")` should hand over the SS Ticket (`GOT_SS_TICKET`). All the pieces are cached in `docs/pret_SeaCottage_scripts.inc`.
+
+**Dex: 15 owned.** SS Ticket unblocks the S.S. Anne (HM01 Cut) and, with Cut, the remaining gyms.
 ## 2026-07-07 — Nugget Bridge CLEARED (badge-2 chain unblocked)
 
 **Done — the bridge falls unattended**: `cross_nugget_bridge` runs the full chain from `m7_post_badge1_dex.ss1` — deposit fodder to boxes → solo-grind Wartortle to 26 → climb (rival Terry + five trainers) → the Team Rocket recruiter. Verified: `MAP_SCENE_ROUTE24=1`, Nugget in bag (₽5000 when sold), Wartortle L29 full HP. Fixture `m7_bridge.ss1`; 27 tests green.

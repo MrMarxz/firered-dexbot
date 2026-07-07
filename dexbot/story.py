@@ -132,44 +132,108 @@ def cross_nugget_bridge() -> Generator:
         raise SkillError("Nugget Bridge Rocket not defeated (VAR_MAP_SCENE_ROUTE24 unset)")
 
 
+def _face_and_talk(map_enum, coords, facing) -> Generator:
+    """Stand at `coords`, face `facing`, press A, mash through the dialogue."""
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_controllable
+
+    yield from navigate_to(map_enum, coords)
+    yield from ensure_facing_direction(facing)
+    _ctx().emulator.press_button("A")
+    yield
+    yield from wait_for_no_script_to_run("A")
+    yield from wait_for_player_avatar_to_be_controllable("A")
+
+
+_ADJACENT = [((0, 1), "Up"), ((0, -1), "Down"), ((1, 0), "Left"), ((-1, 0), "Right")]
+
+
+def _approach_tile_for(map_key, target):
+    """A walkable tile adjacent to `target` and the direction to face it from there."""
+    from modules.map import get_map_data
+
+    for (dx, dy), facing in _ADJACENT:
+        tile = (target[0] + dx, target[1] + dy)
+        try:
+            if not get_map_data(map_key, tile).collision:
+                return tile, facing
+        except Exception:
+            continue
+    return None, None
+
+
+def _talk_to_live_object(map_enum, script_substr, answer=None) -> Generator:
+    """Find the live (visible) object whose script contains `script_substr`,
+    stand next to it, and talk. If `answer` is given, respond to its Yes/No."""
+    from modules.map import get_map_objects
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_for_yes_no_question
+    from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_controllable
+
+    from modules.map import get_map_data
+
+    map_key = map_enum.value if hasattr(map_enum, "value") else map_enum
+    # Templates carry the script symbol; live ObjectEvents carry local_id +
+    # current position. Cross-reference by local_id.
+    matching_ids = {
+        t.local_id
+        for t in get_map_data(map_key, (0, 0)).objects
+        if script_substr.lower() in (getattr(t, "script_symbol", "") or "").lower()
+    }
+    target = None
+    for obj in get_map_objects():
+        if "isPlayer" in obj.flags:
+            continue
+        if obj.local_id in matching_ids:
+            target = obj.current_coords
+            break
+    if target is None:
+        raise SkillError(f"No live object matching {script_substr!r} in {map_key}")
+
+    tile, facing = _approach_tile_for(map_key, target)
+    if tile is None:
+        raise SkillError(f"No walkable tile adjacent to object at {target}")
+    yield from navigate_to(map_enum, tile)
+    yield from ensure_facing_direction(facing)
+    _ctx().emulator.press_button("A")
+    yield
+    if answer is not None:
+        yield from wait_for_yes_no_question(answer)
+    yield from wait_for_no_script_to_run("A")
+    yield from wait_for_player_avatar_to_be_controllable("A")
+
+
 def visit_bill() -> Generator:
-    """Route 25 gauntlet to the Sea Cottage; help Bill; receive the SS Ticket."""
+    """Route 25 → Sea Cottage; help Bill (talk→YES, run the teleporter console,
+    talk again); receive the SS Ticket.
+
+    Cottage layout (from pret map.json): Bill obj at (7,5) — talk from (7,6)↑;
+    the Computer/teleporter console is a sign bg-event at (4,5) — activate from
+    (4,6)↑; door drops the player at (6-8,9).
+    """
     from modules.map_data import MapFRLG
     from modules.memory import get_event_flag
-    from modules.modes.util.higher_level_actions import talk_to_npc
-    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_for_yes_no_question
+    from modules.modes.util.tasks_scripts import wait_for_yes_no_question, wait_for_no_script_to_run
     from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
 
     if get_event_flag("GOT_SS_TICKET"):
         return
 
-    for waypoint in [(MapFRLG.ROUTE25, (20, 6)), (MapFRLG.ROUTE25, (40, 6))]:
-        yield from ensure_healthy(minimum_fraction=0.6)
-        yield from navigate_to(*waypoint)
     yield from ensure_healthy(minimum_fraction=0.6)
-    yield from navigate_to(MapFRLG.ROUTE25_SEA_COTTAGE, (5, 6))
+    yield from navigate_to(MapFRLG.ROUTE25_SEA_COTTAGE, (7, 7))
 
-    # Bill is the Pokémon on the floor; help him (Yes), he runs the machine,
-    # then interact with the console, then he hands over the SS Ticket.
-    yield from talk_to_npc(1)
-    yield from wait_for_yes_no_question("Yes")
-    yield from wait_for_no_script_to_run("A")
-    yield from wait_for_player_avatar_to_be_controllable("A")
+    if not get_event_flag("HELPED_BILL_IN_SEA_COTTAGE"):
+        # Talk to the live Bill (Clefairy form), agree to help — he walks into
+        # the teleporter. The visible object shifts after helping, so locate it
+        # dynamically rather than assuming a fixed tile.
+        yield from _talk_to_live_object(MapFRLG.ROUTE25_SEA_COTTAGE, "Bill", answer="Yes")
+        # Run the cell separator at the console (sign bg-event at (4,5)).
+        yield from _face_and_talk(MapFRLG.ROUTE25_SEA_COTTAGE, (4, 6), "Up")
 
-    if not get_event_flag("GOT_SS_TICKET"):
-        # The machine console step: Bill entered the teleporter; press A on it.
-        from modules.modes.util.walking import ensure_facing_direction
+    if not get_event_flag("HELPED_BILL_IN_SEA_COTTAGE"):
+        raise SkillError("Cell separator did not run (Bill not restored)")
 
-        yield from navigate_to(MapFRLG.ROUTE25_SEA_COTTAGE, (2, 5))
-        yield from ensure_facing_direction("Up")
-        _ctx().emulator.press_button("A")
-        yield
-        yield from wait_for_no_script_to_run("A")
-        yield from wait_for_player_avatar_to_be_controllable("A")
-        # Talk to restored Bill for the ticket.
-        yield from talk_to_npc(1)
-        yield from wait_for_no_script_to_run("A")
-        yield from wait_for_player_avatar_to_be_controllable("A")
+    # Talk to restored (human) Bill for the SS Ticket.
+    yield from _talk_to_live_object(MapFRLG.ROUTE25_SEA_COTTAGE, "Bill")
 
     if not get_event_flag("GOT_SS_TICKET"):
         raise SkillError("SS Ticket not obtained from Bill")
