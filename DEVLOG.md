@@ -1,5 +1,16 @@
 # DEVLOG
 
+## 2026-07-07 — Navigation perf fixed (big win); Misty blocked on a fixture micro-state
+
+**Shipped: warp route-planning is ~5000× faster.** `_plan_warp_route` was doing a full A* (`calculate_path`) per warp edge during BFS — cross-Kanto plans hung >150s. Rewrote it as a pure map-level graph BFS (no per-edge A*); the same plans are now ~0.03s. Execution-time `navigate_to` + the blacklist still verify each leg is walkable and re-plan around same-level splits (Route 2 forest). **The full suite dropped from ~26s to ~6s and stays 28/28 green.** This pays down the KNOWN_LIMITATION flagged with the SS Ticket. Committed (257ec62).
+
+**`beat_misty` written** (gym skill, mirrors `beat_brock`; Misty obj 3 @ (8,6), approach (8,7)). Damage-calc strategy will avoid her resisted Water moves and a level lead should out-race Starmie's Recover. Committed but **not yet passing** — blocked below.
+
+**Open blocker (hand-off): navigate_to stalls from the `m7_ss_ticket` fixture.** From the Sea Cottage at (30,0)(7,7), the player is `controllable`, in OVERWORLD, and the route plans fine ([(cottage door 7,9), (Cerulean gym door)]) — but the avatar will not step south: even a raw `hold_button("Down")` for 120 frames leaves it at (7,7). Bill (obj 1) sits at (7,6) to the *north*, so it isn't blocking the exit. Hypothesis: the fixture captured the player in a just-finished-script micro-state that upstream's movement won't advance, OR the door-warp tile (7,9) needs a specific approach. **Next step:** load the fixture, single-step frames while pressing Down, and watch `running_state`/`tile_transition_state`; if it's a stuck micro-state, regenerate `m7_ss_ticket.ss1` by walking a few tiles out of the cottage before saving (a clean overworld state), then beat_misty should navigate normally.
+
+**Discipline note:** spent far too long spiraling in navigation minutiae this turn (both the perf hunt and this stall). The perf fix was worth it; the Misty stall should have been a "regenerate the fixture from a clean state and move on" call much sooner.
+
+**Dex: 15 owned. Badges: 1.** Chain state: Brock ✓, Mt Moon ✓, Nugget Bridge ✓, SS Ticket ✓. Next: unstick Misty (fixture), then S.S. Anne (HM01 Cut), then the Cut-gated gyms.
 ## 2026-07-07 — SS Ticket obtained (badge-2 chain: Bill done)
 
 **Done — `visit_bill` completes unattended.** From `m7_bridge.ss1`: full-heal at Cerulean → cross Route 25 → Sea Cottage → talk Bill (Yes) → run the teleporter console → talk restored Bill → **SS Ticket in the bag** (`GOT_SS_TICKET`, `HELPED_BILL_IN_SEA_COTTAGE`, item present). Fixture `m7_ss_ticket.ss1`; 28 tests green.
