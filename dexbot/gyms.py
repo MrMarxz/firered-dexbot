@@ -51,7 +51,7 @@ def beat_brock(min_level: int = 13) -> Generator:
         raise SkillError("Brock was not defeated (badge flag unset)")
 
 
-def beat_misty(min_level: int = 30) -> Generator:
+def beat_misty(min_level: int = 29) -> Generator:
     """Beat Misty. Her Starmie L21 has Recover, and Water moves are resisted by
     her Water types — so we rely on the damage-calc strategy picking the best
     neutral move plus a level advantage to out-race the healing."""

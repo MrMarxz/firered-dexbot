@@ -1,5 +1,14 @@
 # DEVLOG
 
+## 2026-07-07 — Badge 2 (Misty) beaten; ticket-fixture stall root-caused and fixed
+
+**Done — Misty defeated unattended, badge 2 in hand.** `beat_misty` from `m7_ss_ticket.ss1`: heal at Cerulean, walk into the gym, beat the junior trainers + Misty. Won at **L29** (no grind) — the damage-calc strategy avoided her resisted Water moves and Wartortle's level lead out-raced Starmie's Recover, exactly as hoped. Wartortle ended L31. Fixture `m7_badge_misty.ss1`; 29 tests green.
+
+**The Misty "can't move" stall was a fixture bug, now fixed.** Root cause (found by inspecting `running_state`/script context, not guessing): `m7_ss_ticket.ss1` had been saved with `Route25_SeaCottage_EventScript_Bill` **still active** — my final ticket-talk A-mashed while facing Bill, which re-triggered his "go to the S.S. Anne!" dialogue in a loop, so the save was script-locked and the avatar couldn't step even under raw input. Fix: after the ticket, close with **B** (A re-triggers) and walk out of the cottage, so `visit_bill` returns in a clean, controllable overworld state. Regenerated the fixture. General lesson (added to the pattern): **savestate fixtures must be captured from a fully-released overworld state** — assert `not script.is_active` + standing still before saving, or a downstream skill inherits the lock.
+
+**Chain state:** Brock ✓, Mt Moon ✓, Nugget Bridge ✓, SS Ticket ✓, **Misty ✓ (badge 2)**. Cut is now *usable* (Cascade Badge). Dex: 15 owned.
+
+**Next:** S.S. Anne → HM01 Cut (get + teach), then a planner sweep of the now-accessible Cerulean-area species (Jigglypuff/Clefairy/etc., funded by the Nugget), then Vermilion/Surge (badge 3, Cut-gated gym).
 ## 2026-07-07 — Navigation perf fixed (big win); Misty blocked on a fixture micro-state
 
 **Shipped: warp route-planning is ~5000× faster.** `_plan_warp_route` was doing a full A* (`calculate_path`) per warp edge during BFS — cross-Kanto plans hung >150s. Rewrote it as a pure map-level graph BFS (no per-edge A*); the same plans are now ~0.03s. Execution-time `navigate_to` + the blacklist still verify each leg is walkable and re-plan around same-level splits (Route 2 forest). **The full suite dropped from ~26s to ~6s and stays 28/28 green.** This pays down the KNOWN_LIMITATION flagged with the SS Ticket. Committed (257ec62).
