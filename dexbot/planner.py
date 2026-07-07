@@ -192,6 +192,18 @@ def plan_and_catch_all() -> int:
             continue
         caught += 1
         print(f"[planner] caught {species} ({rate}% on {map_key})")
+        # Keep slots open: a full party makes the next catch fail. HM mules
+        # are kept by deposit_party_fodder itself.
+        if len(get_party()) >= 5:
+            from dexbot.boxes import deposit_party_fodder
+            from dexbot.catching import fight_all_battles
+
+            run_skill(
+                deposit_party_fodder(keep=1),
+                "deposit_fodder",
+                timeout_frames=600_000,
+                on_battle_started=fight_all_battles,
+            )
 
 
 def main() -> None:

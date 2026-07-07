@@ -34,6 +34,9 @@ def deposit_party_fodder(keep: int = 1) -> Generator:
         return
     keepers = sorted(party, key=lambda p: -p.level)[:keep]
     keeper_data = {bytes(p.data[:4]) for p in keepers}
+    # HM mules stay: depositing the only Cut/Surf/... holder strands travel.
+    hm_field_moves = ("Cut", "Fly", "Surf", "Strength", "Flash", "Rock Smash", "Waterfall", "Dive")
+    keeper_data |= {bytes(p.data[:4]) for p in party if any(p.knows_move(m) for m in hm_field_moves)}
     to_deposit = [p for p in get_party() if not p.is_egg and bytes(p.data[:4]) not in keeper_data]
     if not to_deposit:
         return
@@ -75,5 +78,5 @@ def deposit_party_fodder(keep: int = 1) -> Generator:
 
     yield from navigate_to(interior, (7, 8))  # exit mat
 
-    if len([p for p in get_party() if not p.is_egg]) > keep:
+    if len([p for p in get_party() if not p.is_egg]) > len(keeper_data):
         raise SkillError("Deposit incomplete — party still has fodder")
