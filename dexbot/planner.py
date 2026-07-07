@@ -123,8 +123,6 @@ def restock_pokeballs_if_low(minimum: int = 10) -> None:
     dry mid-trip aborts the objective — stock up generously beforehand.
     """
     from modules.items import get_item_bag, get_item_by_name
-    from modules.map_data import MapFRLG
-    from modules.memory import get_event_flag
     from modules.player import get_player
 
     from dexbot.openings import buy_pokeballs
@@ -135,8 +133,27 @@ def restock_pokeballs_if_low(minimum: int = 10) -> None:
     if needed <= 0 or affordable < 1:
         return
     quantity = min(needed + 5, affordable, 40)
-    mart = MapFRLG.PEWTER_CITY_MART if get_event_flag("BADGE01_GET") else MapFRLG.VIRIDIAN_CITY_MART
-    run_skill(buy_pokeballs(quantity, mart), f"restock_{quantity}_pokeballs", timeout_frames=120_000)
+    run_skill(buy_pokeballs(quantity, _nearest_mart()), f"restock_{quantity}_pokeballs", timeout_frames=120_000)
+
+
+def _nearest_mart():
+    """The mart with the fewest-warp route from here (graph planning only — an
+    unreachable mart answers None in milliseconds instead of a 30s live search)."""
+    from modules.map_data import MapFRLG
+    from modules.player import get_player_avatar
+
+    from dexbot.navigation import _plan_via_graph, _walkable
+
+    avatar = get_player_avatar()
+    pos = (avatar.map_group_and_number, avatar.local_coordinates)
+    best = None
+    for m in MapFRLG:
+        if not m.name.endswith("_MART"):
+            continue
+        route = _plan_via_graph(pos, (m.value, (4, 3)), frozenset(), _walkable)
+        if route is not None and (best is None or len(route) < best[1]):
+            best = (m, len(route))
+    return best[0] if best else MapFRLG.VIRIDIAN_CITY_MART
 
 
 def plan_and_catch_all() -> int:
