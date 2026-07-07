@@ -171,9 +171,11 @@ def _load_nav_graph() -> dict | None:
 
 
 def _find_component(position, comp, walkable) -> int | None:
-    """The first component `position` can WALK TO, via live A* against one
-    representative portal tile per component on its level (nearest first —
-    which in practice is the component the position is inside)."""
+    """The component CONTAINING `position` (mutual reachability with its
+    representative, tested nearest-first). One-way reachability is not enough:
+    the nearest rep can belong to a ledge pocket below the player — enterable
+    but exitless — and BFS from that dead-end component reaches nothing.
+    Falls back to the first one-way-reachable component if none is mutual."""
     level = _map_level(position[0])
     pos_global = _global_coords(position[0], position[1])
 
@@ -189,10 +191,14 @@ def _find_component(position, comp, walkable) -> int | None:
             continue
         if cid not in nearest_rep or distance(tile) < distance(nearest_rep[cid]):
             nearest_rep[cid] = tile
+    one_way = None
     for cid, tile in sorted(nearest_rep.items(), key=lambda kv: distance(kv[1])):
         if walkable(position, tile):
-            return cid
-    return None
+            if walkable(tile, position):
+                return cid
+            if one_way is None:
+                one_way = cid
+    return one_way
 
 
 def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:

@@ -23,11 +23,15 @@ def _species_is_owned(species_name: str) -> bool:
 
 
 def _encounter_tiles(map_group_and_number: tuple[int, int]) -> list[tuple[int, int]]:
-    """Tiles on the map that can spawn encounters, inner tiles first (nicer to spin on)."""
+    """Tiles on the map that can spawn encounters, inner tiles first (nicer to
+    spin on). Land (grass/cave) only — surf tiles are unreachable without Surf;
+    water maps fall back to their water tiles (for when Surf exists)."""
     from modules.map_path import _get_all_maps_metadata
 
     path_map = _get_all_maps_metadata()[map_group_and_number]
-    tiles = [t.local_coordinates for t in path_map.tiles if t.has_encounters]
+    all_tiles = [t for t in path_map.tiles if t.has_encounters]
+    land = [t for t in all_tiles if t.elevation != 1]
+    tiles = [t.local_coordinates for t in (land or all_tiles)]
     if not tiles:
         raise SkillError(f"Map {map_group_and_number} has no encounter tiles")
     center_x = sum(t[0] for t in tiles) / len(tiles)
@@ -227,7 +231,13 @@ def catch_species(
 
     if map_key is None:
         map_key, _rate = best_encounter_map(species_name)
-    candidates = [tile] if tile is not None else _encounter_tiles(map_key)[:5]
+    if tile is not None:
+        candidates = [tile]
+    else:
+        # Spread sample: the N nearest-centroid tiles can all sit in the same
+        # unreachable pocket (Route 24's east grass is water-locked).
+        tiles = _encounter_tiles(map_key)
+        candidates = tiles[:: max(1, len(tiles) // 5)][:5]
 
     from modules.pokemon import StatusCondition
     from modules.pokemon_party import get_party

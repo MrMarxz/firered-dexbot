@@ -54,8 +54,14 @@ def _graph_reachable(map_key: tuple[int, int], annotation: dict) -> bool:
     avatar = get_player_avatar()
     pos = (avatar.map_group_and_number, avatar.local_coordinates)
     try:
-        tile = tuple(annotation["safe_tile"]) if "safe_tile" in annotation else _encounter_tiles(map_key)[0]
-        return _plan_via_graph(pos, (map_key, tile), frozenset(), _walkable) is not None
+        if "safe_tile" in annotation:
+            tiles = [tuple(annotation["safe_tile"])]
+        else:
+            # Spread sample — one pocket of the map being unreachable (Route
+            # 24's water-locked east grass) must not veto the whole map.
+            all_tiles = _encounter_tiles(map_key)
+            tiles = all_tiles[:: max(1, len(all_tiles) // 3)][:3]
+        return any(_plan_via_graph(pos, (map_key, t), frozenset(), _walkable) is not None for t in tiles)
     except Exception:
         return False
 
