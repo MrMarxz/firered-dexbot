@@ -189,6 +189,43 @@ def buy_pokeballs(quantity: int = 10, mart=None) -> Generator:
     yield from buy_items([("Poké Ball", quantity)], mart)
 
 
+def sell_items(selling_list, mart=None) -> Generator:
+    """Sell (item_name, quantity) pairs at a mart. Waits for the Buy/Sell/Quit
+    menu (Task_ShopMenu — it appears only after the clerk's greeting clears),
+    then drives upstream's sell_in_shop."""
+    from modules.items import get_item_by_name
+    from modules.map_data import MapFRLG
+    from modules.modes.util.higher_level_actions import sell_in_shop
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_until_task_is_active
+    from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_controllable
+
+    from modules.tasks import task_is_active
+
+    if mart is None:
+        mart = MapFRLG.VIRIDIAN_CITY_MART
+    yield from navigate_to(mart, (4, 3))
+    yield from ensure_facing_direction("Left")
+    # A every 30 frames until the Buy/Sell/Quit menu is up — a faster cadence
+    # (wait_until_task_is_active's) races past it into the buy list.
+    for frame in range(1200):
+        if task_is_active("Task_ShopMenu"):
+            break
+        if frame % 30 == 0:
+            _ctx().emulator.press_button("A")
+        yield
+    else:
+        raise SkillError("Mart Buy/Sell menu did not open")
+    for _ in range(30):
+        yield
+    if task_is_active("Task_BuyMenu"):  # overshot into the buy list — back out
+        _ctx().emulator.press_button("B")
+        for _ in range(30):
+            yield
+    yield from sell_in_shop([(get_item_by_name(name), quantity) for name, quantity in selling_list])
+    yield from wait_for_no_script_to_run("B")
+    yield from wait_for_player_avatar_to_be_controllable("B")
+
+
 def scripted_opening() -> Generator:
     """Fresh post-intro bedroom state → own Pokédex + Poké Balls in the bag."""
     yield from acquire_starter()

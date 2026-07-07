@@ -98,11 +98,16 @@ def missing_catchable() -> list[tuple[str, tuple[int, int], int, dict]]:
 GRIND_SPOT = ((3, 20), (9, 58))
 # Route 3 east grass: L6-8 wilds (double the XP), unlocked with badge 1.
 GRIND_SPOT_BADGE1 = ((3, 21), (71, 14))
+# Route 11 grass: L11-15 wilds, next to Vermilion — the badge-2+ era spot
+# (Route 3 is unreachable from eastern Kanto without field Cut).
+GRIND_SPOT_BADGE2 = ((3, 29), (35, 9))
 
 
 def _default_grind_spot() -> tuple[tuple[int, int], tuple[int, int]]:
     from modules.memory import get_event_flag
 
+    if get_event_flag("BADGE02_GET"):
+        return GRIND_SPOT_BADGE2
     return GRIND_SPOT_BADGE1 if get_event_flag("BADGE01_GET") else GRIND_SPOT
 
 

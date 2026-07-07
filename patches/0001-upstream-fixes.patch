@@ -1,15 +1,15 @@
-modules/battle_action_selection.py   |  7 +++++++
+modules/battle_action_selection.py   | 22 +++++++++++++++++++++-
  modules/battle_handler.py            | 22 ++++++++++++++++++++--
  modules/battle_move_replacing.py     |  6 ++++++
  modules/battle_strategies/default.py |  5 +++++
  modules/map_path.py                  |  8 +++++++-
  modules/modes/util/items.py          |  2 +-
- 6 files changed, 46 insertions(+), 4 deletions(-)
+ 6 files changed, 60 insertions(+), 5 deletions(-)
 
 --- Changes ---
 
 modules/battle_action_selection.py
-  @@ -171,6 +171,13 @@ def battle_action_use_item(battle_state: BattleState, item: Item, target_index:
+  @@ -171,11 +171,31 @@ def battle_action_use_item(battle_state: BattleState, item: Item, target_index:
   +        from modules.pokemon_party import get_party_size
   +
   +        if in_battle_index >= get_party_size():
@@ -20,7 +20,26 @@ modules/battle_action_selection.py
            yield from scroll_to_party_menu_index(in_battle_index)
            context.emulator.press_button("A")
            yield
-  +7 -0
+  +        # Drive with slow A until the item is actually consumed (bag count
+  +        # drops), then hands-off: FRLG auto-returns to battle after the
+  +        # "restored" text (Task_ClosePartyMenuAfterText). A B-mash cancels the
+  +        # use (infinite potion loop); pressing past consumption double-uses.
+  +        from modules.items import get_item_bag
+  +
+  +        quantity_before = get_item_bag().quantity_of(item)
+  +        frame = 0
+           while get_game_state_symbol() != "BATTLEMAINCB2":
+  -            context.emulator.press_button("B")
+  +            frame += 1
+  +            consumed = get_item_bag().quantity_of(item) < quantity_before
+  +            if not consumed and frame % 32 == 16:
+  +                context.emulator.press_button("A")
+  +            elif consumed and frame > 1200 and frame % 128 == 0:
+  +                context.emulator.press_button("B")  # stray dialog fallback
+               yield
+   
+   
+  +21 -1
 
 modules/battle_handler.py
   @@ -209,8 +209,15 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
