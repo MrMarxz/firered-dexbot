@@ -1,11 +1,16 @@
 # Known limitations
 
-- **`_pick_reachable_center` / warp route-planning is slow from far-apart
-  positions.** `_plan_warp_route` runs a full A* (`calculate_path`) per warp
-  edge during BFS; from mid-Route-24, planning to every candidate Pokémon
-  Center can hang >90s. Skills currently pass an explicit `center=` to avoid
-  it. Proper fix: precompute a static warp-connectivity graph from the ROM
-  (offline) and cache per-region walkability, instead of live per-edge A*.
+- **nav_graph.json is story-epoch-stamped (badge count) and not auto-rebuilt.**
+  Planning uses the precomputed connectivity graph (data/nav_graph.json,
+  rebuilt in ~10s via `python -m dexbot.build_navgraph <fixture>`); when the
+  badge count no longer matches, navigation silently falls back to the slow
+  live search (~32s cross-region). Rebuild after each badge, or automate the
+  rebuild in the ops loop. Badge count is also only a *proxy* for gates that
+  open without a badge (e.g. Saffron's guards want a drink, not a badge).
+- **Connectivity components assume walk-reachability is symmetric**, but
+  ledges are one-way. If a portal pair is only connected via a ledge drop,
+  the component (and hence a planned route) can be wrong in one direction —
+  corrected at execution time by the blacklist-and-replan machinery.
 
 Honesty over optimism. Current as of M5.
 

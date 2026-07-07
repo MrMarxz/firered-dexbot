@@ -46,3 +46,31 @@ def test_navigate_bedroom_to_oaks_lab():
     avatar = get_player_avatar()
     assert avatar.map_group_and_number == (4, 3)  # PALLET_TOWN_PROFESSOR_OAKS_LAB
     assert avatar.local_coordinates == (6, 10)
+
+
+def test_plan_cross_region_via_nav_graph():
+    """Cerulean -> Vermilion gangplank plans sub-second via data/nav_graph.json
+    (was ~32s with live per-warp A*; the S.S. Anne run needs this)."""
+    import time
+
+    from dexbot.emulator import setup_headless_emulator
+
+    context = setup_headless_emulator(is_test_run=True)
+    context.emulator.load_save_state((PROJECT_ROOT / "fixtures" / "m7_badge_misty.ss1").read_bytes())
+    context.emulator.run_single_frame()
+
+    from dexbot.navigation import _plan_warp_route
+    from modules.map_data import MapFRLG
+    from modules.player import get_player_avatar
+
+    avatar = get_player_avatar()
+    start = (avatar.map_group_and_number, avatar.local_coordinates)
+
+    t0 = time.time()
+    route = _plan_warp_route(start, (MapFRLG.VERMILION_CITY.value, (23, 33)))
+    elapsed = time.time() - t0
+
+    assert elapsed < 2.0, f"cross-region plan took {elapsed:.1f}s (graph fallback to live search?)"
+    # Correct real route: gym door + Underground Path (Cerulean/Route-5 side in,
+    # tunnel, Route-6 side out) — 5 warps, not a building-weave.
+    assert 4 <= len(route) <= 7, route

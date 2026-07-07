@@ -113,7 +113,124 @@ def _global_coords(map_key: tuple[int, int], local: tuple[int, int]) -> tuple[in
     return (local[0] + pm.offset[0], local[1] + pm.offset[1])
 
 
+_nav_graph: dict | None = None  # {tile: component_id}, tile = ((mg,mn),(x,y))
+_nav_graph_epoch: int | None = None
+
+
+def _load_nav_graph() -> dict | None:
+    """Parsed data/nav_graph.json component map, or None if absent/unreadable."""
+    global _nav_graph, _nav_graph_epoch
+    if _nav_graph is None:
+        import json
+
+        from dexbot import PROJECT_ROOT
+
+        path = PROJECT_ROOT / "data" / "nav_graph.json"
+        try:
+            raw = json.loads(path.read_text())
+            _nav_graph_epoch = raw["story_epoch"]
+            _nav_graph = {}
+            for key, cid in raw["components"].items():
+                mg, mn, x, y = (int(v) for v in key.split(","))
+                _nav_graph[((mg, mn), (x, y))] = cid
+        except Exception:
+            _nav_graph = {}  # sentinel: tried and failed; don't re-read every plan
+    if not _nav_graph:
+        return None
+    # The graph honours story gates (Saffron guards, ...) as of build time; a
+    # badge since then may have opened routes it doesn't know. Fall back to
+    # live planning until `python -m dexbot.build_navgraph` is re-run.
+    from modules.memory import get_event_flag
+
+    epoch = sum(1 for n in range(1, 9) if get_event_flag(f"BADGE{n:02d}_GET"))
+    return _nav_graph if epoch == _nav_graph_epoch else None
+
+
+def _find_component(position, graph, walkable, reverse: bool = False) -> int | None:
+    """Which walk-component `position` belongs to, via live A* against one
+    representative portal tile per component on its level (nearest first)."""
+    level = _map_level(position[0])
+    pos_global = _global_coords(position[0], position[1])
+
+    def distance(tile) -> int:
+        g = _global_coords(tile[0], tile[1])
+        if g is None or pos_global is None:
+            return 0
+        return abs(g[0] - pos_global[0]) + abs(g[1] - pos_global[1])
+
+    nearest_rep: dict[int, tuple] = {}
+    for tile, cid in graph.items():
+        if _map_level(tile[0]) != level:
+            continue
+        if cid not in nearest_rep or distance(tile) < distance(nearest_rep[cid]):
+            nearest_rep[cid] = tile
+    for cid, tile in sorted(nearest_rep.items(), key=lambda kv: distance(kv[1])):
+        if walkable(tile, position) if reverse else walkable(position, tile):
+            return cid
+    return None
+
+
+def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
+    """Instant BFS over precomputed walk-components joined by warp edges.
+
+    Returns the warp-tile route, or None to fall back to live planning (graph
+    missing, stale story epoch, or start/dest not matched to a component).
+    """
+    from collections import deque
+
+    graph = _load_nav_graph()
+    if graph is None:
+        return None
+    start_cid = _find_component(start, graph, walkable)
+    dest_cid = _find_component(dest, graph, walkable, reverse=True)
+    if start_cid is None or dest_cid is None:
+        return None
+    if start_cid == dest_cid:
+        return []
+    # Component adjacency: each warp joins its source tile's component to its
+    # landing tile's component, traversed by stepping on the source tile.
+    adjacency: dict[int, list] = {}
+    for elist in _get_warp_edges().values():
+        for src_map, src_coords, dst_map, dst_coords in elist:
+            src_tile = (src_map, src_coords)
+            if src_tile in blacklist:
+                continue
+            a = graph.get(src_tile)
+            b = graph.get((dst_map, dst_coords))
+            if a is not None and b is not None and a != b:
+                adjacency.setdefault(a, []).append((b, src_tile))
+    queue = deque([(start_cid, [])])
+    seen = {start_cid}
+    while queue:
+        cid, route = queue.popleft()
+        for next_cid, src_tile in adjacency.get(cid, []):
+            if next_cid in seen:
+                continue
+            if next_cid == dest_cid:
+                return [*route, src_tile]
+            seen.add(next_cid)
+            queue.append((next_cid, [*route, src_tile]))
+    return None  # no graph route (e.g. blacklisted bridge) — let live search try
+
+
 def _plan_warp_route(
+    start: tuple[tuple[int, int], tuple[int, int]],
+    dest: tuple[tuple[int, int], tuple[int, int]],
+    blacklist: frozenset = frozenset(),
+) -> list[tuple[tuple[int, int], tuple[int, int]]]:
+    """Plan the warp-tile route from `start` to `dest`.
+
+    Fast path: BFS over the precomputed connectivity graph (a handful of live
+    A* to place start/dest in components). Fallback: the live best-first
+    search below, kept for a missing/stale graph.
+    """
+    route = _plan_via_graph(start, dest, frozenset(blacklist), _walkable)
+    if route is not None:
+        return route
+    return _plan_warp_route_live(start, dest, blacklist)
+
+
+def _plan_warp_route_live(
     start: tuple[tuple[int, int], tuple[int, int]],
     dest: tuple[tuple[int, int], tuple[int, int]],
     blacklist: frozenset = frozenset(),
