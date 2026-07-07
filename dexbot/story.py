@@ -274,6 +274,17 @@ def visit_bill() -> Generator:
     if not get_event_flag("GOT_SS_TICKET"):
         raise SkillError("SS Ticket not obtained from Bill")
 
+    # After the ticket, Bill launches into "go to the S.S. Anne!". Close it with
+    # B (A while facing him re-triggers the talk in a loop) and walk out of the
+    # cottage, so the skill ends in a clean, controllable overworld state rather
+    # than script-locked next to Bill.
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+
+    yield from wait_for_no_script_to_run("B")
+    yield from wait_for_player_avatar_to_be_controllable("B")
+    yield from navigate_to(MapFRLG.ROUTE25, (44, 5))  # step out onto Route 25
+
 
 def _ctx():
     from modules.context import context
