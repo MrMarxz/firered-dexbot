@@ -1,3 +1,61 @@
+diff --git a/modules/battle_action_selection.py b/modules/battle_action_selection.py
+index 36c61d8..14fd335 100644
+--- a/modules/battle_action_selection.py
++++ b/modules/battle_action_selection.py
+@@ -171,6 +171,13 @@ def battle_action_use_item(battle_state: BattleState, item: Item, target_index:
+     yield
+     if target_index is not None:
+         in_battle_index = battle_state.map_battle_party_index(target_index)
++        from modules.pokemon_party import get_party_size
++
++        if in_battle_index >= get_party_size():
++            # The battle-party mapping can return a stale slot right after the
++            # party shrank (PC deposits); for item targeting fall back to the
++            # active battler's slot instead of crashing.
++            in_battle_index = 0
+         yield from scroll_to_party_menu_index(in_battle_index)
+         context.emulator.press_button("A")
+         yield
+diff --git a/modules/battle_handler.py b/modules/battle_handler.py
+index 27fba9c..54bb994 100644
+--- a/modules/battle_handler.py
++++ b/modules/battle_handler.py
+@@ -209,8 +209,15 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
+         yield
+         return
+ 
+-    if new_lead_index < 0 or new_lead_index >= get_party_size():
+-        raise RuntimeError(f"Cannot send out party index #{new_lead_index} because that does not exist.")
++    if new_lead_index < 0 or new_lead_index >= get_party_size() or all(
++        p.is_egg or p.current_hp <= 0 for p in get_party()
++    ):
++        # No usable replacement (e.g. a solo party fainting): let the battle
++        # end in a whiteout instead of crashing on a bogus party index.
++        while battle_is_active():
++            context.emulator.press_button("B")
++            yield
++        return
+ 
+     new_lead = get_party()[new_lead_index]
+     if new_lead.is_egg:
+@@ -238,6 +245,17 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
+     if index_needs_mapping:
+         new_lead_index = battle_state.map_battle_party_index(new_lead_index)
+ 
++    # The battle-party mapping can produce a stale slot on a recently shrunk
++    # party; clamp to a real, usable party member rather than crashing.
++    if new_lead_index >= get_party_size():
++        fallback = next((i for i, p in enumerate(get_party()) if not p.is_egg and p.current_hp > 0), None)
++        if fallback is None:
++            while battle_is_active():
++                context.emulator.press_button("B")
++                yield
++            return
++        new_lead_index = fallback
++
+     yield from scroll_to_party_menu_index(new_lead_index)
+     while get_game_state() == GameState.PARTY_MENU:
+         context.emulator.press_button("A")
 diff --git a/modules/battle_strategies/default.py b/modules/battle_strategies/default.py
 index c77149f..dca5fb4 100644
 --- a/modules/battle_strategies/default.py

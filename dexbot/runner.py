@@ -50,6 +50,12 @@ def _make_bot_mode(skill: Generator, on_battle_started=None):
                 return on_battle_started(encounter)
             return super().on_battle_started(encounter)
 
+        def on_whiteout(self) -> bool:
+            # The game already healed us at a Pokémon Center; skills re-plan
+            # from wherever they are, so a whiteout is a setback, not a stop.
+            _log_event(skill="whiteout", status="recovered")
+            return True
+
     return DexSkillMode()
 
 

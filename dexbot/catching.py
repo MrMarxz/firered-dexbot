@@ -110,6 +110,34 @@ def make_catch_decider(target_species: str):
     return on_battle_started
 
 
+def _pick_reachable_center():
+    """The closest *reachable* known Pokémon Center (route-planned — one-way
+    ledges make story-order proximity wrong, e.g. Route 4 east → Cerulean only)."""
+    from dexbot.navigation import _plan_warp_route
+    from modules.map_data import PokemonCenter
+    from modules.player import get_player_avatar
+
+    avatar = get_player_avatar()
+    position = (avatar.map_group_and_number, avatar.local_coordinates)
+    candidates = [
+        PokemonCenter.ViridianCity,
+        PokemonCenter.PewterCity,
+        PokemonCenter.Route4,
+        PokemonCenter.CeruleanCity,
+    ]
+    best = None
+    for candidate in candidates:
+        try:
+            route = _plan_warp_route(position, (candidate.value[0].value, candidate.value[1]))
+        except Exception:
+            continue
+        if best is None or len(route) < best[1]:
+            best = (candidate, len(route))
+    if best is None:
+        raise SkillError("No reachable Pokémon Center from here")
+    return best[0]
+
+
 def ensure_healthy(minimum_fraction: float = 0.5, center=None) -> Generator:
     """Heal at a Pokémon Center if the lead is below `minimum_fraction` HP.
 
@@ -133,31 +161,7 @@ def ensure_healthy(minimum_fraction: float = 0.5, center=None) -> Generator:
         return
 
     if center is None:
-        # Pick the closest *reachable* known center by planning a route to each
-        # (one-way ledges make story-order proximity wrong, e.g. Route 4 east
-        # can only reach Cerulean).
-        from dexbot.navigation import _plan_warp_route
-        from modules.player import get_player_avatar
-
-        avatar = get_player_avatar()
-        position = (avatar.map_group_and_number, avatar.local_coordinates)
-        candidates = [
-            PokemonCenter.ViridianCity,
-            PokemonCenter.PewterCity,
-            PokemonCenter.Route4,
-            PokemonCenter.CeruleanCity,
-        ]
-        best = None
-        for candidate in candidates:
-            try:
-                route = _plan_warp_route(position, (candidate.value[0].value, candidate.value[1]))
-            except Exception:
-                continue
-            if best is None or len(route) < best[1]:
-                best = (candidate, len(route))
-        if best is None:
-            raise SkillError("No reachable Pokémon Center from here")
-        center = best[0]
+        center = _pick_reachable_center()
 
     yield from navigate_to(center.value[0], (center.value[1][0], center.value[1][1] + 1))
     yield from heal_in_pokemon_center(center)

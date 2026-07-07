@@ -45,7 +45,10 @@ def setup_headless_emulator(profile=None, is_test_run: bool = False):
         stop_evolution=False,
         lead_cannot_battle_action="rotate",
         faint_action="rotate",
-        hp_threshold=10,
+        # Fight until faint: a "cannot battle" verdict with no rotation target
+        # (solo party) hard-fails the skill, whereas fainting just whites out
+        # and the retry/heal machinery recovers.
+        hp_threshold=1,
     )
     context.profile = profile
     set_rom(profile.rom)

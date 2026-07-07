@@ -1,5 +1,26 @@
 # DEVLOG
 
+## 2026-07-07 — Badge-2 chain: bridge conquered, Rocket verification open
+
+**Status: Nugget Bridge climbing works (rival + five trainers beaten unattended); the final Rocket-recruiter interaction stalls — under investigation after 6+ distinct attempts. Committed everything verified; per process rules, documenting and pausing this thread.**
+
+**What got built and verified on the way (all committed)**
+- `dexbot/boxes.py` (M8 arrives early): deposit-all-but-strongest at any center's PC — one PC session per deposit (batching trips on upstream's stale party indices), `state_cache.reset()` after. The battle roster is now a solo overleveled champion; caught fodder lives in boxes.
+- Whiteout = recoverable: `on_whiteout → True` in the runner's bot mode; the game heals the party at a center and skills re-plan from there. Verified live several times ("whiteout recovered" telemetry events).
+- Bounded story-skill retries with healing between attempts.
+- `hp_threshold=1`: fight to the faint — a "cannot battle" verdict on a solo party was a hard failure, a faint is a free heal.
+- Upstream patches (all in `patches/0001-upstream-fixes.patch`):
+  1. FRLG diagonal stair warps (from M3).
+  2. Move-replacement crash with empty move slots.
+  3. Solo-party faint: choose-new-lead flow now accepts the whiteout instead of crashing on a bogus party index.
+  4. **Battle item targeting**: `map_battle_party_index` returns a stale slot right after PC deposits shrink the party — the potion-drink path crashed *every* fight with "Cannot scroll to party index #3". Clamped to the active battler. This one masqueraded as everything from fainting loops to timeouts; root-caused via generator introspection + deterministic savestate replays.
+- Runner now matches upstream `main_loop` semantics exactly: `context.frame` increments, and the frame ALWAYS advances after a controller pops (same-frame listener re-runs pushed duplicate battle handlers that hung forever).
+
+**Where it stands**
+- `cross_nugget_bridge` from `m7_post_badge1_dex.ss1`: deposits ✓, solo grind to 26 ✓ (poison faints during heal walks self-recover via whiteout), bridge climb ✓ — rival (Pidgeotto 17/Abra 16/Rattata 15/Bulbasaur 18) and all five bridge trainers beaten unattended.
+- Open: the Rocket recruiter at the bridge top. His trigger/talk interaction leaves `HIDE_NUGGET_BRIDGE_ROCKET` unset and a later attempt stalled in his script-battle (same DoNoIntroTrainerBattle family as the rival, which the current patch set *does* get through). Next steps for whoever picks this up (probably me, next session): capture a savestate standing at (11,16) pre-trigger, replay his script with the frame-by-frame script-stack trace, and check whether his post-battle script needs a specific input pattern (the sign-lady taught us FRLG tutorial boxes can eat A).
+
+**Dex ledger**: 15 species owned. Remaining pre-Misty catchables (Jigglypuff, Clefairy, Nidoran♀, Ekans) deferred on economy — the Nugget (₽5000) + bridge payouts fund them once the Rocket falls.
 ## 2026-07-06 — M7 (badge 1): Brock beaten unattended
 
 **Done**

@@ -84,11 +84,14 @@ def cross_nugget_bridge() -> Generator:
         return
 
     # The Cerulean rival (Pidgeotto 17/Abra 16/Rattata 15/Bulbasaur 18) ambushes
-    # north of town; the party is one real fighter + caught fodder, so the
-    # fighter must sweep — L26 does it even through a Sleep Powder turn.
+    # north of town. Caught fodder in the party makes in-battle rotation
+    # possible, and the rotation flow can stall unwinnable fights — deposit
+    # everything but the champion, then overlevel it (solo XP is faster too).
+    from dexbot.boxes import deposit_party_fodder
     from dexbot.planner import grind_levels
     from modules.pokemon_party import get_party
 
+    yield from deposit_party_fodder(keep=1)
     if max(p.level for p in get_party() if not p.is_egg) < 26:
         yield from grind_levels(26)
 
@@ -180,7 +183,22 @@ def main() -> None:
     context.emulator.load_save_state((PROJECT_ROOT / "fixtures" / fixture).read_bytes())
     context.emulator.run_single_frame()
 
-    run_skill(STORY_SKILLS[which](), which, timeout_frames=900_000, on_battle_started=fight_all_battles)
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            run_skill(STORY_SKILLS[which](), which, timeout_frames=900_000, on_battle_started=fight_all_battles)
+            break
+        except Exception as e:  # noqa: BLE001 — bounded retries; last error re-raised
+            if attempts >= 3:
+                raise
+            print(f"attempt {attempts} failed ({type(e).__name__}: {e}); healing, then retrying")
+            from dexbot.catching import ensure_healthy
+
+            try:
+                run_skill(ensure_healthy(minimum_fraction=2.0), "retry_heal", timeout_frames=120_000)
+            except Exception as heal_error:  # noqa: BLE001
+                print(f"retry heal failed ({heal_error}); retrying anyway")
     print(f"{which} done")
     (PROJECT_ROOT / "fixtures" / out).write_bytes(context.emulator.get_save_state())
 
