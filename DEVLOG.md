@@ -1,5 +1,21 @@
 # DEVLOG
 
+## 2026-07-07 — Cerulean-area sweep done: dex 15 → 19 (Ekans, Meowth, Oddish, Abra)
+
+**The planner sweep is productive again after un-starving the queue.** Three stacked map-choice bugs plus a data gap:
+1. `best_encounter_map` ignored reachability — species whose max-rate map is Route 3/Mt Moon (unreachable from Vermilion without westbound field Cut) deferred instead of being caught on reachable lower-rate maps. `missing_catchable` now probes each candidate map with the nav graph (`_graph_reachable`).
+2. The centroid encounter-tile pick landed on **water** (surf-locked) on Routes 6/24/25 — land-first tile selection now.
+3. The 5 nearest-centroid candidate tiles can all sit in one unreachable pocket (Route 24's water-locked east grass) — spread-sampled candidates, graph-prefiltered in `catch_species`, and plan `SkillError`s advance to the next candidate instead of killing the skill.
+4. Routes 5/6/24/25 were never annotated in `dependencies.json` (unannotated = inaccessible). Annotated with `requires: []` — physical reachability is now the graph probe's job. **Map-ID trap:** (3,42) is Route 23, not 24; verify against `MapFRLG` before annotating.
+
+Also fixed: `_find_component` must find the component *containing* the position (mutual reachability with the rep) — the nearest rep can belong to an exitless ledge pocket below the player, and BFS from that dead-end made everything "unreachable" (empty sweep queue from the Route 4 grass). One-way match kept as fallback.
+
+Support work: planner auto-deposits fodder at ≥5 party members (HM mules always kept — `deposit_party_fodder` keeps anyone knowing a field move); restocking picks the nearest *reachable* mart via the graph (was hardcoded Pewter — a 30s live-search burn and a failed sweep from Vermilion).
+
+**State:** dex **19** owned (new: Ekans, Meowth, Oddish, **Abra** — the teleporter landed on Route 24 at 15%). Fixture `m7_cerulean_sweep.ss1` + progress test; **32 tests green**; all committed. Jigglypuff/Clefairy/Nidoran♀ still deferred — they need the westbound loop (field Cut at Diglett's Cave trees) or later-route encounters.
+
+**Next: Surge (badge 3).** The gym door is behind a cuttable tree — field Cut in FRLG is just face-tree → A → YES (Paras with Cut is in the party), so `beat_surge` needs: cut the known tree, solve the trash-can two-switch puzzle (deterministic search with a re-randomize-on-miss rule), then the fight. General tree-aware *routing* (Diglett's shortcut west, Route 9) is a separate, larger piece — the nav graph would need Cut-conditional edges and an epoch bump when trees respawn (map reload).
+
 ## 2026-07-07 — Nav graph shipped (32s → 0.06s planning); HM01 Cut obtained and taught ✓
 
 **The precomputed warp-connectivity graph is in** (`dexbot/build_navgraph.py` + graph BFS in `_plan_warp_route`), and it surfaced two deep bugs on the way to working:
