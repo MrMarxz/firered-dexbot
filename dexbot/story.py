@@ -322,8 +322,12 @@ def get_hm_cut() -> Generator:
         # into-ship route is too expensive. Walk to the Vermilion harbour first,
         # step onto the gangplank (ticket-gated board), then navigate the small
         # ship level to the Captain.
-        # Stock potions for the ship gauntlet: no PC aboard, and the rival's
-        # Grass starter resists our Wartortle's Water, so a solo lead can attrit.
+        _log_event(skill="get_hm_cut", status="phase", phase="to_vermilion")
+        yield from navigate_to(MapFRLG.VERMILION_CITY, (23, 33))  # just above the gangplank warp
+
+        # Stock potions for the ship gauntlet (no PC aboard; the rival's Grass
+        # starter resists our Wartortle's Water). Buy AFTER reaching Vermilion —
+        # planning Cerulean → a Vermilion building interior is too far in one shot.
         if get_item_bag().quantity_of(get_item_by_name("Super Potion")) < 5:
             from dexbot.openings import buy_items
             from modules.player import get_player
@@ -331,9 +335,7 @@ def get_hm_cut() -> Generator:
             affordable = get_player().money // 700
             if affordable > 0:
                 yield from buy_items([("Super Potion", min(8, affordable))], MapFRLG.VERMILION_CITY_MART)
-
-        _log_event(skill="get_hm_cut", status="phase", phase="to_vermilion")
-        yield from navigate_to(MapFRLG.VERMILION_CITY, (23, 33))  # just above the gangplank warp
+                yield from navigate_to(MapFRLG.VERMILION_CITY, (23, 33))  # back to the gangplank
         # Board: stepping south onto the gangplank triggers VermilionCity_
         # EventScript_CheckTicket (a msgbox that only advances on A — plain
         # walking stalls on it forever). Walk down + mash A until we're aboard.
