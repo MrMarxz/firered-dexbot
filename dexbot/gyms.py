@@ -51,15 +51,45 @@ def beat_brock(min_level: int = 13) -> Generator:
         raise SkillError("Brock was not defeated (badge flag unset)")
 
 
-GYMS = {"brock": beat_brock}
+def beat_misty(min_level: int = 30) -> Generator:
+    """Beat Misty. Her Starmie L21 has Recover, and Water moves are resisted by
+    her Water types — so we rely on the damage-calc strategy picking the best
+    neutral move plus a level advantage to out-race the healing."""
+    from modules.map_data import MapFRLG, PokemonCenter
+    from modules.memory import get_event_flag
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+    from modules.pokemon_party import get_party
+
+    if get_event_flag("BADGE02_GET"):
+        return
+
+    if max(p.level for p in get_party() if not p.is_egg) < min_level:
+        yield from grind_levels(min_level)  # caller must run with a Fight policy
+
+    yield from ensure_healthy(minimum_fraction=0.99, center=PokemonCenter.CeruleanCity)
+
+    yield from navigate_to(MapFRLG.CERULEAN_CITY_GYM, (8, 7))  # in front of Misty (obj at 8,6)
+    yield from talk_to_npc(3)  # Misty
+    yield from wait_for_no_script_to_run("A")
+    yield from wait_for_player_avatar_to_be_controllable("A")
+
+    if not get_event_flag("BADGE02_GET"):
+        raise SkillError("Misty was not defeated (badge flag unset)")
+
+
+GYMS = {"brock": beat_brock, "misty": beat_misty}
+_DEFAULT_FIXTURE = {"brock": "m6_pre_brock_dex.ss1", "misty": "m7_ss_ticket.ss1"}
 
 
 def main() -> None:
     from dexbot.emulator import setup_headless_emulator
 
     which = sys.argv[1] if len(sys.argv) > 1 else "brock"
+    fixture = sys.argv[2] if len(sys.argv) > 2 else _DEFAULT_FIXTURE.get(which, "m7_ss_ticket.ss1")
     context = setup_headless_emulator(is_test_run=True)
-    context.emulator.load_save_state((PROJECT_ROOT / "fixtures" / "m6_pre_brock_dex.ss1").read_bytes())
+    context.emulator.load_save_state((PROJECT_ROOT / "fixtures" / fixture).read_bytes())
     context.emulator.run_single_frame()
 
     from dexbot.catching import fight_all_battles

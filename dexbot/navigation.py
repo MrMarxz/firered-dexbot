@@ -105,25 +105,36 @@ def _plan_warp_route(
     dest: tuple[tuple[int, int], tuple[int, int]],
     blacklist: frozenset = frozenset(),
 ) -> list[tuple[tuple[int, int], tuple[int, int]]]:
-    """BFS over (position, warp) space; returns the warp tiles to step on, in order.
+    """BFS over the warp graph at *map-level* granularity; returns the warp tiles
+    to step on, in order.
 
-    `blacklist` contains (warp_map, warp_coords) entries that failed in practice
-    (e.g. an NPC camping the only approach) — those edges are skipped.
+    Planning is pure graph traversal — no per-edge A* walkability check, which is
+    far too slow across Kanto (a full `calculate_path` per warp × ~1000 warps).
+    We assume a warp on the current level is reachable; `navigate_to`'s execution
+    loop walks each leg with the real A* and blacklists any leg that turns out
+    unwalkable (e.g. the Route 2 forest split), then re-plans. `blacklist`
+    contains those failed (warp_map, warp_coords) edges.
     """
     edges = _get_warp_edges()
-    visited: set = set()
-    queue: list = [(start, [])]
+    start_level = _map_level(start[0])
+    dest_level = _map_level(dest[0])
+    if start_level == dest_level:
+        return []
+    visited: set = {start_level}
+    queue: list = [(start_level, [])]
     while queue:
-        position, route = queue.pop(0)
-        if _map_level(position[0]) == _map_level(dest[0]) and (position == dest or _walkable(position, dest)):
-            return route
-        for warp_map, warp_coords, warp_dest_map, warp_dest_coords in edges.get(_map_level(position[0]), []):
+        level, route = queue.pop(0)
+        for warp_map, warp_coords, warp_dest_map, warp_dest_coords in edges.get(level, []):
             key = (warp_map, warp_coords)
-            if key in visited or key in blacklist:
+            if key in blacklist:
                 continue
-            if _walkable(position, (warp_map, warp_coords)):
-                visited.add(key)
-                queue.append(((warp_dest_map, warp_dest_coords), [*route, key]))
+            dest_lvl = _map_level(warp_dest_map)
+            new_route = [*route, key]
+            if dest_lvl == dest_level:
+                return new_route
+            if dest_lvl not in visited:
+                visited.add(dest_lvl)
+                queue.append((dest_lvl, new_route))
     raise SkillError(f"No warp route from {start} to {dest}")
 
 
