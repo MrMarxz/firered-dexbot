@@ -43,11 +43,11 @@ def setup_headless_emulator(profile=None, is_test_run: bool = False):
     context.config.battle = Battle(
         new_move="learn_best",
         stop_evolution=False,
-        lead_cannot_battle_action="rotate",
-        faint_action="rotate",
-        # Fight until faint: a "cannot battle" verdict with no rotation target
-        # (solo party) hard-fails the skill, whereas fainting just whites out
-        # and the retry/heal machinery recovers.
+        # Flee wild battles when low (the grind/catch loops then heal); trainer
+        # battles can't flee, so a chipped solo lead faints into whiteout
+        # recovery instead of hard-failing on a missing rotation target.
+        lead_cannot_battle_action="flee",
+        faint_action="flee",
         hp_threshold=1,
     )
     context.profile = profile

@@ -1,5 +1,18 @@
 # DEVLOG
 
+## 2026-07-07 — Nugget Bridge CLEARED (badge-2 chain unblocked)
+
+**Done — the bridge falls unattended**: `cross_nugget_bridge` runs the full chain from `m7_post_badge1_dex.ss1` — deposit fodder to boxes → solo-grind Wartortle to 26 → climb (rival Terry + five trainers) → the Team Rocket recruiter. Verified: `MAP_SCENE_ROUTE24=1`, Nugget in bag (₽5000 when sold), Wartortle L29 full HP. Fixture `m7_bridge.ss1`; 27 tests green.
+
+**The Rocket was a false alarm — and taught the real lessons.** Six-plus attempts chased a phantom: my completion check read `HIDE_NUGGET_BRIDGE_ROCKET`, but the pret script sets **`VAR_MAP_SCENE_ROUTE24=1`** on defeat (the HIDE flag is unrelated). The fight had been *winning*; only the verification failed. Root-caused by fetching the actual `Route24/scripts.inc` from pret. Two real bugs surfaced en route and are fixed:
+1. The Rocket's "Halt!" dialogue only advances on **A** — a hold-Up-only approach reaches the trigger tile but never enters the battle. Final approach now full-heals, walks to one tile south, then A-mashes through the dialogue into the fight.
+2. Universal battle policy (the big one): a solo overleveled champion with no potions, chained through 7 trainer fights, kept hitting either "no rotation target" or "flee not allowed in trainer battle" — both hard errors. The single `make_healing_battle_strategy` now does the right thing in every context: potion if available → else **flee wild** battles when low (grind loop heals between) → else **fight trainers to the faint** (whiteout recovery, never a hard stop). This replaces the earlier flip-flopping between `hp_threshold=1` (thrashed wild grinding) and `=25` (errored trainer fights).
+
+**Upstream patches** (all in `patches/0001-upstream-fixes.patch`, auto-applied by setup.sh): FRLG stair warps; empty-move-slot learning; solo-faint lead selection; battle item-target index clamp after PC deposits.
+
+**Process note:** this thread ran well past the 3-attempt rule on one NPC. The lesson logged for next time: when a skill "fails" but the party/HP look fine, suspect the *verification predicate* before the *action* — read the pret script for the real flag/var first, don't infer it.
+
+**Dex: 15 owned.** Next: `visit_bill` (Route 25 → Sea Cottage → SS Ticket), then Misty, then the deferred Cerulean-area catchables (Jigglypuff/Clefairy/Nidoran♀/Ekans) funded by the Nugget + bridge payouts.
 ## 2026-07-07 — Badge-2 chain: bridge conquered, Rocket verification open
 
 **Status: Nugget Bridge climbing works (rival + five trainers beaten unattended); the final Rocket-recruiter interaction stalls — under investigation after 6+ distinct attempts. Committed everything verified; per process rules, documenting and pausing this thread.**

@@ -76,11 +76,16 @@ def clear_mt_moon() -> Generator:
 def cross_nugget_bridge() -> Generator:
     """Fight up Nugget Bridge (rival + five trainers + the Rocket recruiter)."""
     from modules.map_data import MapFRLG
-    from modules.memory import get_event_flag
+    from modules.memory import get_event_flag, get_event_var
     from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
     from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
 
-    if get_event_flag("HIDE_NUGGET_BRIDGE_ROCKET"):
+    def rocket_done() -> bool:
+        # The Nugget Bridge Rocket sets VAR_MAP_SCENE_ROUTE24=1 on defeat
+        # (the HIDE_NUGGET_BRIDGE_ROCKET flag is unrelated).
+        return get_event_var("MAP_SCENE_ROUTE24") >= 1
+
+    if rocket_done():
         return
 
     # The Cerulean rival (Pidgeotto 17/Abra 16/Rattata 15/Bulbasaur 18) ambushes
@@ -95,24 +100,36 @@ def cross_nugget_bridge() -> Generator:
     if max(p.level for p in get_party() if not p.is_egg) < 26:
         yield from grind_levels(26)
 
-    # Hop up the bridge with heal stops — Cerulean's Pokémon Center is one
-    # screen south, and beaten trainers stay beaten.
-    for waypoint in [(11, 31), (11, 24), (11, 18), (11, 14)]:
+    # Climb with heal stops (Cerulean's PC is one screen south; beaten trainers
+    # stay beaten). Stop one tile SOUTH of the Rocket's trigger row (y=15) so the
+    # last heal actually lands before the fight — then full-heal and step in.
+    from modules.context import context
+    from modules.player import get_player_avatar
+
+    for waypoint in [(11, 31), (11, 24), (11, 18), (11, 16)]:
         yield from ensure_healthy(minimum_fraction=0.6)
         yield from navigate_to(MapFRLG.ROUTE24, waypoint)
+    # Full heal right before the Rocket — a chipped lead just faints and loops.
+    yield from ensure_healthy(minimum_fraction=2.0)
+    yield from navigate_to(MapFRLG.ROUTE24, (11, 16))
+    # Step onto the trigger row (y=15) and A-mash: holding Up reaches the tile
+    # but only A advances the Rocket's "Halt!" dialogue into his battle, which
+    # the battle listener then fights at full HP.
+    for _ in range(600):
+        if get_player_avatar().local_coordinates[1] > 15:
+            context.emulator.hold_button("Up")
+        else:
+            context.emulator.reset_held_buttons()
+            context.emulator.press_button("A")
+        yield
+        if rocket_done():
+            break
+    context.emulator.reset_held_buttons()
     yield from wait_for_no_script_to_run("A")
     yield from wait_for_player_avatar_to_be_controllable("A")
 
-    if not get_event_flag("HIDE_NUGGET_BRIDGE_ROCKET"):
-        # Trigger row missed (approached off-column) — talk to him directly.
-        from modules.modes.util.higher_level_actions import talk_to_npc
-
-        yield from talk_to_npc(1)
-        yield from wait_for_no_script_to_run("A")
-        yield from wait_for_player_avatar_to_be_controllable("A")
-
-    if not get_event_flag("HIDE_NUGGET_BRIDGE_ROCKET"):
-        raise SkillError("Nugget Bridge Rocket still present")
+    if not rocket_done():
+        raise SkillError("Nugget Bridge Rocket not defeated (VAR_MAP_SCENE_ROUTE24 unset)")
 
 
 def visit_bill() -> Generator:

@@ -65,11 +65,14 @@ class WeakeningCatchStrategy:
         return _Strategy()
 
 
-def make_healing_battle_strategy():
-    """DefaultBattleStrategy + drink a potion when the active mon drops low.
+def make_healing_battle_strategy(flee_below: float = 0.35):
+    """Universal battle policy for a solo/overleveled champion with thin supplies:
 
-    Long trainer gauntlets (Mt Moon, gyms) chain fights without a Pokémon
-    Center; without in-battle healing the party attrits to a whiteout.
+    - low HP + a potion in the bag → drink it (works in any battle);
+    - low HP, no potion, WILD battle → run away (the grind/catch loop heals
+      between battles, so this avoids whiteout thrash);
+    - low HP, no potion, TRAINER battle → fight on (can't flee) and let a
+      faint trigger whiteout recovery rather than a hard "cannot battle" error.
     """
     from modules.battle_strategies import DefaultBattleStrategy, TurnAction
     from modules.items import get_item_bag, get_item_by_name
@@ -77,21 +80,27 @@ def make_healing_battle_strategy():
     class HealingBattleStrategy(DefaultBattleStrategy):
         def decide_turn(self, battle_state):
             own = battle_state.own_side.active_battler
-            if own is not None and own.current_hp / own.total_hp < 0.35:
+            if own is not None and own.current_hp / own.total_hp < flee_below:
                 bag = get_item_bag()
                 for name in ("Potion", "Super Potion", "Hyper Potion"):
                     item = get_item_by_name(name)
                     if bag.quantity_of(item) > 0:
                         return TurnAction.use_item_on(item, own.party_index)
+                if not battle_state.is_trainer_battle:
+                    return TurnAction.run_away()
             return super().decide_turn(battle_state)
 
     return HealingBattleStrategy()
 
 
 def fight_all_battles(encounter):
-    """on_battle_started policy: fight every battle (grinding, gym runs),
-    drinking potions when low."""
+    """on_battle_started policy for every context (grind, gym, story): drink
+    potions when low, flee low wild battles, fight trainers to the end."""
     return make_healing_battle_strategy()
+
+
+# Grinding uses the same universal policy.
+grind_battles = fight_all_battles
 
 
 def make_catch_decider(target_species: str):
