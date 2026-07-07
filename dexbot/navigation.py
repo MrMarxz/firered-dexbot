@@ -450,8 +450,13 @@ def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generato
                     # Some FRLG tutorial boxes (sign lady's "press START to open
                     # the MENU") only dismiss on Start — A/B are swallowed.
                     context.emulator.press_button("Start")
-                elif frame % 8 == 0:
+                elif frame % 16 == 0:
                     context.emulator.press_button("A")
+                elif frame % 16 == 8:
+                    # B matters: facing an NPC, a pure A-mash closes a dialogue
+                    # and immediately re-talks, looping forever (S.S. Anne ferry
+                    # sailor). B advances text, answers NO, and never re-talks.
+                    context.emulator.press_button("B")
                 yield
             for frame in range(40):  # close a menu if a Start press opened one
                 if frame % 10 == 0:

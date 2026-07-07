@@ -322,12 +322,11 @@ def get_hm_cut() -> Generator:
         # into-ship route is too expensive. Walk to the Vermilion harbour first,
         # step onto the gangplank (ticket-gated board), then navigate the small
         # ship level to the Captain.
-        _log_event(skill="get_hm_cut", status="phase", phase="to_vermilion")
-        yield from navigate_to(MapFRLG.VERMILION_CITY, (23, 33))  # just above the gangplank warp
-
-        # Stock potions for the ship gauntlet (no PC aboard; the rival's Grass
-        # starter resists our Wartortle's Water). Buy AFTER reaching Vermilion —
-        # planning Cerulean → a Vermilion building interior is too far in one shot.
+        # Stock potions for the ship gauntlet FIRST (no PC aboard; the rival's
+        # Grass starter resists our Wartortle's Water). Must happen before the
+        # gangplank: arriving at (23,33) triggers the sailor's ticket-check
+        # script, and any navigation from there fights that dialogue forever.
+        _log_event(skill="get_hm_cut", status="phase", phase="buy_potions")
         if get_item_bag().quantity_of(get_item_by_name("Super Potion")) < 5:
             from dexbot.openings import buy_items
             from modules.player import get_player
@@ -335,10 +334,11 @@ def get_hm_cut() -> Generator:
             affordable = get_player().money // 700
             if affordable > 0:
                 yield from buy_items([("Super Potion", min(8, affordable))], MapFRLG.VERMILION_CITY_MART)
-                yield from navigate_to(MapFRLG.VERMILION_CITY, (23, 33))  # back to the gangplank
-        # Board: stepping south onto the gangplank triggers VermilionCity_
-        # EventScript_CheckTicket (a msgbox that only advances on A — plain
-        # walking stalls on it forever). Walk down + mash A until we're aboard.
+        _log_event(skill="get_hm_cut", status="phase", phase="to_vermilion")
+        yield from navigate_to(MapFRLG.VERMILION_CITY, (23, 33))  # just above the gangplank warp
+        # Board: arriving on/near the gangplank triggers VermilionCity_
+        # EventScript_CheckTicket(Right) (a msgbox that only advances on A —
+        # plain walking stalls on it forever). Walk down + mash A until aboard.
         _log_event(skill="get_hm_cut", status="phase", phase="board")
         from modules.context import context as _c
 
@@ -359,23 +359,60 @@ def get_hm_cut() -> Generator:
         yield from navigate_to(MapFRLG.SSANNE_CAPTAINS_OFFICE, (5, 5))  # through ship to Captain
         _log_event(skill="get_hm_cut", status="phase", phase="talk_captain")
         yield from talk_to_npc(1)  # Captain — seasick dialogue, then hands over HM01
-        yield from wait_for_no_script_to_run("A")
-        yield from wait_for_player_avatar_to_be_controllable("A")
+        # Close out with B: pressing A while still facing the Captain re-opens
+        # his "the ship will set sail" box in a loop (same trap as Bill's cottage).
+        yield from wait_for_no_script_to_run("B")
+        yield from wait_for_player_avatar_to_be_controllable("B")
 
     if not get_event_flag("GOT_HM01"):
         raise SkillError("Did not receive HM01 from the S.S. Anne Captain")
 
-    # Teach Cut to the strongest member, over its weakest-power move.
+    # Teach Cut to the strongest party member that CAN learn it — the Squirtle
+    # line cannot in FRLG (verified against the ROM's sTMHMLearnsets), so with
+    # a solo-starter party we first withdraw the best boxed learner (Paras).
     if not get_party().has_pokemon_with_move("Cut"):
-        lead = max((p for p in get_party() if not p.is_egg), key=lambda p: p.level)
-        party_index = get_party().get_index_for_pokemon(lead)
+        hm01 = get_item_by_name("HM01")
+
+        def learners():
+            return [p for p in get_party() if not p.is_egg and p.species.can_learn_tm_hm(hm01)]
+
+        if not learners():
+            _log_event(skill="get_hm_cut", status="phase", phase="withdraw_learner")
+            yield from _withdraw_learner_of(hm01)
+        if not learners():
+            raise SkillError("No Cut-capable Pokémon in party or PC")
+        mon = max(learners(), key=lambda p: p.level)
+        party_index = get_party().get_index_for_pokemon(mon)
         replace_index = min(
-            range(len(lead.moves)),
-            key=lambda i: lead.moves[i].move.base_power if lead.moves[i] else 999,
+            range(len(mon.moves)),
+            key=lambda i: mon.moves[i].move.base_power if mon.moves[i] else 999,
         )
-        yield from teach_hm_or_tm(get_item_by_name("HM01"), party_index, replace_index)
+        _log_event(skill="get_hm_cut", status="phase", phase="teach_cut")
+        yield from teach_hm_or_tm(hm01, party_index, replace_index)
         if not get_party().has_pokemon_with_move("Cut"):
             raise SkillError("Failed to teach Cut")
+
+
+def _withdraw_learner_of(hm_or_tm) -> Generator:
+    """Withdraw the highest-level boxed Pokémon that can learn the given HM/TM
+    (at the Vermilion center's PC — the party must have a free slot)."""
+    from modules.map_data import MapFRLG
+    from modules.modes.util.pc_interaction import PCAction, interact_with_pc
+    from modules.modes.util.walking import ensure_facing_direction
+    from modules.pokemon_storage import get_pokemon_storage
+
+    candidates = [
+        slot.pokemon
+        for box in get_pokemon_storage().boxes
+        for slot in box.slots
+        if slot.pokemon.species.can_learn_tm_hm(hm_or_tm)
+    ]
+    if not candidates:
+        raise SkillError(f"No boxed Pokémon can learn {hm_or_tm.name}")
+    best = max(candidates, key=lambda p: p.level)
+    yield from navigate_to(MapFRLG.VERMILION_CITY_POKEMON_CENTER_1F, (11, 2))  # below the PC
+    yield from ensure_facing_direction("Up")
+    yield from interact_with_pc([PCAction.withdraw_pokemon_from_box(best)])
 
 
 def _ctx_placeholder():

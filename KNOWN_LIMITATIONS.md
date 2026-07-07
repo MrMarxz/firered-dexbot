@@ -6,10 +6,11 @@
   badge (e.g. Saffron's guards want a drink, not a badge) do NOT trigger a
   rebuild — routes through such a gate stay unknown until the next badge or a
   manual `python -m dexbot.build_navgraph <fixture>`.
-- **Connectivity components assume walk-reachability is symmetric**, but
-  ledges are one-way. If a portal pair is only connected via a ledge drop,
-  the component (and hence a planned route) can be wrong in one direction —
-  corrected at execution time by the blacklist-and-replan machinery.
+- **Nav-graph walk edges are rep-to-rep**: a directed walk edge A→B is proven
+  between one representative tile pair; if a component is internally mutual
+  but the one-way passage only works from part of it (shouldn't happen for
+  SCCs, but NPC templates can shift with story state), a leg can fail at
+  execution — corrected by the blacklist-and-replan machinery.
 
 Honesty over optimism. Current as of M5.
 
