@@ -292,10 +292,61 @@ def _ctx():
     return context
 
 
+def get_hm_cut() -> Generator:
+    """Board the S.S. Anne (needs SS Ticket), reach the Captain for HM01, and
+    teach Cut to the strongest party member (over its weakest move).
+
+    The on-ship rival fight and any trainers en route are handled by the caller's
+    Fight battle policy + navigate_to's interruption handling.
+    """
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG, PokemonCenter
+    from modules.memory import get_event_flag
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.items import teach_hm_or_tm
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+    from modules.pokemon_party import get_party
+
+    if not get_event_flag("GOT_HM01"):
+        # Full-heal before boarding (the ship chains a rival + trainers with no
+        # PC aboard); Vermilion's center is closest to the harbour.
+        yield from ensure_healthy(minimum_fraction=2.0, center=PokemonCenter.VermilionCity)
+        # Split the trek into feasible plans: planning a single cross-Kanto +
+        # into-ship route is too expensive. Walk to the Vermilion harbour first,
+        # step onto the gangplank (ticket-gated board), then navigate the small
+        # ship level to the Captain.
+        yield from navigate_to(MapFRLG.VERMILION_CITY, (23, 33))  # just above the gangplank warp
+        yield from navigate_to(MapFRLG.SSANNE_CAPTAINS_OFFICE, (5, 5))  # board + through ship to Captain
+        yield from talk_to_npc(1)  # Captain — seasick dialogue, then hands over HM01
+        yield from wait_for_no_script_to_run("A")
+        yield from wait_for_player_avatar_to_be_controllable("A")
+
+    if not get_event_flag("GOT_HM01"):
+        raise SkillError("Did not receive HM01 from the S.S. Anne Captain")
+
+    # Teach Cut to the strongest member, over its weakest-power move.
+    if not get_party().has_pokemon_with_move("Cut"):
+        lead = max((p for p in get_party() if not p.is_egg), key=lambda p: p.level)
+        party_index = get_party().get_index_for_pokemon(lead)
+        replace_index = min(
+            range(len(lead.moves)),
+            key=lambda i: lead.moves[i].move.base_power if lead.moves[i] else 999,
+        )
+        yield from teach_hm_or_tm(get_item_by_name("HM01"), party_index, replace_index)
+        if not get_party().has_pokemon_with_move("Cut"):
+            raise SkillError("Failed to teach Cut")
+
+
+def _ctx_placeholder():
+    pass
+
+
 STORY_SKILLS = {
     "clear_mt_moon": clear_mt_moon,
     "cross_nugget_bridge": cross_nugget_bridge,
     "visit_bill": visit_bill,
+    "get_hm_cut": get_hm_cut,
 }
 
 

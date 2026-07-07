@@ -100,41 +100,73 @@ def _walkable(source: tuple[tuple[int, int], tuple[int, int]], dest: tuple[tuple
         return False
 
 
+_WALKABLE_BUDGET = 2000  # max A* checks per plan; bounds worst-case planning time
+
+
+def _global_coords(map_key: tuple[int, int], local: tuple[int, int]) -> tuple[int, int] | None:
+    """Approximate global coordinates for cross-map distance heuristics."""
+    from modules.map_path import _get_all_maps_metadata
+
+    pm = _get_all_maps_metadata().get(tuple(map_key))
+    if pm is None or pm.offset is None:
+        return None
+    return (local[0] + pm.offset[0], local[1] + pm.offset[1])
+
+
 def _plan_warp_route(
     start: tuple[tuple[int, int], tuple[int, int]],
     dest: tuple[tuple[int, int], tuple[int, int]],
     blacklist: frozenset = frozenset(),
 ) -> list[tuple[tuple[int, int], tuple[int, int]]]:
-    """BFS over the warp graph at *map-level* granularity; returns the warp tiles
-    to step on, in order.
+    """Best-first search over reachable warp endpoints; returns the warp tiles.
 
-    Planning is pure graph traversal — no per-edge A* walkability check, which is
-    far too slow across Kanto (a full `calculate_path` per warp × ~1000 warps).
-    We assume a warp on the current level is reachable; `navigate_to`'s execution
-    loop walks each leg with the real A* and blacklists any leg that turns out
-    unwalkable (e.g. the Route 2 forest split), then re-plans. `blacklist`
-    contains those failed (warp_map, warp_coords) edges.
+    Each candidate leg is A*-verified with `_walkable`, because map "levels" are
+    NOT reliably walkable-contiguous: whole regions share a level yet are only
+    linked through warps (Cerulean↔Vermilion via the Underground Path, Saffron
+    gated between). A pure graph would emit a direct walk the executor can't
+    follow. To stay fast we explore warps *best-first* by global-coordinate
+    distance to the destination (heads toward the goal instead of opening every
+    building door), backed by the `_walkable` LRU cache and a per-plan A* budget.
     """
+    import heapq
+
     edges = _get_warp_edges()
-    start_level = _map_level(start[0])
+    checks = [0]
+
+    def walkable(a, b) -> bool:
+        checks[0] += 1
+        if checks[0] > _WALKABLE_BUDGET:
+            raise SkillError(f"Route planning budget exceeded from {start} to {dest}")
+        return _walkable(a, b)
+
     dest_level = _map_level(dest[0])
-    if start_level == dest_level:
+    dest_global = _global_coords(dest[0], dest[1])
+    if _map_level(start[0]) == dest_level and walkable(start, dest):
         return []
-    visited: set = {start_level}
-    queue: list = [(start_level, [])]
-    while queue:
-        level, route = queue.pop(0)
-        for warp_map, warp_coords, warp_dest_map, warp_dest_coords in edges.get(level, []):
+
+    def priority(landing) -> int:
+        g = _global_coords(landing[0], landing[1])
+        if g is None or dest_global is None:
+            return 0
+        return abs(g[0] - dest_global[0]) + abs(g[1] - dest_global[1])
+
+    visited: set = set()
+    counter = 0
+    heap: list = [(0, 0, start, [])]  # (heuristic, tiebreak, position, route)
+    while heap:
+        _, _, position, route = heapq.heappop(heap)
+        for warp_map, warp_coords, warp_dest_map, warp_dest_coords in edges.get(_map_level(position[0]), []):
             key = (warp_map, warp_coords)
-            if key in blacklist:
+            if key in visited or key in blacklist:
                 continue
-            dest_lvl = _map_level(warp_dest_map)
-            new_route = [*route, key]
-            if dest_lvl == dest_level:
-                return new_route
-            if dest_lvl not in visited:
-                visited.add(dest_lvl)
-                queue.append((dest_lvl, new_route))
+            if not walkable(position, (warp_map, warp_coords)):
+                continue
+            visited.add(key)
+            landing = (warp_dest_map, warp_dest_coords)
+            if _map_level(warp_dest_map) == dest_level and walkable(landing, dest):
+                return [*route, key]
+            counter += 1
+            heapq.heappush(heap, (priority(landing), counter, landing, [*route, key]))
     raise SkillError(f"No warp route from {start} to {dest}")
 
 
@@ -160,23 +192,29 @@ def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generato
     blacklist: set = set()
     current_target = None
     target_failures = 0
+    cached_route: list | None = None  # plan once; re-plan only after a failure
     while True:
         avatar = get_player_avatar()
         position = (avatar.map_group_and_number, avatar.local_coordinates)
         try:
-            route = _plan_warp_route(position, (tuple(map), tuple(coordinates)), frozenset(blacklist))
-            if not route:
+            # Planning is expensive across Kanto, so amortize it over the whole
+            # journey: plan once, then consume warp legs in sequence. A failure
+            # clears the cache to force a fresh plan (with any new blacklist).
+            if cached_route is None:
+                cached_route = _plan_warp_route(position, (tuple(map), tuple(coordinates)), frozenset(blacklist))
+            if not cached_route:
                 yield from navigate_same_level(map, coordinates, run=run)
                 return
-            # Step onto the first warp of the route; upstream follows the warp
-            # because it is the final waypoint. Then re-plan from the new position.
-            warp_map, warp_coords = route[0]
+            # Step onto the next warp; upstream follows it (final waypoint).
+            warp_map, warp_coords = cached_route[0]
             current_target = (warp_map, warp_coords)
             yield from navigate_same_level(warp_map, warp_coords, run=run)
+            cached_route = cached_route[1:] or None  # consume; None re-plans final walk
             target_failures = 0
         except BotModeError as e:
             # One-time overworld triggers (tutorial NPCs, etc.) interrupt walking.
             # Mash through the script, then re-plan from wherever we ended up.
+            cached_route = None  # invalidate: re-plan from the new position
             interruptions += 1
             if interruptions > 30:
                 raise
