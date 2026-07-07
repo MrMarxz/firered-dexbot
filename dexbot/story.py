@@ -308,16 +308,22 @@ def get_hm_cut() -> Generator:
     from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
     from modules.pokemon_party import get_party
 
+    from dexbot.runner import _log_event
+
     if not get_event_flag("GOT_HM01"):
         # Full-heal before boarding (the ship chains a rival + trainers with no
         # PC aboard); Vermilion's center is closest to the harbour.
+        _log_event(skill="get_hm_cut", status="phase", phase="heal")
         yield from ensure_healthy(minimum_fraction=2.0, center=PokemonCenter.VermilionCity)
         # Split the trek into feasible plans: planning a single cross-Kanto +
         # into-ship route is too expensive. Walk to the Vermilion harbour first,
         # step onto the gangplank (ticket-gated board), then navigate the small
         # ship level to the Captain.
+        _log_event(skill="get_hm_cut", status="phase", phase="to_vermilion")
         yield from navigate_to(MapFRLG.VERMILION_CITY, (23, 33))  # just above the gangplank warp
+        _log_event(skill="get_hm_cut", status="phase", phase="board_and_ship")
         yield from navigate_to(MapFRLG.SSANNE_CAPTAINS_OFFICE, (5, 5))  # board + through ship to Captain
+        _log_event(skill="get_hm_cut", status="phase", phase="talk_captain")
         yield from talk_to_npc(1)  # Captain — seasick dialogue, then hands over HM01
         yield from wait_for_no_script_to_run("A")
         yield from wait_for_player_avatar_to_be_controllable("A")

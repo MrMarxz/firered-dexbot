@@ -1,5 +1,14 @@
 # DEVLOG
 
+## 2026-07-07 — Long-range nav proven; get_hm_cut stalls in the S.S. Anne (precise handoff)
+
+**Navigation across regions works.** Verified live: Cerulean → (Underground Path) → Vermilion in 53s, routing correctly through the north/south tunnel warps. The cached best-first planner (commit 1d1b46a) plans once per journey and executes legs; a Vermilion→Captain plan is 6s / 4 warps (gangplank → exterior → 1F → 2F → office) — **planning is not the bottleneck**. Correction to an earlier wrong inference: `navigate_to` *avoids* encounters by default, so "0 wild encounters during a trek" is normal, not a stall signal (I over-killed a couple of healthy runs on that mistaken read).
+
+**`get_hm_cut` progresses through phases** (added `_log_event` phase markers: heal → to_vermilion → board_and_ship → talk_captain). It reliably reaches **board_and_ship** — heal at Vermilion, walk to the gangplank — then stalls *executing* the ship traversal to the Captain. Since the plan itself is fast/correct, the stall is in walking the ship: almost certainly the **S.S. Anne rival trigger** blocking a corridor (a coord-event/line-of-sight fight the route must step into, like the Oak and Nugget-Bridge Rocket triggers) or a ship inter-deck warp not firing.
+
+**Precise next step (handoff):** run `get_hm_cut` with per-frame position tracing scoped to the board_and_ship phase; watch which ship map it's on and whether the rival object is blocking. Fix is expected to be the same pattern already used elsewhere — walk into the trigger tile so the battle listener fights the rival, then continue — plus possibly a ship-specific warp-approach tweak. The Captain interaction itself (talk → seasick dialogue → HM01, then teach Cut over the weakest move) is already coded and simple.
+
+**State:** Badges 1–2 ✓ (Brock, Misty), Mt Moon ✓, Nugget Bridge ✓, SS Ticket ✓. Dex: 15 owned. Wartortle L31. All committed; 29 tests green. `get_hm_cut` is the only in-flight skill.
 ## 2026-07-07 — Badge 2 (Misty) beaten; ticket-fixture stall root-caused and fixed
 
 **Done — Misty defeated unattended, badge 2 in hand.** `beat_misty` from `m7_ss_ticket.ss1`: heal at Cerulean, walk into the gym, beat the junior trainers + Misty. Won at **L29** (no grind) — the damage-calc strategy avoided her resisted Water moves and Wartortle's level lead out-raced Starmie's Recover, exactly as hoped. Wartortle ended L31. Fixture `m7_badge_misty.ss1`; 29 tests green.
