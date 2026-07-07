@@ -40,9 +40,29 @@ def accessible_maps() -> dict[tuple[int, int], dict]:
     return result
 
 
+def _graph_reachable(map_key: tuple[int, int], annotation: dict) -> bool:
+    """Whether the nav graph can plan a route to this map from here. Story flags
+    say a map is *unlocked*; this says it is *walkable-to* (Route 3 is unlocked
+    at badge 1 but unreachable from Vermilion without field Cut)."""
+    from modules.player import get_player_avatar
+
+    from dexbot.catching import _encounter_tiles
+    from dexbot.navigation import _load_nav_graph, _plan_via_graph, _walkable
+
+    if _load_nav_graph() is None:
+        return True  # no graph: keep the old optimistic behaviour
+    avatar = get_player_avatar()
+    pos = (avatar.map_group_and_number, avatar.local_coordinates)
+    try:
+        tile = tuple(annotation["safe_tile"]) if "safe_tile" in annotation else _encounter_tiles(map_key)[0]
+        return _plan_via_graph(pos, (map_key, tile), frozenset(), _walkable) is not None
+    except Exception:
+        return False
+
+
 def missing_catchable() -> list[tuple[str, tuple[int, int], int, dict]]:
     """(species, map, rate%, annotation) for every missing species catchable on an
-    accessible map, most-common-first — deterministic priority queue."""
+    accessible AND currently-reachable map, most-common-first."""
     from modules.pokedex import get_pokedex
 
     owned = {s.name for s in get_pokedex().owned_species}
@@ -50,6 +70,8 @@ def missing_catchable() -> list[tuple[str, tuple[int, int], int, dict]]:
     for map_key, annotation in accessible_maps().items():
         table = encounters().get(f"{map_key[0]},{map_key[1]}")
         if table is None:
+            continue
+        if not _graph_reachable(map_key, annotation):
             continue
         rates: dict[str, int] = {}
         for entry in table["land_encounters"]:
