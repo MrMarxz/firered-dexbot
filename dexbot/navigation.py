@@ -240,20 +240,25 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
             return 0
         return abs(g[0] - dest_global[0]) + abs(g[1] - dest_global[1])
 
-    dest_reps: dict[int, tuple] = {}
+    dest_reps: dict[int, list] = {}
     for tile, cid in comp.items():
         if _map_level(tile[0]) != dest_level:
             continue
-        if cid not in dest_reps or distance_to_dest(tile) < distance_to_dest(dest_reps[cid]):
-            dest_reps[cid] = tile
+        dest_reps.setdefault(cid, []).append(tile)
+    for cid in dest_reps:
+        # Spread sample (nearest / middle / farthest): the nearest tiles can
+        # all sit in one sub-pocket that cannot walk to dest even though the
+        # component mostly can (Vermilion's dock pocket vs. the rest of the
+        # city after the ship departs — story drift the epoch key misses).
+        tiles = sorted(dest_reps[cid], key=distance_to_dest)
+        dest_reps[cid] = list(dict.fromkeys([tiles[0], tiles[len(tiles) // 2], tiles[-1]]))
 
     # 0-1 BFS: walk edges are free, warp edges cost one leg.
     queue = deque([(entry, [])])
     seen = {entry}
     while queue:
         cid, route = queue.popleft()
-        rep = dest_reps.get(cid)
-        if rep is not None and walkable(rep, dest):
+        if any(walkable(rep, dest) for rep in dest_reps.get(cid, ())):
             return route
         for next_cid in graph["walk"].get(cid, []):
             if next_cid not in seen:

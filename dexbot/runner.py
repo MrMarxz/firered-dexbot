@@ -32,6 +32,27 @@ def _log_event(**fields) -> None:
     _events_path.parent.mkdir(exist_ok=True)
     with open(_events_path, "a") as f:
         f.write(json.dumps({"time": round(time.time(), 3), **fields}) + "\n")
+    if fields.get("status") == "phase":
+        _checkpoint_phase(fields.get("skill", "skill"), fields.get("phase", "phase"))
+
+
+def _checkpoint_phase(skill: str, phase: str) -> None:
+    """Savestate at every phase boundary → fixtures/_phases/{skill}_{phase}.ss1.
+
+    This is the dev debug loop: a failure inside phase N is re-reachable in
+    seconds via `python -m dexbot.dev_resume <skill> <phase>` instead of
+    re-running the whole trek. Phase boundaries are clean overworld states by
+    convention (same rule as fixtures). Best-effort: never breaks the run.
+    """
+    try:
+        from modules.context import context
+
+        phases_dir = PROJECT_ROOT / "fixtures" / "_phases"
+        phases_dir.mkdir(exist_ok=True)
+        safe = f"{skill}_{phase}".replace("/", "_").replace(" ", "_")
+        (phases_dir / f"{safe}.ss1").write_bytes(context.emulator.get_save_state())
+    except Exception:
+        pass
 
 
 def _make_bot_mode(skill: Generator, on_battle_started=None):
