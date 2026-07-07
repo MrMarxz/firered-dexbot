@@ -1,5 +1,22 @@
 # DEVLOG
 
+## 2026-07-07 — Nav graph shipped (32s → 0.06s planning); HM01 Cut obtained and taught ✓
+
+**The precomputed warp-connectivity graph is in** (`dexbot/build_navgraph.py` + graph BFS in `_plan_warp_route`), and it surfaced two deep bugs on the way to working:
+
+1. **Never cache failed walkability.** `calculate_path` blocks live NPCs' current+previous tiles, so an NPC in a choke point transiently walls off a whole region — and `_walkable`'s `lru_cache` made that False permanent, poisoning every later plan in the process ("No warp route" forever). Successes-only caching fixes it (walkability that exists is static; FRLG gates only ever open).
+2. **Walk-reachability is NOT symmetric, so equivalence-class components over-merge.** Cerulean center → Route 5 is impossible on foot (a policeman object guards the only fence gap; the real route goes THROUGH a pass-through house and down one-way ledges) while the reverse walks around — one-directional tests merged them, and plans emitted unwalkable "same component" direct legs. Components are now strongly-connected (mutual A*), with one-way passages as **directed walk edges** the planner's 0-1 BFS traverses at cost 0. Graph is epoch-keyed by badge count (`data/nav_graph.json` `{"epochs": {...}}`), auto-rebuilds in-process (~25s) on a badge mismatch, epochs 0+2 prebuilt and committed. Cerulean→Vermilion plans in 0.26s (was ~32s); Cerulean→Captain instantly (was budget-exceeded).
+
+**`get_hm_cut` is done — HM01 obtained and Cut taught, fixture `m7_hm_cut.ss1`, 31 tests green.** The remaining walls were all NPC-dialogue traps, then a data surprise:
+- Tile (23,33) — "just above the gangplank" — itself triggers the sailor's ticket-check script on arrival, so the skill now buys Super Potions BEFORE going there (mart trips from the gangplank fight that dialogue forever).
+- **A pure A-mash can loop forever on NPC dialogues**: A closes the box and instantly re-talks to the NPC you face (S.S. Anne ferry sailor, the Captain's post-HM01 box — same trap as Bill's cottage). `navigate_to`'s script-interrupt mash now interleaves B (advances text, answers NO, never re-triggers); post-Captain waits use B.
+- **The Squirtle line cannot learn Cut in FRLG** (verified against the ROM's `sTMHMLearnsets` — Gen 1 compatibility was removed). With a solo-Wartortle party the skill now withdraws the best boxed learner (Paras L10) at the Vermilion PC via upstream's `interact_with_pc`, then teaches. Upstream patch: `teach_hm_or_tm` crashed on mons with 2+ empty move slots (unguarded `learned_move.move`).
+- The ship gauntlet run survives one whiteout autonomously (respawn at Cerulean → re-trek → re-board) thanks to instant re-planning.
+
+**Debugging lesson that cost an hour**: two runs writing the same log/journal (a zombie process from an earlier launch) made a fixed bug look still-broken. Verify the old run is dead (`pgrep`, kill by explicit PID) before relaunching.
+
+**State:** Badges 1–2 ✓, S.S. Anne ✓, **HM01 Cut ✓ (usable — Cascade Badge in hand)**. Dex: 15 owned. 31 tests green, all committed. **Next:** planner sweep of Cerulean-area deferred species (Jigglypuff/Clefairy/Nidoran♀ etc., funded by the Nugget), then Vermilion Gym (Surge, badge 3, Cut-gated).
+
 ## 2026-07-07 — Navigation is a planning-SPEED wall; needs a precomputed connectivity graph
 
 **Two real navigation wins committed:**
