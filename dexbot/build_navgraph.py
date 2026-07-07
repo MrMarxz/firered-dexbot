@@ -14,12 +14,12 @@ against one representative per existing component: O(tiles x components), not
 O(tiles^2).
 
 Output: data/nav_graph.json
-    {
-      "components": {tile_key: component_id, ...},   # tile_key = "mg,mn,x,y"
-      "story_epoch": <int>,   # badge count when built; rebuild if gates changed
-    }
-(Warp edges are NOT stored — the runtime rebuilds them from ROM via
-_get_warp_edges(), the same source this script uses.)
+    {"epochs": {"<badge count>": {tile_key: component_id, ...}}}   # "mg,mn,x,y"
+Connectivity depends on story gates, so components are keyed by a story epoch
+(= badge count). Sections for different epochs coexist; building only ever
+adds/updates the current epoch's section. (Warp edges are NOT stored — the
+runtime rebuilds them from ROM via _get_warp_edges(), the same source this
+script uses.)
 
 Build resumably (save after each level) — long emulator runs can die silently.
 
@@ -51,10 +51,12 @@ def build(context, save_every_level: bool = True) -> dict:
             portals.setdefault(level, set()).add((src_map, src_coords))
             portals.setdefault(_map_level(dst_map), set()).add((dst_map, dst_coords))
 
-    # Resume: reuse already-computed levels from a prior partial run.
+    # Resume: reuse this epoch's already-computed levels from a prior partial
+    # run. Other epochs' sections are left untouched.
+    epoch = sum(1 for n in range(1, 9) if get_event_flag(f"BADGE{n:02d}_GET"))
     existing = {}
     if GRAPH_PATH.exists():
-        existing = json.loads(GRAPH_PATH.read_text()).get("components", {})
+        existing = json.loads(GRAPH_PATH.read_text()).get("epochs", {}).get(str(epoch), {})
 
     components: dict[str, int] = dict(existing)
     next_id = (max(components.values()) + 1) if components else 0
@@ -91,18 +93,19 @@ def build(context, save_every_level: bool = True) -> dict:
                 reps.append((tile, assigned))
             components[key] = assigned
         if save_every_level:
-            _write(components, get_event_flag)
+            _write(components, epoch)
             print(f"  level {level}: {len(tiles)} portals, {len(reps)} components", flush=True)
 
-    _write(components, get_event_flag)
+    _write(components, epoch)
     return {"components": components}
 
 
-def _write(components, get_event_flag) -> None:
-    epoch = sum(1 for n in range(1, 9) if get_event_flag(f"BADGE{n:02d}_GET"))
-    GRAPH_PATH.write_text(
-        json.dumps({"components": components, "story_epoch": epoch}) + "\n"
-    )
+def _write(components, epoch: int) -> None:
+    epochs = {}
+    if GRAPH_PATH.exists():
+        epochs = json.loads(GRAPH_PATH.read_text()).get("epochs", {})
+    epochs[str(epoch)] = components
+    GRAPH_PATH.write_text(json.dumps({"epochs": epochs}) + "\n")
 
 
 def main() -> None:

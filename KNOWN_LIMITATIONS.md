@@ -1,12 +1,11 @@
 # Known limitations
 
-- **nav_graph.json is story-epoch-stamped (badge count) and not auto-rebuilt.**
-  Planning uses the precomputed connectivity graph (data/nav_graph.json,
-  rebuilt in ~10s via `python -m dexbot.build_navgraph <fixture>`); when the
-  badge count no longer matches, navigation silently falls back to the slow
-  live search (~32s cross-region). Rebuild after each badge, or automate the
-  rebuild in the ops loop. Badge count is also only a *proxy* for gates that
-  open without a badge (e.g. Saffron's guards want a drink, not a badge).
+- **nav_graph.json's story epoch is the badge count — a proxy.** Planning uses
+  the precomputed connectivity graph (data/nav_graph.json); on a badge-count
+  mismatch it auto-rebuilds in-process (~10s). But gates that open without a
+  badge (e.g. Saffron's guards want a drink, not a badge) do NOT trigger a
+  rebuild — routes through such a gate stay unknown until the next badge or a
+  manual `python -m dexbot.build_navgraph <fixture>`.
 - **Connectivity components assume walk-reachability is symmetric**, but
   ledges are one-way. If a portal pair is only connected via a ledge drop,
   the component (and hence a planned route) can be wrong in one direction —

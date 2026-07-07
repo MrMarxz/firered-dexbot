@@ -74,10 +74,9 @@ def _get_warp_edges() -> dict:
     return _warp_edges
 
 
-from functools import lru_cache
+_walkable_cache: set = set()  # proven-walkable pairs only — see below
 
 
-@lru_cache(maxsize=4096)
 def _walkable(source: tuple[tuple[int, int], tuple[int, int]], dest: tuple[tuple[int, int], tuple[int, int]]) -> bool:
     """Whether the A* finds a walking path between two positions (no player needed).
 
@@ -85,17 +84,21 @@ def _walkable(source: tuple[tuple[int, int], tuple[int, int]], dest: tuple[tuple
     forest, caves, ...), so warp-route planning verifies every same-level leg
     with the real pathfinder instead of trusting level identity.
 
-    Cached: route planning re-tests the same (position, warp) pairs constantly.
-    A stale hit (an NPC moved into a choke point, a story flag cleared a tile)
-    is corrected by the navigation retry/blacklist machinery at execution time.
+    Only SUCCESSES are cached. `calculate_path` blocks the live NPCs' tiles, so
+    a wandering NPC in a choke point makes every check from the walled-off side
+    fail *transiently*; caching such a False poisons all future plans in the
+    process ("No warp route" forever, even after the NPC moves on). Walkability
+    that exists is static — failures must be recomputed each time.
     """
-    from modules.map_path import PathFindingError, calculate_path
+    from modules.map_path import calculate_path
 
+    key = (source, dest)
+    if key in _walkable_cache:
+        return True
     try:
         calculate_path(source, dest)
+        _walkable_cache.add(key)
         return True
-    except PathFindingError:
-        return False
     except Exception:
         return False
 
@@ -113,37 +116,53 @@ def _global_coords(map_key: tuple[int, int], local: tuple[int, int]) -> tuple[in
     return (local[0] + pm.offset[0], local[1] + pm.offset[1])
 
 
-_nav_graph: dict | None = None  # {tile: component_id}, tile = ((mg,mn),(x,y))
-_nav_graph_epoch: int | None = None
+_nav_graphs: dict[int, dict | None] = {}  # epoch -> {tile: component_id} | None
+_rebuild_attempted: set[int] = set()
 
 
 def _load_nav_graph() -> dict | None:
-    """Parsed data/nav_graph.json component map, or None if absent/unreadable."""
-    global _nav_graph, _nav_graph_epoch
-    if _nav_graph is None:
-        import json
+    """The current story epoch's component map from data/nav_graph.json.
 
-        from dexbot import PROJECT_ROOT
-
-        path = PROJECT_ROOT / "data" / "nav_graph.json"
-        try:
-            raw = json.loads(path.read_text())
-            _nav_graph_epoch = raw["story_epoch"]
-            _nav_graph = {}
-            for key, cid in raw["components"].items():
-                mg, mn, x, y = (int(v) for v in key.split(","))
-                _nav_graph[((mg, mn), (x, y))] = cid
-        except Exception:
-            _nav_graph = {}  # sentinel: tried and failed; don't re-read every plan
-    if not _nav_graph:
-        return None
-    # The graph honours story gates (Saffron guards, ...) as of build time; a
-    # badge since then may have opened routes it doesn't know. Fall back to
-    # live planning until `python -m dexbot.build_navgraph` is re-run.
+    Connectivity depends on story gates, so components are keyed by an epoch
+    (= badge count). A missing epoch section is built in-process — pure
+    calculate_path computation, ~10s, no frames advanced. None means graph
+    planning is unavailable (build failed); callers fall back to live search.
+    """
     from modules.memory import get_event_flag
 
     epoch = sum(1 for n in range(1, 9) if get_event_flag(f"BADGE{n:02d}_GET"))
-    return _nav_graph if epoch == _nav_graph_epoch else None
+    if epoch in _nav_graphs:
+        return _nav_graphs[epoch]
+
+    import json
+
+    from dexbot import PROJECT_ROOT
+
+    path = PROJECT_ROOT / "data" / "nav_graph.json"
+
+    def read_section() -> dict | None:
+        try:
+            raw = json.loads(path.read_text())["epochs"][str(epoch)]
+        except Exception:
+            return None
+        graph = {}
+        for key, cid in raw.items():
+            mg, mn, x, y = (int(v) for v in key.split(","))
+            graph[((mg, mn), (x, y))] = cid
+        return graph
+
+    graph = read_section()
+    if graph is None and epoch not in _rebuild_attempted:
+        _rebuild_attempted.add(epoch)
+        try:
+            from dexbot.build_navgraph import build
+
+            build(None)
+            graph = read_section()
+        except Exception:
+            graph = None
+    _nav_graphs[epoch] = graph
+    return graph
 
 
 def _find_component(position, graph, walkable, reverse: bool = False) -> int | None:
@@ -243,7 +262,7 @@ def _plan_warp_route_live(
     gated between). A pure graph would emit a direct walk the executor can't
     follow. To stay fast we explore warps *best-first* by global-coordinate
     distance to the destination (heads toward the goal instead of opening every
-    building door), backed by the `_walkable` LRU cache and a per-plan A* budget.
+    building door), backed by the `_walkable` cache and a per-plan A* budget.
     """
     import heapq
 
