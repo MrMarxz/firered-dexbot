@@ -11,4 +11,8 @@ mGBA savestates (`.ss1`) for headless tests, all produced with FireRed USA **1.0
 | `m4_pokedex.ss1` | Same run, final state: Pokédex owned, parcel delivered, 10 Poké Balls bought, standing in Viridian Mart. |
 | `m5_five_species.ss1` | `python -m dexbot.catching` from `m4_pokedex.ss1` — Rattata, Pidgey, Caterpie, Weedle, Pikachu caught; dex owns 6 species. |
 
+| `m7_bridge.ss1` | `python -m dexbot.story cross_nugget_bridge m7_post_badge1_dex.ss1 m7_bridge.ss1` — Nugget Bridge cleared (rival + 5 trainers + Rocket). |
+| `m7_mt_moon_cleared.ss1` | `python -m dexbot.story clear_mt_moon m7_badge_brock.ss1 m7_mt_moon_cleared.ss1` — Helix Fossil, east exit open. |
+| `m7_ss_ticket.ss1` | `python -m dexbot.story visit_bill m7_bridge.ss1 m7_ss_ticket.ss1` — Bill helped, SS Ticket obtained. |
+
 Regenerate any fixture by re-running the listed command from the project root.

@@ -133,11 +133,16 @@ def cross_nugget_bridge() -> Generator:
 
 
 def _face_and_talk(map_enum, coords, facing) -> Generator:
-    """Stand at `coords`, face `facing`, press A, mash through the dialogue."""
+    """Stand at `coords` (same-map A*), face `facing`, press A, mash the dialogue."""
     from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
-    from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_controllable
+    from modules.modes.util.walking import (
+        ensure_facing_direction,
+        navigate_to as nav_same,
+        wait_for_player_avatar_to_be_controllable,
+    )
 
-    yield from navigate_to(map_enum, coords)
+    map_key = map_enum.value if hasattr(map_enum, "value") else map_enum
+    yield from nav_same(map_key, coords)
     yield from ensure_facing_direction(facing)
     _ctx().emulator.press_button("A")
     yield
@@ -164,12 +169,17 @@ def _approach_tile_for(map_key, target):
 
 def _talk_to_live_object(map_enum, script_substr, answer=None) -> Generator:
     """Find the live (visible) object whose script contains `script_substr`,
-    stand next to it, and talk. If `answer` is given, respond to its Yes/No."""
-    from modules.map import get_map_objects
-    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_for_yes_no_question
-    from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_controllable
+    stand next to it, and talk. If `answer` is given, respond to its Yes/No.
 
-    from modules.map import get_map_data
+    Uses same-map A* (not the warp planner) to approach — routing a move through
+    a door warp would reset the map's TEMP flags (e.g. BILL_IN_TELEPORTER)."""
+    from modules.map import get_map_data, get_map_objects
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_for_yes_no_question
+    from modules.modes.util.walking import (
+        ensure_facing_direction,
+        navigate_to as nav_same,
+        wait_for_player_avatar_to_be_controllable,
+    )
 
     map_key = map_enum.value if hasattr(map_enum, "value") else map_enum
     # Templates carry the script symbol; live ObjectEvents carry local_id +
@@ -192,7 +202,7 @@ def _talk_to_live_object(map_enum, script_substr, answer=None) -> Generator:
     tile, facing = _approach_tile_for(map_key, target)
     if tile is None:
         raise SkillError(f"No walkable tile adjacent to object at {target}")
-    yield from navigate_to(map_enum, tile)
+    yield from nav_same(map_key, tile)
     yield from ensure_facing_direction(facing)
     _ctx().emulator.press_button("A")
     yield
@@ -215,17 +225,42 @@ def visit_bill() -> Generator:
     from modules.modes.util.tasks_scripts import wait_for_yes_no_question, wait_for_no_script_to_run
     from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
 
+    from modules.player import get_player_avatar
+
+    COTTAGE = (30, 0)
+
+    def in_cottage() -> bool:
+        return get_player_avatar().map_group_and_number == COTTAGE
+
+    def ensure_in_cottage() -> Generator:
+        # Re-entrant: a poison/faint whiteout during the Route 25 gauntlet ejects
+        # the player to a Pokémon Center (and heals + cures status). Warp-navigate
+        # back in each time. Trainers stay beaten, so re-entry gets progressively
+        # cleaner until an uninterrupted in-cottage stint completes the handshake.
+        if not in_cottage():
+            yield from navigate_to(MapFRLG.ROUTE25_SEA_COTTAGE, (7, 7))
+
     if get_event_flag("GOT_SS_TICKET"):
         return
 
-    yield from ensure_healthy(minimum_fraction=0.6)
-    yield from navigate_to(MapFRLG.ROUTE25_SEA_COTTAGE, (7, 7))
+    # Enter the cottage at FULL HP (poison cured): a full-HP Wartortle survives
+    # one Route 25 crossing, so poison can't faint it during the battle-free
+    # interior handshake. Heal at Cerulean explicitly — the multi-center
+    # "nearest reachable" search is too slow from here (see KNOWN_LIMITATIONS).
+    from modules.map_data import PokemonCenter
+
+    yield from ensure_healthy(minimum_fraction=2.0, center=PokemonCenter.CeruleanCity)
 
     if not get_event_flag("HELPED_BILL_IN_SEA_COTTAGE"):
-        # Talk to the live Bill (Clefairy form), agree to help — he walks into
-        # the teleporter. The visible object shifts after helping, so locate it
-        # dynamically rather than assuming a fixed tile.
+        # The help→teleporter→console pair must run in ONE in-cottage stint
+        # (a whiteout between clears BILL_IN_TELEPORTER). If ejected, retry.
+        yield from ensure_in_cottage()
+        if not in_cottage():
+            raise SkillError("Could not reach the Sea Cottage")
+        # Talk to the live Bill (Clefairy form) → Yes → he enters the teleporter.
         yield from _talk_to_live_object(MapFRLG.ROUTE25_SEA_COTTAGE, "Bill", answer="Yes")
+        if not in_cottage():
+            raise SkillError("Whited out mid-handshake; retrying")  # caller re-runs
         # Run the cell separator at the console (sign bg-event at (4,5)).
         yield from _face_and_talk(MapFRLG.ROUTE25_SEA_COTTAGE, (4, 6), "Up")
 
@@ -233,6 +268,7 @@ def visit_bill() -> Generator:
         raise SkillError("Cell separator did not run (Bill not restored)")
 
     # Talk to restored (human) Bill for the SS Ticket.
+    yield from ensure_in_cottage()
     yield from _talk_to_live_object(MapFRLG.ROUTE25_SEA_COTTAGE, "Bill")
 
     if not get_event_flag("GOT_SS_TICKET"):
@@ -271,7 +307,7 @@ def main() -> None:
             run_skill(STORY_SKILLS[which](), which, timeout_frames=900_000, on_battle_started=fight_all_battles)
             break
         except Exception as e:  # noqa: BLE001 — bounded retries; last error re-raised
-            if attempts >= 3:
+            if attempts >= 8:
                 raise
             print(f"attempt {attempts} failed ({type(e).__name__}: {e}); healing, then retrying")
             from dexbot.catching import ensure_healthy

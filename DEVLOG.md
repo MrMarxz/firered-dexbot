@@ -1,5 +1,18 @@
 # DEVLOG
 
+## 2026-07-07 — SS Ticket obtained (badge-2 chain: Bill done)
+
+**Done — `visit_bill` completes unattended.** From `m7_bridge.ss1`: full-heal at Cerulean → cross Route 25 → Sea Cottage → talk Bill (Yes) → run the teleporter console → talk restored Bill → **SS Ticket in the bag** (`GOT_SS_TICKET`, `HELPED_BILL_IN_SEA_COTTAGE`, item present). Fixture `m7_ss_ticket.ss1`; 28 tests green.
+
+**The bugs behind the long fight (all now fixed and reusable):**
+- **Live-object lookup** (`_talk_to_live_object`): live ObjectEvents are keyed by `local_id` with no script symbol — cross-reference the template list (by script substring) to find the *visible* Bill (obj 2 @ (10,6), not the hidden obj 1 @ (7,5)), then approach from an adjacent walkable tile. Reusable for every NPC beat.
+- **Same-map interior nav**: routing an intra-cottage move through the door warp resets the map's TEMP flags (`BILL_IN_TELEPORTER`). Interior approach uses upstream same-map A* only.
+- **Move-replacement stale index** (upstream patch): `map_battle_party_index` returns a stale slot after PC deposits shrink the party → `get_party()[idx]` IndexError on *every* move-learn. Clamped. (Same class as the item-target and lead-select patches.)
+- **Poison whiteout mid-handshake was the real killer**: Wartortle arrived from the Route 25 gauntlet poisoned/chipped and poison-fainted during the Bill dialogue → whiteout to Cerulean → every same-map nav then crashed "not connected". Fix: enter the cottage at FULL HP (poison cured) via an explicit Cerulean heal; a full-HP lead survives one crossing, so the battle-free interior completes cleanly.
+
+**New KNOWN_LIMITATION surfaced:** `_pick_reachable_center` (multi-center "nearest reachable" search) is **too slow from far-apart positions** — `_plan_warp_route` runs a full A* per warp edge, and from mid-Route-24 it can hang >90s. Worked around by passing an explicit center. This is a real navigation-performance debt that will bite other skills; the fix is a precomputed static warp-connectivity graph (offline, from ROM) instead of live per-edge A*. Logged for a dedicated pass.
+
+**Dex: 15 owned.** SS Ticket → S.S. Anne → HM01 Cut is next, then Misty, then the Cut-gated gyms. The reusable helpers (`_talk_to_live_object`, universal battle policy, whiteout recovery) mean the remaining story beats should be faster.
 ## 2026-07-07 — visit_bill (SS Ticket): navigation + object-lookup solved; Bill handshake open
 
 **Status:** `visit_bill` reliably reaches the Sea Cottage and locates the live Bill (both were bugs, both fixed). The remaining open item is the help→teleporter→console→ticket *handshake sequencing*. Exceeded the 3-attempt rule; committing solid progress and handing off with precise state.

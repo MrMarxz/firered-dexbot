@@ -1,5 +1,12 @@
 # Known limitations
 
+- **`_pick_reachable_center` / warp route-planning is slow from far-apart
+  positions.** `_plan_warp_route` runs a full A* (`calculate_path`) per warp
+  edge during BFS; from mid-Route-24, planning to every candidate Pokémon
+  Center can hang >90s. Skills currently pass an explicit `center=` to avoid
+  it. Proper fix: precompute a static warp-connectivity graph from the ROM
+  (offline) and cache per-region walkability, instead of live per-edge A*.
+
 Honesty over optimism. Current as of M5.
 
 - **No party/box management yet** (M8): `catch_species` will fail once the party
