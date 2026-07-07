@@ -140,9 +140,19 @@ def _plan_warp_route(
         return _walkable(a, b)
 
     dest_level = _map_level(dest[0])
+    dest_map = tuple(dest[0])
     dest_global = _global_coords(dest[0], dest[1])
     if _map_level(start[0]) == dest_level and walkable(start, dest):
         return []
+
+    # Fast path — direct entry into the destination MAP (e.g. a building door on
+    # the current overworld level). Building interiors have no global offset, so
+    # the distance heuristic can't rank their doors and the search would fan into
+    # every building; check same-level warps that land in the target map first.
+    for warp_map, warp_coords, warp_dest_map, warp_dest_coords in edges.get(_map_level(start[0]), []):
+        if tuple(warp_dest_map) == dest_map and (warp_map, warp_coords) not in blacklist:
+            if walkable(start, (warp_map, warp_coords)):
+                return [(warp_map, warp_coords)]
 
     def priority(landing) -> int:
         g = _global_coords(landing[0], landing[1])
@@ -152,9 +162,14 @@ def _plan_warp_route(
 
     visited: set = set()
     counter = 0
-    heap: list = [(0, 0, start, [])]  # (heuristic, tiebreak, position, route)
+    # Priority: (warp-count so far, distance heuristic, tiebreak). Minimising the
+    # number of warps first makes this a verified-walkable Dijkstra — it returns
+    # the *shortest* real route (e.g. Cerulean→Vermilion via the 2-warp
+    # Underground Path) instead of a convoluted building-weave the pure distance
+    # heuristic would wander into (interiors have no global coords).
+    heap: list = [(0, 0, 0, start, [])]  # (num_warps, heuristic, tiebreak, position, route)
     while heap:
-        _, _, position, route = heapq.heappop(heap)
+        _, _, _, position, route = heapq.heappop(heap)
         for warp_map, warp_coords, warp_dest_map, warp_dest_coords in edges.get(_map_level(position[0]), []):
             key = (warp_map, warp_coords)
             if key in visited or key in blacklist:
@@ -166,7 +181,7 @@ def _plan_warp_route(
             if _map_level(warp_dest_map) == dest_level and walkable(landing, dest):
                 return [*route, key]
             counter += 1
-            heapq.heappush(heap, (priority(landing), counter, landing, [*route, key]))
+            heapq.heappush(heap, (len(route) + 1, priority(landing), counter, landing, [*route, key]))
     raise SkillError(f"No warp route from {start} to {dest}")
 
 

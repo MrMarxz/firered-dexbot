@@ -1,5 +1,16 @@
 # DEVLOG
 
+## 2026-07-07 — Navigation is a planning-SPEED wall; needs a precomputed connectivity graph
+
+**Two real navigation wins committed:**
+1. **Direct-warp fast path** for building entry: navigating to a building interior on the giant connected overworld (level 180 = all of central/southern Kanto, 122 warps) was hanging for minutes because building interiors have no global coords, so the distance heuristic couldn't rank their doors and the search fanned into every building. Fix: check same-level warps that land directly in the destination map first. Vermilion→mart dropped from *minutes* to **0.1s**. This unblocks `buy_items` and all building entry.
+2. **Warp-count-priority planning** (verified-walkable Dijkstra): explore fewer-warp routes first so the planner returns the shortest *real* route.
+
+**The remaining wall (precisely diagnosed):** cross-region planning is just SLOW. `_plan_warp_route` A*-verifies (`calculate_path`) each candidate warp, and each A* runs over the huge level-180 tile map (~15-20ms). A correct route like gym→Vermilion is **7 warps** (gym-exit + the Underground Path's ~5 internal warps) and takes **~32s** to plan; gym→S.S.-Anne-Captain exceeds the A* budget entirely. `navigate_to` caches the plan (once per journey), but a single failed leg (wandering NPC, warp-approach quirk) clears the cache and forces another ~32s re-plan — so a multi-warp journey with any hiccup runs to minutes. That is why `get_hm_cut` never finishes the ship run.
+
+**The fix (clear, substantial, best done fresh):** precompute a static warp-connectivity graph from the ROM once — for each map/level, A* every warp-pair's walkability a single time and cache it (to `data/` like the KB). Then `_plan_warp_route` is an instant graph BFS with zero live A*; execution failures re-plan instantly too. This is the load-bearing fix for all of mid/late-game travel. (Also seen this session: long emulator runs occasionally die silently — segfault-class — so the connectivity precompute should be chunked/resumable.)
+
+**State unchanged and solid:** Badges 1–2 ✓, Mt Moon ✓, Nugget Bridge ✓, SS Ticket ✓, S.S. Anne boarding ✓. HM01/Cut blocked only on planning speed for the ship run (the skill logic — board, fight rival with potions, Captain, teach Cut — is written and correct). Dex: 15 owned. 29 tests green; everything committed.
 ## 2026-07-07 — S.S. Anne boarding fixed; ship gauntlet is a difficulty wall (solo Wartortle loses)
 
 **Boarding solved and verified.** Root cause of the get_hm_cut stall: stepping south onto the Vermilion gangplank triggers `VermilionCity_EventScript_CheckTicket` — a "may I see your ticket?" msgbox that only advances on **A**. Plain navigation walks into it and stalls forever (no A). Fix: an explicit board loop (hold Down + mash A until the map group flips to the ship). Verified live: "BOARDED (1,4)(32,5)" — the S.S. Anne exterior. (Diagnosed efficiently via a throwaway `_wip_vermilion_gangplank` fixture so I didn't re-run the 90s trek each iteration.)
