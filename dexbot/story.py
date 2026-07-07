@@ -306,6 +306,7 @@ def get_hm_cut() -> Generator:
     from modules.modes.util.items import teach_hm_or_tm
     from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
     from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+    from modules.player import get_player_avatar
     from modules.pokemon_party import get_party
 
     from dexbot.runner import _log_event
@@ -314,15 +315,46 @@ def get_hm_cut() -> Generator:
         # Full-heal before boarding (the ship chains a rival + trainers with no
         # PC aboard); Vermilion's center is closest to the harbour.
         _log_event(skill="get_hm_cut", status="phase", phase="heal")
-        yield from ensure_healthy(minimum_fraction=2.0, center=PokemonCenter.VermilionCity)
+        # Heal only if actually hurt — the party is usually full here, and a
+        # forced heal treks all the way to Vermilion's PC for nothing.
+        yield from ensure_healthy(minimum_fraction=0.6, center=PokemonCenter.VermilionCity)
         # Split the trek into feasible plans: planning a single cross-Kanto +
         # into-ship route is too expensive. Walk to the Vermilion harbour first,
         # step onto the gangplank (ticket-gated board), then navigate the small
         # ship level to the Captain.
+        # Stock potions for the ship gauntlet: no PC aboard, and the rival's
+        # Grass starter resists our Wartortle's Water, so a solo lead can attrit.
+        if get_item_bag().quantity_of(get_item_by_name("Super Potion")) < 5:
+            from dexbot.openings import buy_items
+            from modules.player import get_player
+
+            affordable = get_player().money // 700
+            if affordable > 0:
+                yield from buy_items([("Super Potion", min(8, affordable))], MapFRLG.VERMILION_CITY_MART)
+
         _log_event(skill="get_hm_cut", status="phase", phase="to_vermilion")
         yield from navigate_to(MapFRLG.VERMILION_CITY, (23, 33))  # just above the gangplank warp
-        _log_event(skill="get_hm_cut", status="phase", phase="board_and_ship")
-        yield from navigate_to(MapFRLG.SSANNE_CAPTAINS_OFFICE, (5, 5))  # board + through ship to Captain
+        # Board: stepping south onto the gangplank triggers VermilionCity_
+        # EventScript_CheckTicket (a msgbox that only advances on A — plain
+        # walking stalls on it forever). Walk down + mash A until we're aboard.
+        _log_event(skill="get_hm_cut", status="phase", phase="board")
+        from modules.context import context as _c
+
+        for _ in range(600):
+            if get_player_avatar().map_group_and_number[0] == 1:  # on the ship
+                break
+            _c.emulator.hold_button("Down")
+            if _ % 8 == 0:
+                _c.emulator.press_button("A")
+            yield
+        _c.emulator.reset_held_buttons()
+        yield from wait_for_no_script_to_run("A")
+        yield from wait_for_player_avatar_to_be_controllable("A")
+        if get_player_avatar().map_group_and_number[0] != 1:
+            raise SkillError("Failed to board the S.S. Anne")
+
+        _log_event(skill="get_hm_cut", status="phase", phase="ship_to_captain")
+        yield from navigate_to(MapFRLG.SSANNE_CAPTAINS_OFFICE, (5, 5))  # through ship to Captain
         _log_event(skill="get_hm_cut", status="phase", phase="talk_captain")
         yield from talk_to_npc(1)  # Captain — seasick dialogue, then hands over HM01
         yield from wait_for_no_script_to_run("A")

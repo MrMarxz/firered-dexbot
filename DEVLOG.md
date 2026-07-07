@@ -1,5 +1,17 @@
 # DEVLOG
 
+## 2026-07-07 — S.S. Anne boarding fixed; ship gauntlet is a difficulty wall (solo Wartortle loses)
+
+**Boarding solved and verified.** Root cause of the get_hm_cut stall: stepping south onto the Vermilion gangplank triggers `VermilionCity_EventScript_CheckTicket` — a "may I see your ticket?" msgbox that only advances on **A**. Plain navigation walks into it and stalls forever (no A). Fix: an explicit board loop (hold Down + mash A until the map group flips to the ship). Verified live: "BOARDED (1,4)(32,5)" — the S.S. Anne exterior. (Diagnosed efficiently via a throwaway `_wip_vermilion_gangplank` fixture so I didn't re-run the 90s trek each iteration.)
+
+**Remaining blocker is difficulty, not a bug.** After boarding, navigating the ship to the Captain, a solo **Wartortle L31 whited out** (→ Pokémon Center, then the re-plan blew the route budget). The S.S. Anne chains many trainers with no PC aboard, and the rival Terry's starter is **Ivysaur (Grass) — which resists Wartortle's Water and hits back super-effectively**. A lone water-type can't grind it down. Mitigation added: buy Super Potions at the Vermilion mart before boarding (the healing battle strategy will use them). That may not be sufficient alone.
+
+**Handoff / next options for the ship (pick per strategy):**
+1. Withdraw a backup Pokémon (e.g. the boxed Pidgey/Pikachu) so the solo lead isn't the only answer — Pikachu (Electric) also helps vs the ship's water trainers.
+2. Overlevel Wartortle further (mid-30s) so it can tank Ivysaur's Grass hits.
+3. Both potions (added) + a backup. This is also the first fight where the M7 brief's real damage-projection / switch logic would earn its keep.
+
+**State:** Badges 1–2 ✓, Mt Moon ✓, Nugget Bridge ✓, SS Ticket ✓, S.S. Anne boarding ✓. HM01/Cut still pending (blocked on the ship gauntlet). Dex: 15 owned. 29 tests green; all committed.
 ## 2026-07-07 — Long-range nav proven; get_hm_cut stalls in the S.S. Anne (precise handoff)
 
 **Navigation across regions works.** Verified live: Cerulean → (Underground Path) → Vermilion in 53s, routing correctly through the north/south tunnel warps. The cached best-first planner (commit 1d1b46a) plans once per journey and executes legs; a Vermilion→Captain plan is 6s / 4 warps (gangplank → exterior → 1F → 2F → office) — **planning is not the bottleneck**. Correction to an earlier wrong inference: `navigate_to` *avoids* encounters by default, so "0 wild encounters during a trek" is normal, not a stall signal (I over-killed a couple of healthy runs on that mistaken read).
