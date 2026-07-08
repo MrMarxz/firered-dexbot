@@ -247,6 +247,11 @@ def catch_species(
         return starter.current_hp / starter.total_hp < 0.3 or starter.status_condition != StatusCondition.Healthy
 
     while not _species_is_owned(species_name):
+        if get_item_bag().quantity_of(get_item_by_name("Poké Ball")) == 0:
+            # Balls ran dry mid-hunt (a stubborn target can eat a whole
+            # restock): defer cleanly instead of letting the catch strategy
+            # abort to manual mode and churn.
+            raise SkillError(f"Out of Poké Balls hunting {species_name}")
         yield from ensure_healthy(minimum_fraction=0.5)
         arrived = False
         for candidate in candidates:

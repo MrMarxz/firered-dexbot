@@ -149,7 +149,7 @@ def grind_levels(
         yield from spin(stop_condition=lambda: done() or needs_heal())
 
 
-def restock_pokeballs_if_low(minimum: int = 10) -> None:
+def restock_pokeballs_if_low(minimum: int = 15) -> None:
     """Top up Poké Balls to at least `minimum` before a catch trip (as affordable).
 
     Catch trips can be deep (Mt Moon B1F is ~10 minutes from a mart), so running
@@ -179,7 +179,8 @@ def restock_pokeballs_if_low(minimum: int = 10) -> None:
 # Trainer-gauntlet routes for one-shot income patrols: walking end to end
 # triggers line-of-sight fights (each pays out) via the battle listener.
 # Beaten trainers never re-pay, so each route patrols once per process.
-_PATROL_ROUTES = [(3, 27), (3, 29)]  # Route 9, Route 11
+# Route 9, Route 11, Rock Tunnel 1F/B1F (trainer-dense), Route 10, Route 6.
+_PATROL_ROUTES = [(3, 27), (3, 29), (1, 81), (1, 82), (3, 28), (3, 24)]
 _patrolled: set = set()
 
 
