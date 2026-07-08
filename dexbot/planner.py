@@ -16,7 +16,7 @@ from dexbot import PROJECT_ROOT
 from dexbot.catching import catch_species, ensure_healthy, make_catch_decider
 from dexbot.kb import encounters
 from dexbot.navigation import navigate_to
-from dexbot.runner import run_skill
+from dexbot.runner import SkillError, run_skill
 
 
 def _map_annotations() -> dict:
@@ -292,6 +292,21 @@ def _fund_by_selling(target_money: int) -> None:
         if quantity > 0 and projected < target_money:
             to_sell.append((name, quantity))
             projected += (item.price // 2) * quantity
+
+    # Free loot first: uncollected item balls on the current map (they hold
+    # Nuggets, potions, balls — the bot walked past them for four badges).
+    from modules.player import get_player_avatar
+
+    from dexbot.items_ground import collect_item_balls, uncollected_item_balls
+
+    here = get_player_avatar().map_group_and_number
+    if uncollected_item_balls(here):
+        try:
+            from dexbot.catching import fight_all_battles
+
+            run_skill(collect_item_balls(here), "collect_items", timeout_frames=300_000, on_battle_started=fight_all_battles)
+        except SkillError as e:
+            print(f"[planner] item collection failed: {e}")
 
     for name in _SELLABLE:
         plan_sale(name, bag.quantity_of(get_item_by_name(name)))

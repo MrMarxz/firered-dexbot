@@ -32,6 +32,60 @@ class StepTimeout(BaseException):
 
 _STEP_BUDGET_SECONDS = 120
 
+# Behavioral stall detector: a skill that changes NOTHING observable for this
+# many frames (~8 game-minutes) is looping, not progressing. The SIGALRM
+# watchdog only catches CPU wedges; this catches walk/menu/battle loops that
+# happily burn frames. On trip: state dump + savestate for offline debugging.
+_PROGRESS_BUDGET_FRAMES = 30_000
+
+
+def _progress_sample():
+    """A cheap tuple that changes whenever the run is actually getting
+    somewhere: position, money, ball count, game state, party HP."""
+    try:
+        from modules.items import get_item_bag, get_item_by_name
+        from modules.memory import get_game_state
+        from modules.player import get_player, get_player_avatar
+        from modules.pokemon_party import get_party
+
+        avatar = get_player_avatar()
+        return (
+            avatar.map_group_and_number,
+            avatar.local_coordinates,
+            get_player().money,
+            get_item_bag().quantity_of(get_item_by_name("Poké Ball")),
+            get_item_bag().quantity_of(get_item_by_name("Great Ball")),
+            int(get_game_state()),
+            tuple(p.current_hp for p in get_party()),
+        )
+    except Exception:
+        return None
+
+
+def _dump_stall(name: str, sample) -> str:
+    """Persist a stall diagnosis bundle: journal entry + savestate + screenshot."""
+    from modules.context import context
+    from modules.tasks import get_global_script_context
+
+    stalls = PROJECT_ROOT / "fixtures" / "_stalls"
+    stalls.mkdir(exist_ok=True)
+    stamp = time.strftime("%H%M%S")
+    state_path = stalls / f"{name}_{stamp}.ss1"
+    try:
+        state_path.write_bytes(context.emulator.get_save_state())
+        context.emulator.get_screenshot().save(str(stalls / f"{name}_{stamp}.png"))
+    except Exception:
+        pass
+    script = get_global_script_context()
+    _log_event(
+        skill=name,
+        status="stall",
+        sample=repr(sample),
+        script=script.stack if script and script.is_active else [],
+        state=str(state_path),
+    )
+    return str(state_path)
+
 
 _events_path = PROJECT_ROOT / "logs" / "skills.jsonl"
 
@@ -179,6 +233,8 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
     frames = 0
     calm_overworld_frames = 0
     previous_frame_info = None
+    last_sample = None
+    frames_at_last_progress = 0
     try:
         while len(context.controller_stack) > 0:
             context.frame += 1
@@ -239,6 +295,18 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
                 hook()
             previous_frame_info = frame_info
             previous_frame_info.previous_frame = None
+            if frames % 2000 == 0:
+                sample = _progress_sample()
+                if sample != last_sample:
+                    last_sample = sample
+                    frames_at_last_progress = frames
+                elif frames - frames_at_last_progress >= _PROGRESS_BUDGET_FRAMES:
+                    state_path = _dump_stall(name, sample)
+                    raise SkillError(
+                        f"Skill {name!r} made no observable progress for "
+                        f"{frames - frames_at_last_progress} frames at {sample[:2] if sample else '?'} "
+                        f"(stall state: {state_path})"
+                    )
             if frames > timeout_frames:
                 raise SkillTimeout(f"Skill {name!r} exceeded {timeout_frames} frames")
     except BaseException as e:
