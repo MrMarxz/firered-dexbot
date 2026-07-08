@@ -461,6 +461,35 @@ def _plan_warp_route_live(
     raise SkillError(f"No warp route from {start} to {dest}")
 
 
+def _walk_out_of_pocket(max_steps: int = 24) -> Generator:
+    """Blind-step out of an unmodeled pocket (a ledge strip with no portal
+    tiles): try each direction until the position changes, up to `max_steps`
+    tiles total, stopping as soon as the position resolves to a component.
+    Down first — ledge drains point down far more often than not."""
+    from modules.context import context
+    from modules.player import get_player_avatar
+
+    graph = _load_nav_graph()
+    for _ in range(max_steps):
+        avatar = get_player_avatar()
+        position = (avatar.map_group_and_number, avatar.local_coordinates)
+        if graph is not None and _find_component(position, graph["comp"], _walkable) is not None:
+            return  # back on modeled ground
+        for direction in ("Down", "Left", "Right", "Up"):
+            before = get_player_avatar().local_coordinates
+            context.emulator.reset_held_buttons()
+            context.emulator.hold_button(direction)
+            for _ in range(24):
+                yield
+            context.emulator.reset_held_buttons()
+            for _ in range(12):  # let a ledge-hop animation finish
+                yield
+            if get_player_avatar().local_coordinates != before:
+                break
+        else:
+            return  # walled in every direction — nothing more we can do here
+
+
 def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generator:
     """Walk the player to `coordinates` on `map`, routing through warps if needed.
 
@@ -502,6 +531,14 @@ def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generato
                         # can transiently wall us in and fail every check.
                         # Wait for the world to settle and re-plan.
                         if plan_attempt == 2:
+                            # A mid-leg ledge hop can strand us in a strip that
+                            # holds no portal tiles — no component, so EVERY
+                            # plan fails. Physically step out (ledge strips
+                            # always drain somewhere), then let the caller's
+                            # retry re-plan from modeled ground.
+                            graph = _load_nav_graph()
+                            if graph is not None and _find_component(position, graph["comp"], _walkable) is None:
+                                yield from _walk_out_of_pocket()
                             raise
                         for _ in range(120):
                             yield
