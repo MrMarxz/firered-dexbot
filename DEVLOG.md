@@ -1,5 +1,43 @@
 # DEVLOG
 
+## 2026-07-09 (small hours) — Scope LIVE; tower catches rolling; hybrid LLM architecture (owner directive)
+
+**Owner directive (rescinds brief constraint 2): LLM for reasoning, determinism for execution**
+— the best of Clad3815/gpt-play-pokemon-firered and 40Cakes/pokebot-gen3. CLAUDE.md rewritten.
+Implementation: `llm_planner.consult_on_failure` — the objective-boundary machinery
+(enumerated choices, validator, deterministic fallback) now also serves failure boundaries;
+the planner's catch loop consults it on SkillError (defer / heal_then_retry / retry, one
+retry max, options[0] = old behavior). `api_key_env` config supports hosted OpenAI-compatible
+endpoints (Anthropic, OpenRouter); local Ollama stays the default. M9 acceptance extended.
+
+**Getting the Scope into the LIVE profile surfaced three more class bugs, all fixed:**
+1. **Cross-map route planning inside the hideout blows the route budget** (8 failed live
+   attempts from B1F (12,2)). Hideout navigation is now explicit same-level stair legs
+   (`descend_stairs_chain`); `dexbot.story --live` runs a story skill against the
+   persistent livingdex profile with run.py's resume semantics.
+2. **The skill stranded the player in the Giovanni pocket** — dynamic elevator warps are
+   not nav-graph edges, so `_graph_reachable` vetoed every map and the planner went idle
+   with 0 catches. `_exit_rocket_hideout`: lift → B1F, defeat Grunt5 (drops the B1F
+   barrier), blind-walk the column, Game Corner stairs. Runs at skill end AND on
+   scope-owning resumes found inside.
+3. **Deferrals were dropped at supervisor exit**: catch_Gastly whited out in the tower
+   (why an L47 Blastoise lost to L13-25 ghosts is an open question — stall fixture
+   234206 kept), its recovery wedged at the Lavender PC until the watchdog deferred it,
+   and the run then ended after Cubone+Haunter. The planner now clears and retries the
+   deferred set as long as passes make progress.
+
+**Landed:** Cubone ✓, Haunter ✓, Gastly ✓ on the retry pass (**dex 33/124**) — the
+deferred-retry fix proved itself the same night it was written. Also banked:
+unwinnable-battle wedge documented (pre-Scope tower GHOST loops "too scared to move!"
+until the watchdog — battle engine wants a no-progress flee rule).
+
+**Next:** Mr. Fuji rescue is a NEW story skill (`rescue_mr_fuji`): tower floors 3F-7F with
+the Scope (ghosts now identifiable/catchable), the ghost Marowak mini-boss on 6F (scripted,
+needs the Scope to fight), Rocket grunts on 7F, Fuji's dialogue → Poké Flute in his house.
+Then wake Snorlax (Routes 12 + 16 — two one-per-save catches!) → Koga corridor. The tower
+maps (1,90)-(1,93) are annotated; floors above may need annotations + the same probe
+treatment if navigation misbehaves (spin-free, so likely plain).
+
 ## 2026-07-08 (night) — Rocket Hideout CLEARED: Silph Scope obtained ✓ (the answer was B2F, not B1F)
 
 **`clear_rocket_hideout` completes end-to-end from the ride_lift checkpoint; 37 tests green.**
