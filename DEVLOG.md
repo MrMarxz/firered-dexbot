@@ -1,5 +1,25 @@
 # DEVLOG
 
+## 2026-07-08 — Badge 3 (Surge) ✓; phase checkpointing shipped; in-battle item use fixed for good
+
+**Owner set the direction: convert instance-fixes into class-fixes** (the bottleneck is world-interaction traps found one at a time via slow e2e runs). Priority: (1) phase checkpointing/resume, (2) a hardened interact() primitive, (3) Cut/Surf-conditional nav edges. This session shipped #1 and it immediately paid for itself.
+
+**Phase checkpointing + dev_resume (class fix #1, done):** every `_log_event(status="phase")` snapshots to `fixtures/_phases/{skill}_{phase}.ss1`; `python -m dexbot.dev_resume <skill> <phase>` re-enters a failure point in ~2s. The Surge beam-door + battle-item debugging below took ~11 resume iterations — each would have been a 5-10 min trek before. This is also the foundation for the owed M8 crash-resume drill.
+
+**Badge 3 — Lt. Surge beaten unattended** (`m7_badge_surge.ss1`, 33 tests green). The gym compressed most known trap classes into one skill and added new ones:
+- **Trash-can puzzle read from memory** (`VAR_TEMP_0/1`, set by `SetVermilionTrashCans` on map load; per pret the cans compare `TRASH_CAN_ID` against them) — no guessing, can order is bg-event order: `x=1+2*((n-1)%5), y=10+2*((n-1)//5)`.
+- **The beam wall opens in the MIDDLE (x=4-6)** per pret's `SetBeamsOff` — the (2,7)/(8,7) blinking tiles stay solid. The pathfinder's tile cache never sees the swap, so the crossing is a blind hold-Up at column 5 (and back out). Beams stay open across map reloads.
+- **The gym-fence cut tree respawns on map reload**, stranding the player in the yard pocket after ANY exit — the skill cuts its way out from the yard side (`_escape_vermilion_gym_yard`), including at skill start for resume states.
+- **In-battle item use was fundamentally broken in upstream for FRLG** (class fix, patched in 0001): the target-selection flow B-mashed back to battle, CANCELING the pending potion every turn — an infinite heal loop that would have hung every potion-carrying trainer fight from here to the E4. An A-mash instead double-uses. Correct: slow A until the bag count drops, then hands-off (FRLG auto-returns after the "restored" text).
+- **Economy**: `sell_items` skill (mart Sell flow — `Task_ShopMenu` needs a 30-frame A cadence; faster racing falls into the buy list). beat_surge sells the Nugget when broke and buys 8 Super Potions.
+- **Level floor 38** with the new Route 11 grind spot (badge-2+ era; Route 3 is unreachable from eastern Kanto). At 34 even with potions Wartortle loses the HP race to Raichu (healing turns forfeit damage).
+
+Also: `_plan_via_graph` dest-matching now samples nearest/middle/farthest tiles per component (the nearest ones can all sit in an unwalkable sub-pocket — Vermilion's dock after the ship departs). Nav-graph note: the dock's return path changed when the ship left, i.e. story drift WITHIN a badge epoch — the epoch key is a proxy, deferral+live-fallback absorb the gap.
+
+**Known debt (deliberate):** the battle engine still wedges on the faint→send-next-mon prompt (avoided by the level floor + fodder deposit; needs the interact()-class treatment when M7's switch logic lands). Class fixes #2 (interact primitive) and #3 (conditional nav edges — design: walk edges annotated `requires: cut` + (tree, stand, facing) triples, re-performed per map load since trees respawn) are next.
+
+**State:** Badges **3**/8, dex 19/124, 33 tests green, all committed. **Next:** epoch-3 planner sweep (nav graph auto-rebuilds), then conditional Cut edges unlock westbound Kanto (deferred Jigglypuff/Clefairy/Nidoran♀ + Diglett's Cave species), then Misty→...→Celadon corridor planning.
+
 ## 2026-07-07 — Cerulean-area sweep done: dex 15 → 19 (Ekans, Meowth, Oddish, Abra)
 
 **The planner sweep is productive again after un-starving the queue.** Three stacked map-choice bugs plus a data gap:
