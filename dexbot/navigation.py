@@ -170,6 +170,18 @@ def perform_cut(map_key, tree_tile: tuple[int, int], stand_tile: tuple[int, int]
     yield from wait_for_player_avatar_to_be_controllable("B")
 
 
+def _story_gated_warp_dests() -> frozenset:
+    """Destination maps the graph can walk into geometrically but the game
+    blocks with a SCRIPT (not collision, so calculate_path can't see it).
+    Saffron City's four gate guards refuse entry until you hand over tea —
+    a gate keyed on an item flag, not a badge, so the epoch key misses it."""
+    from modules.memory import get_event_flag
+
+    if not get_event_flag("GOT_TEA"):
+        return frozenset({(3, 10)})  # SAFFRON_CITY
+    return frozenset()
+
+
 def _cut_available() -> bool:
     from modules.memory import get_event_flag
     from modules.pokemon_party import get_party
@@ -263,7 +275,12 @@ def _find_component(position, comp, walkable, mutual_only: bool = False, max_can
         if cid not in nearest_rep or distance(tile) < distance(nearest_rep[cid]):
             nearest_rep[cid] = tile
     one_way = None
-    ranked = sorted(nearest_rep.items(), key=lambda kv: distance(kv[1]))
+    # Same-map reps first: interiors have NO global coordinates, so pure
+    # distance ranking degenerates to arbitrary order there and the capped
+    # scan can miss the position's own component entirely (every plan from
+    # inside a Pokémon Center failed). A position's containing component
+    # always includes its map's own portal tiles.
+    ranked = sorted(nearest_rep.items(), key=lambda kv: (kv[1][0] != position[0], distance(kv[1])))
     for cid, tile in ranked[:max_candidates]:
         if walkable(position, tile):
             if walkable(tile, position):
@@ -307,11 +324,12 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
         return None
     # Warp adjacency: each warp joins its source tile's component to its
     # landing tile's component, traversed by stepping on the source tile.
+    gated = _story_gated_warp_dests()
     warp_adj: dict[int, list] = {}
     for elist in _get_warp_edges().values():
         for src_map, src_coords, dst_map, dst_coords in elist:
             src_tile = (src_map, src_coords)
-            if src_tile in blacklist:
+            if src_tile in blacklist or tuple(dst_map) in gated:
                 continue
             a = comp.get(src_tile)
             b = comp.get((dst_map, dst_coords))
@@ -346,7 +364,11 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
     # every popped dest-level component against dest (the expensive scan below
     # stays only as fallback for one-way pockets, bounded by the failure memo).
     dest_cid = None
-    ranked_dest = sorted(dest_reps.items(), key=lambda kv: distance_to_dest(kv[1][0]))
+    # Same-map first, then distance — see _find_component for why (interiors
+    # have no global coordinates, so distance alone mis-ranks them).
+    ranked_dest = sorted(
+        dest_reps.items(), key=lambda kv: (kv[1][0][0] != dest[0], distance_to_dest(kv[1][0]))
+    )
     for cid, tiles in ranked_dest[:6]:  # capped like the entry scan — see _find_component
         rep = tiles[0]
         if walkable(rep, dest) and walkable(dest, rep):
@@ -519,6 +541,21 @@ def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generato
 
     if isinstance(map, MapFRLG):
         map = map.value
+
+    # Recover from an inherited script-lock: a skill may start with a dialogue
+    # already open (a gate guard the previous objective walked into, a savestate
+    # captured mid-script). Nothing can move until it closes, so drain it first
+    # — B (not A) so an NPC we're facing doesn't just re-trigger.
+    from modules.context import context as _ctx
+    from modules.player import player_avatar_is_controllable
+
+    for _frame in range(240):
+        script = get_global_script_context()
+        if player_avatar_is_controllable() and not (script and script.is_active):
+            break
+        if _frame % 12 == 0:
+            _ctx.emulator.press_button("B")
+        yield
 
     interruptions = 0
     blacklist: set = set()
