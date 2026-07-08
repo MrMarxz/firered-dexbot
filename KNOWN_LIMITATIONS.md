@@ -12,6 +12,13 @@
   SCCs, but NPC templates can shift with story state), a leg can fail at
   execution — corrected by the blacklist-and-replan machinery.
 
+- **The economy is thin**: income so far is one-off (Nugget, trainer payouts
+  during story treks, junk-item liquidation when broke — FRLG cannot sell TMs,
+  the TM Case is unreachable from the mart sell menu). Ball/potion budgets can
+  stall catch objectives (they defer, not fail). The M8 engine is Vs Seeker
+  trainer rematches (obtainable in Vermilion's Pokémon Center) plus held-item
+  collectibles; until then sweeps may need story-trek income between waves.
+
 Honesty over optimism. Current as of M5.
 
 - **No party/box management yet** (M8): `catch_species` will fail once the party
