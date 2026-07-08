@@ -256,6 +256,22 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
     if graph is None:
         return None
     comp = graph["comp"]
+
+    # Per-plan failure memo: a failed A* is expensive (never cached globally —
+    # transient NPC walls) but deterministic WITHIN one plan; without this, the
+    # dest scan re-ran identical failures for hours of CPU (USR1-diagnosed).
+    failed: set = set()
+    outer_walkable = walkable
+
+    def walkable(a, b) -> bool:  # noqa: A001 — deliberate shadow
+        key = (a, b)
+        if key in failed:
+            return False
+        result = outer_walkable(a, b)
+        if not result:
+            failed.add(key)
+        return result
+
     entry = _find_component(start, comp, walkable)
     if entry is None:
         return None
@@ -295,6 +311,17 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
         tiles = sorted(dest_reps[cid], key=distance_to_dest)
         dest_reps[cid] = list(dict.fromkeys([tiles[0], tiles[len(tiles) // 2], tiles[-1]]))
 
+    # Fast path: find dest's CONTAINING component up front (mutual with a rep,
+    # nearest-first) and BFS to that id — a few A* total, instead of testing
+    # every popped dest-level component against dest (the expensive scan below
+    # stays only as fallback for one-way pockets, bounded by the failure memo).
+    dest_cid = None
+    for cid, tiles in sorted(dest_reps.items(), key=lambda kv: distance_to_dest(kv[1][0])):
+        rep = tiles[0]
+        if walkable(rep, dest) and walkable(dest, rep):
+            dest_cid = cid
+            break
+
     # 0-1 BFS: walk edges are free, warp edges cost one leg. Cut edges (cost 1)
     # are traversable when a party member can use Cut — the route then carries
     # an action step ({"cut": ...}) the executor performs at that point.
@@ -303,7 +330,10 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
     seen = {entry}
     while queue:
         cid, route = queue.popleft()
-        if any(walkable(rep, dest) for rep in dest_reps.get(cid, ())):
+        if dest_cid is not None:
+            if cid == dest_cid:
+                return route
+        elif any(walkable(rep, dest) for rep in dest_reps.get(cid, ())):
             return route
         for next_cid in graph["walk"].get(cid, []):
             if next_cid not in seen:
