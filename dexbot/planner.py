@@ -173,9 +173,9 @@ def restock_pokeballs_if_low(minimum: int = 10) -> None:
     run_skill(buy_pokeballs(quantity, _nearest_mart()), f"restock_{quantity}_pokeballs", timeout_frames=120_000)
 
 
-# Sold when broke, in order. Collectibles are pure money; non-HM TMs are dead
-# weight until a teach-TM skill exists (and are re-buyable in Celadon); Super
-# Potions above a reserve of 4 go last.
+# Sold when broke, in order: collectibles, then Super Potions above a reserve
+# of 4. TMs are NOT sellable in FRLG (they live in the TM Case, which the mart
+# sell menu cannot open).
 _SELLABLE = ("Nugget", "Pearl", "Big Pearl", "Stardust", "Star Piece", "Tinymushroom", "Big Mushroom")
 
 
@@ -201,10 +201,6 @@ def _fund_by_selling(target_money: int) -> None:
 
     for name in _SELLABLE:
         plan_sale(name, bag.quantity_of(get_item_by_name(name)))
-    if projected < target_money:
-        for slot in bag.tms_hms:
-            if not slot.item.name.startswith("HM"):
-                plan_sale(slot.item.name, slot.quantity)
     if projected < target_money:
         reserve = 4
         surplus = bag.quantity_of(get_item_by_name("Super Potion")) - reserve
