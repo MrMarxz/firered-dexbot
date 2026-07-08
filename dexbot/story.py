@@ -490,6 +490,172 @@ def _descend_hidden_stairs() -> Generator:
         raise SkillError("Did not reach Rocket Hideout B1F via the hidden stairs")
 
 
+def _tap_and_settle(direction: str) -> Generator:
+    """Probe-proven step executor for spin/conveyor tiles: hold only until the
+    first coord change (longer holds derail slides), then wait out the slide
+    until the position is stable."""
+    from modules.context import context
+    from modules.player import get_player_avatar
+
+    before = tuple(get_player_avatar().local_coordinates)
+    context.emulator.reset_held_buttons()
+    context.emulator.hold_button(direction)
+    for _ in range(40):
+        yield
+        if tuple(get_player_avatar().local_coordinates) != before:
+            break
+    context.emulator.reset_held_buttons()
+    stable, last = 0, tuple(get_player_avatar().local_coordinates)
+    for _ in range(900):
+        yield
+        cur = tuple(get_player_avatar().local_coordinates)
+        stable = stable + 1 if cur == last else 0
+        last = cur
+        if stable >= 24:
+            break
+
+
+def _walk_route(route) -> Generator:
+    """Replay a probe-discovered (step, landing) route. "A+Dir" steps press A
+    first (item-ball pickup / talk-fight clearing the tile). Battles that
+    interrupt are handled by the battle listener; positions are asserted so
+    any divergence fails loudly for dev_resume."""
+    from modules.context import context
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_controllable
+    from modules.player import get_player_avatar
+
+    for step, expected in route:
+        if step.startswith("A+"):
+            direction = step[2:]
+            yield from ensure_facing_direction(direction)
+            context.emulator.press_button("A")
+            yield
+            yield from wait_for_no_script_to_run("B")
+            yield from wait_for_player_avatar_to_be_controllable("B")
+            yield from _tap_and_settle(direction)
+        else:
+            yield from _tap_and_settle(step)
+        got = tuple(get_player_avatar().local_coordinates)
+        if expected is not None and got != expected:
+            raise SkillError(f"Hideout route diverged: pressed {step}, expected {expected}, got {got}")
+
+
+def _ride_hideout_elevator(floor_presses: tuple[str, ...], target_map) -> Generator:
+    """From just inside the elevator car: select a floor and walk out.
+    The panel is a bg event at (0,2), faced Up from (0,3); the floor menu
+    defaults to the CURRENT floor (list order B1F/B2F/B4F), so callers pass
+    the Up/Down presses relative to the boarding floor. Input during the
+    prompt's print is swallowed, so the whole interaction retries on a wrong
+    landing. Exit is the South Arrow Warp at (2,5) (dynamic destination)."""
+    from modules.context import context
+    from modules.map_data import MapFRLG
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_controllable
+    from modules.player import get_player_avatar
+
+    for _attempt in range(3):
+        yield from wait_for_player_avatar_to_be_controllable()
+        for step in ("Left", "Left", "Up", "Up"):
+            yield from _tap_and_settle(step)
+        if tuple(get_player_avatar().local_coordinates) != (0, 3):
+            raise SkillError("Could not stand at the lift panel (0,3)")
+        yield from ensure_facing_direction("Up")
+        context.emulator.press_button("A")
+        for _ in range(180):  # let "Which floor?" fully print
+            yield
+        for press in floor_presses:
+            context.emulator.press_button(press)
+            for _ in range(12):
+                yield
+        context.emulator.press_button("A")
+        for _ in range(300):  # ride animation (same map throughout)
+            yield
+        yield from wait_for_no_script_to_run("B")
+        yield from wait_for_player_avatar_to_be_controllable("B")
+        for step in ("Down", "Down", "Right", "Right"):
+            yield from _tap_and_settle(step)
+        for _ in range(8):
+            if get_player_avatar().map_group_and_number != MapFRLG.ROCKET_HIDEOUT_ELEVATOR.value:
+                break
+            yield from _tap_and_settle("Down")
+        arrived = get_player_avatar().map_group_and_number
+        if arrived == target_map.value:
+            return
+        if arrived == MapFRLG.ROCKET_HIDEOUT_ELEVATOR.value:
+            raise SkillError("Could not leave the lift car")
+        # Wrong floor: walk back into the car (door above the landing) and retry.
+        yield from ensure_facing_direction("Up")
+        context.emulator.press_button("A")
+        yield
+        yield from wait_for_no_script_to_run("B")
+        yield from wait_for_player_avatar_to_be_controllable("B")
+        for _ in range(6):
+            if get_player_avatar().map_group_and_number == MapFRLG.ROCKET_HIDEOUT_ELEVATOR.value:
+                break
+            yield from _tap_and_settle("Up")
+    raise SkillError(f"Elevator did not deliver us to {target_map}")
+
+
+def _exit_rocket_hideout() -> Generator:
+    """Leave the hideout from the Giovanni pocket (elevator-only territory):
+    ride the lift to B1F, defeat Grunt5 (TRAINER_GRUNT_12 — his defeat script
+    removes the (20-21,19-21) barrier with an unlock sound), walk the column
+    north into B1F's main section, and take the (12,2) stairs to the Game
+    Corner. Without this the skill strands the player in a pocket the nav
+    graph cannot plan out of (dynamic elevator warps are not graph edges) and
+    the planner sees an empty queue."""
+    from modules.context import context
+    from modules.map_data import MapFRLG
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import (
+        ensure_facing_direction,
+        navigate_to as navigate_same_level,
+        wait_for_player_avatar_to_be_controllable,
+    )
+    from modules.player import get_player_avatar
+
+    def drain() -> Generator:
+        yield from wait_for_no_script_to_run("B")
+        yield from wait_for_player_avatar_to_be_controllable("B")
+
+    here = get_player_avatar().map_group_and_number
+    if here == MapFRLG.ROCKET_HIDEOUT_B4F.value:
+        # Giovanni's room exits blind (the guard barrier is a swapped metatile,
+        # cached collision is stale above row 14).
+        if tuple(get_player_avatar().local_coordinates) == (19, 5):
+            yield from _walk_route([("Left", (18, 5)), ("Left", (17, 5))] + [("Down", (17, y)) for y in range(6, 15)])
+        yield from navigate_same_level(MapFRLG.ROCKET_HIDEOUT_B4F, (20, 24))
+        yield from ensure_facing_direction("Up")
+        context.emulator.press_button("A")  # door may want the Lift Key used
+        yield
+        yield from drain()
+        for _ in range(6):
+            if get_player_avatar().map_group_and_number == MapFRLG.ROCKET_HIDEOUT_ELEVATOR.value:
+                break
+            yield from _tap_and_settle("Up")
+        if get_player_avatar().map_group_and_number != MapFRLG.ROCKET_HIDEOUT_ELEVATOR.value:
+            raise SkillError("Could not board the lift on B4F")
+        yield from _ride_hideout_elevator(("Up", "Up"), MapFRLG.ROCKET_HIDEOUT_B1F)  # B4F is last in the list
+
+    if get_player_avatar().map_group_and_number == MapFRLG.ROCKET_HIDEOUT_B1F.value:
+        x, y = get_player_avatar().local_coordinates
+        if y >= 19:  # in the lift pocket, below the barrier
+            yield from talk_to_npc(5)  # Grunt5 @ (21,27) — defeat removes the barrier
+            yield from drain()
+            yield from navigate_same_level(MapFRLG.ROCKET_HIDEOUT_B1F, (21, 26))
+            # Barrier tiles are freshly swapped open — walk the column blind.
+            yield from _walk_route([("Up", (21, y2)) for y2 in range(25, 17, -1)])
+        yield from navigate_same_level(MapFRLG.ROCKET_HIDEOUT_B1F, (12, 2))  # stairs → Game Corner
+        for _ in range(120):
+            if get_player_avatar().map_group_and_number == MapFRLG.CELADON_CITY_GAME_CORNER.value:
+                break
+            yield
+    if get_player_avatar().map_group_and_number != MapFRLG.CELADON_CITY_GAME_CORNER.value:
+        raise SkillError("Could not exit the Rocket Hideout")
+
+
 def clear_rocket_hideout() -> Generator:
     """Celadon Game Corner → Rocket Hideout → Giovanni → the SILPH SCOPE.
     Unlocks Pokémon Tower catches and, downstream, the Poké Flute/Snorlax.
@@ -526,14 +692,19 @@ def clear_rocket_hideout() -> Generator:
     from dexbot.runner import _log_event
 
     scope = get_item_by_name("Silph Scope")
+    hideout_maps = {(1, 42), (1, 43), (1, 44), (1, 45), (1, 46)}
     if get_item_bag().quantity_of(scope) > 0:
+        # Done — but a resume may still be stranded inside (the Giovanni
+        # pocket is not graph-plannable); walk out before returning.
+        if get_player_avatar().map_group_and_number in hideout_maps:
+            _log_event(skill="clear_rocket_hideout", status="phase", phase="exit")
+            yield from _exit_rocket_hideout()
         return
 
     def drain(button: str = "B") -> Generator:
         yield from wait_for_no_script_to_run(button)
         yield from wait_for_player_avatar_to_be_controllable(button)
 
-    hideout_maps = {(1, 42), (1, 43), (1, 44), (1, 45), (1, 46)}
     already_inside = get_player_avatar().map_group_and_number in hideout_maps
 
     if not already_inside:
@@ -601,45 +772,7 @@ def clear_rocket_hideout() -> Generator:
 
     _log_event(skill="clear_rocket_hideout", status="phase", phase="ride_lift")
 
-    def tap_and_settle(direction: str) -> Generator:
-        # Probe-proven executor for spin/conveyor tiles: hold only until the
-        # first coord change (longer holds derail slides), then wait out the
-        # slide until the position is stable.
-        before = tuple(get_player_avatar().local_coordinates)
-        context.emulator.reset_held_buttons()
-        context.emulator.hold_button(direction)
-        for _ in range(40):
-            yield
-            if tuple(get_player_avatar().local_coordinates) != before:
-                break
-        context.emulator.reset_held_buttons()
-        stable, last = 0, tuple(get_player_avatar().local_coordinates)
-        for _ in range(900):
-            yield
-            cur = tuple(get_player_avatar().local_coordinates)
-            stable = stable + 1 if cur == last else 0
-            last = cur
-            if stable >= 24:
-                break
-
-    def walk_route(route) -> Generator:
-        # Replay a probe-discovered (step, landing) route. "A+Dir" steps press
-        # A first (item-ball pickup / talk-fight clearing the tile). Battles
-        # that interrupt are handled by the battle listener; positions are
-        # asserted so any divergence fails loudly for dev_resume.
-        for step, expected in route:
-            if step.startswith("A+"):
-                direction = step[2:]
-                yield from ensure_facing_direction(direction)
-                context.emulator.press_button("A")
-                yield
-                yield from drain()
-                yield from tap_and_settle(direction)
-            else:
-                yield from tap_and_settle(step)
-            got = tuple(get_player_avatar().local_coordinates)
-            if expected is not None and got != expected:
-                raise SkillError(f"Hideout route diverged: pressed {step}, expected {expected}, got {got}")
+    tap_and_settle, walk_route = _tap_and_settle, _walk_route  # shared with _exit_rocket_hideout
 
     # Reach B2F's north landing (21,2). Normal flow arrives from the Lift Key
     # corner on B4F; resumes may be on any hideout floor — same-level stair
@@ -692,49 +825,9 @@ def clear_rocket_hideout() -> Generator:
     if get_player_avatar().map_group_and_number != MapFRLG.ROCKET_HIDEOUT_ELEVATOR.value:
         raise SkillError("Could not enter the lift (door still locked?)")
 
-    # Ride to B4F. The floor menu defaults to the boarding floor (B2F), so one
-    # Down selects B4F; too-early input is swallowed while the prompt prints,
-    # so the whole panel interaction retries until the exit lands on B4F.
-    for attempt in range(3):
-        yield from wait_for_player_avatar_to_be_controllable()
-        for step in ("Left", "Left", "Up", "Up"):
-            yield from tap_and_settle(step)
-        if tuple(get_player_avatar().local_coordinates) != (0, 3):
-            raise SkillError("Could not stand at the lift panel (0,3)")
-        yield from ensure_facing_direction("Up")
-        context.emulator.press_button("A")
-        for _ in range(180):  # let "Which floor?" fully print
-            yield
-        context.emulator.press_button("Down")
-        for _ in range(12):
-            yield
-        context.emulator.press_button("A")
-        for _ in range(300):  # ride animation (same map throughout)
-            yield
-        yield from drain()
-        # Exit via the South Arrow Warp at (2,5); destination is dynamic.
-        for step in ("Down", "Down", "Right", "Right"):
-            yield from tap_and_settle(step)
-        for _ in range(8):
-            if get_player_avatar().map_group_and_number != MapFRLG.ROCKET_HIDEOUT_ELEVATOR.value:
-                break
-            yield from tap_and_settle("Down")
-        arrived = get_player_avatar().map_group_and_number
-        if arrived == MapFRLG.ROCKET_HIDEOUT_B4F.value:
-            break
-        if arrived == MapFRLG.ROCKET_HIDEOUT_ELEVATOR.value:
-            raise SkillError("Could not leave the lift car")
-        # Wrong floor: the menu ate the Down. Walk back into the car and retry.
-        yield from ensure_facing_direction("Up")
-        context.emulator.press_button("A")
-        yield
-        yield from drain()
-        for _ in range(6):
-            if get_player_avatar().map_group_and_number == MapFRLG.ROCKET_HIDEOUT_ELEVATOR.value:
-                break
-            yield from tap_and_settle("Up")
-    if get_player_avatar().map_group_and_number != MapFRLG.ROCKET_HIDEOUT_B4F.value:
-        raise SkillError("Elevator did not deliver us to B4F")
+    # Ride to B4F: the floor menu defaults to the boarding floor (B2F), so one
+    # Down selects B4F (retries inside on a wrong landing).
+    yield from _ride_hideout_elevator(("Down",), MapFRLG.ROCKET_HIDEOUT_B4F)
 
     _log_event(skill="clear_rocket_hideout", status="phase", phase="giovanni")
     # The barrier at (17-18,12-13) opens after BOTH door guards fall (they
@@ -757,6 +850,9 @@ def clear_rocket_hideout() -> Generator:
     yield from drain()
     if get_item_bag().quantity_of(scope) == 0:
         raise SkillError("Silph Scope not obtained after Giovanni")
+
+    _log_event(skill="clear_rocket_hideout", status="phase", phase="exit")
+    yield from _exit_rocket_hideout()
 
 
 STORY_SKILLS = {
