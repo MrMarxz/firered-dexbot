@@ -40,6 +40,43 @@ _events_path = PROJECT_ROOT / "logs" / "skills.jsonl"
 frame_hooks: list = []
 
 
+
+def attach_video_window(context, title: str = "dexbot") -> None:
+    """Optional live view for any headless run: set DEXBOT_VIDEO=1 (needs a
+    display). Fed from the frame buffer every 30 frames; closing it is safe."""
+    import os
+
+    if os.environ.get("DEXBOT_VIDEO") != "1":
+        return
+    try:
+        import tkinter as tk
+
+        from PIL import ImageTk
+    except Exception:
+        return
+    window = tk.Tk()
+    window.title(title)
+    label = tk.Label(window)
+    label.pack()
+    state = {"n": 0, "alive": True}
+
+    def hook() -> None:
+        if not state["alive"]:
+            return
+        state["n"] += 1
+        if state["n"] % 30:
+            return
+        try:
+            image = ImageTk.PhotoImage(context.emulator.get_screenshot().resize((480, 320)))
+            label.configure(image=image)
+            label.image = image
+            window.update()
+        except Exception:
+            state["alive"] = False
+
+    frame_hooks.append(hook)
+
+
 def _log_event(**fields) -> None:
     _events_path.parent.mkdir(exist_ok=True)
     with open(_events_path, "a") as f:

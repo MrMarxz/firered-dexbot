@@ -315,6 +315,10 @@ def main() -> None:
     context.emulator.load_save_state((PROJECT_ROOT / "fixtures" / fixture).read_bytes())
     context.emulator.run_single_frame()
 
+    from dexbot.runner import attach_video_window
+
+    attach_video_window(context, "dexbot gym")
+
     from dexbot.catching import fight_all_battles
 
     run_skill(GYMS[which](), f"beat_{which}", timeout_frames=900_000, on_battle_started=fight_all_battles)

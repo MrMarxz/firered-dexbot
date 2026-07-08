@@ -628,6 +628,10 @@ def main() -> None:
     context.emulator.load_save_state((PROJECT_ROOT / "fixtures" / fixture).read_bytes())
     context.emulator.run_single_frame()
 
+    from dexbot.runner import attach_video_window
+
+    attach_video_window(context, "dexbot story")
+
     attempts = 0
     while True:
         attempts += 1
