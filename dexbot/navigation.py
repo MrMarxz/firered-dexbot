@@ -346,7 +346,8 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
     # every popped dest-level component against dest (the expensive scan below
     # stays only as fallback for one-way pockets, bounded by the failure memo).
     dest_cid = None
-    for cid, tiles in sorted(dest_reps.items(), key=lambda kv: distance_to_dest(kv[1][0])):
+    ranked_dest = sorted(dest_reps.items(), key=lambda kv: distance_to_dest(kv[1][0]))
+    for cid, tiles in ranked_dest[:6]:  # capped like the entry scan — see _find_component
         rep = tiles[0]
         if walkable(rep, dest) and walkable(dest, rep):
             dest_cid = cid
