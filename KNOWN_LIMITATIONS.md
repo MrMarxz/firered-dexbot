@@ -1,11 +1,16 @@
 # Known limitations
 
-- **nav_graph.json's story epoch is the badge count — a proxy.** Planning uses
-  the precomputed connectivity graph (data/nav_graph.json); on a badge-count
-  mismatch it auto-rebuilds in-process (~10s). But gates that open without a
-  badge (e.g. Saffron's guards want a drink, not a badge) do NOT trigger a
-  rebuild — routes through such a gate stay unknown until the next badge or a
-  manual `python -m dexbot.build_navgraph <fixture>`.
+- **Script-locked gates need explicit exclusion.** `calculate_path` sees
+  collision, not coord-event scripts, so the graph over-connects through gates
+  a guard blocks (Saffron's four gates until `GOT_TEA`). These are excluded at
+  BFS time by `_story_gated_warp_dests` — a hardcoded destination-map set keyed
+  on the relevant flag. Any future script-gated area (e.g. a badge-checked
+  route guard) needs an entry there; the graph alone won't catch it. Only
+  Saffron/`GOT_TEA` is handled today.
+- **nav_graph.json's story epoch is the badge count — a proxy.** On a
+  badge-count mismatch it auto-rebuilds in-process (~10s). Non-badge geometry
+  changes (a boulder pushed, a cut tree — trees respawn so that's fine) are
+  otherwise not re-detected; rebuild manually if a route looks stale.
 - **Nav-graph walk edges are rep-to-rep**: a directed walk edge A→B is proven
   between one representative tile pair; if a component is internally mutual
   but the one-way passage only works from part of it (shouldn't happen for
