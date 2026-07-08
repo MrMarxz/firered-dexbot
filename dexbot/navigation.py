@@ -129,11 +129,20 @@ def perform_cut(map_key, tree_tile: tuple[int, int], stand_tile: tuple[int, int]
     from modules.map import get_map_objects
     from modules.map_data import MapFRLG
     from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_for_yes_no_question
-    from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_controllable
+    from modules.modes.util.walking import (
+        ensure_facing_direction,
+        navigate_to as navigate_same_level,
+        wait_for_player_avatar_to_be_controllable,
+    )
 
     if isinstance(map_key, MapFRLG):
         map_key = map_key.value
-    yield from navigate_to(map_key, tuple(stand_tile))
+    # Same-level walk only: the stand tile is in the cut edge's from-component,
+    # where the route's earlier legs deliver us. Full navigate_to here can
+    # recurse (route to the stand crosses another cut edge → perform_cut →
+    # navigate_to → ...); if we're NOT where the plan assumed, this raises a
+    # path error and the caller's replan machinery takes over.
+    yield from navigate_same_level(map_key, tuple(stand_tile))
     if not any(
         o.current_coords == tuple(tree_tile) and "isPlayer" not in o.flags for o in get_map_objects()
     ):
