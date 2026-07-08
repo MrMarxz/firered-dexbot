@@ -166,11 +166,54 @@ def restock_pokeballs_if_low(minimum: int = 10) -> None:
         return
     if get_player().money < needed * 200:
         _fund_by_selling(needed * 200 + 1000)
+    if get_player().money < needed * 200:
+        _earn_by_patrol()
+        _fund_by_selling(needed * 200 + 1000)
     affordable = get_player().money // 200
     if affordable < 1:
         return
     quantity = min(needed + 5, affordable, 40)
     run_skill(buy_pokeballs(quantity, _nearest_mart()), f"restock_{quantity}_pokeballs", timeout_frames=120_000)
+
+
+# Trainer-gauntlet routes for one-shot income patrols: walking end to end
+# triggers line-of-sight fights (each pays out) via the battle listener.
+# Beaten trainers never re-pay, so each route patrols once per process.
+_PATROL_ROUTES = [(3, 27), (3, 29)]  # Route 9, Route 11
+_patrolled: set = set()
+
+
+def _earn_by_patrol() -> None:
+    """Fight an unfought trainer route for money when selling can't fund a
+    restock. ponytail: Vs Seeker rematches are the renewable M8 income engine;
+    unfought route gauntlets are the pre-Seeker bridge."""
+    from dexbot.catching import _encounter_tiles, ensure_healthy, fight_all_battles
+    from dexbot.navigation import _plan_via_graph, _walkable, navigate_to
+    from dexbot.runner import SkillError
+    from modules.player import get_player_avatar
+
+    for route_key in _PATROL_ROUTES:
+        if route_key in _patrolled:
+            continue
+        _patrolled.add(route_key)
+        avatar = get_player_avatar()
+        pos = (avatar.map_group_and_number, avatar.local_coordinates)
+        tiles = _encounter_tiles(route_key)
+        waypoints = [t for t in (tiles[0], tiles[-1]) if _plan_via_graph(pos, (route_key, t), frozenset(), _walkable)]
+        if not waypoints:
+            continue
+        try:
+            run_skill(ensure_healthy(minimum_fraction=0.9), "patrol_heal", timeout_frames=300_000)
+            for tile in waypoints:
+                run_skill(
+                    navigate_to(route_key, tile),
+                    f"patrol_{route_key[0]}_{route_key[1]}",
+                    timeout_frames=600_000,
+                    on_battle_started=fight_all_battles,
+                )
+        except SkillError as e:
+            print(f"[planner] patrol {route_key} failed: {e}")
+        return  # one route per call — usually enough for a restock
 
 
 # Sold when broke, in order: collectibles, then Super Potions above a reserve
