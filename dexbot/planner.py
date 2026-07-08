@@ -170,6 +170,19 @@ def restock_pokeballs_if_low(minimum: int = 15) -> None:
         if not _earn_by_vs_seeker():
             _earn_by_patrol()
         _fund_by_selling(needed * 200 + 1000)
+    from dexbot.openings import buy_items
+
+    # Great Balls (1.5x) when funded — full-HP throws at rate-190 targets ate
+    # 10-15 Poké Balls apiece; the multiplier pays for itself. The upstream
+    # catch strategy picks the best ball in the bag automatically.
+    if get_player().money >= (needed + 3) * 600:
+        quantity = min(needed + 5, get_player().money // 600, 40)
+        run_skill(
+            buy_items([("Great Ball", quantity)], _nearest_mart()),
+            f"restock_{quantity}_greatballs",
+            timeout_frames=120_000,
+        )
+        return
     affordable = get_player().money // 200
     if affordable < 1:
         return

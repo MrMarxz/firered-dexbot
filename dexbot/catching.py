@@ -124,6 +124,17 @@ def make_catch_decider(target_species: str):
 
 
 
+
+def _ball_count() -> int:
+    """Total usable balls in the bag (any kind the catch strategy can throw)."""
+    from modules.items import get_item_bag, get_item_by_name
+
+    return sum(
+        get_item_bag().quantity_of(get_item_by_name(name))
+        for name in ("Poké Ball", "Great Ball", "Ultra Ball", "Net Ball", "Nest Ball", "Repeat Ball", "Timer Ball")
+    )
+
+
 def _pick_reachable_center():
     """The fewest-warps *reachable* Pokémon Center, GRAPH-ONLY planning.
 
@@ -214,7 +225,7 @@ def catch_species(
 
     from modules.items import get_item_bag, get_item_by_name
 
-    if get_item_bag().quantity_of(get_item_by_name("Poké Ball")) == 0:
+    if _ball_count() == 0:
         raise SkillError(f"No Poké Balls — cannot catch {species_name}")
 
     yield from ensure_healthy()
@@ -247,7 +258,7 @@ def catch_species(
         return starter.current_hp / starter.total_hp < 0.3 or starter.status_condition != StatusCondition.Healthy
 
     while not _species_is_owned(species_name):
-        if get_item_bag().quantity_of(get_item_by_name("Poké Ball")) == 0:
+        if _ball_count() == 0:
             # Balls ran dry mid-hunt (a stubborn target can eat a whole
             # restock): defer cleanly instead of letting the catch strategy
             # abort to manual mode and churn.
