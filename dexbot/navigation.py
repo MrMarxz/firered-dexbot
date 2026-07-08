@@ -76,7 +76,10 @@ def _get_warp_edges() -> dict:
 
 _walkable_cache: set = set()  # proven-walkable pairs — permanent (see below)
 _walkable_neg: dict = {}  # failed pairs -> monotonic expiry (TTL — see below)
-_NEG_TTL_SECONDS = 90.0
+# Must comfortably exceed a worst-case component scan (~2-3 min), or the scan
+# re-expires its own entries and recomputes forever. Execution-time NPC blocks
+# are handled by the blacklist machinery, so staleness here is low-risk.
+_NEG_TTL_SECONDS = 900.0
 
 
 def _walkable(source: tuple[tuple[int, int], tuple[int, int]], dest: tuple[tuple[int, int], tuple[int, int]]) -> bool:
@@ -233,12 +236,17 @@ def _load_nav_graph() -> dict | None:
     return graph
 
 
-def _find_component(position, comp, walkable) -> int | None:
+def _find_component(position, comp, walkable, mutual_only: bool = False, max_candidates: int = 6) -> int | None:
     """The component CONTAINING `position` (mutual reachability with its
     representative, tested nearest-first). One-way reachability is not enough:
     the nearest rep can belong to a ledge pocket below the player — enterable
     but exitless — and BFS from that dead-end component reaches nothing.
-    Falls back to the first one-way-reachable component if none is mutual."""
+    Falls back to the first one-way-reachable component if none is mutual.
+
+    The scan is CAPPED: any sane position's containing component is among the
+    nearest few reps, and each failed reverse check is a multi-second
+    full-region A* — an uncapped scan from a walled-in strip costs minutes and
+    re-runs forever (the two-hour standstills)."""
     level = _map_level(position[0])
     pos_global = _global_coords(position[0], position[1])
 
@@ -255,13 +263,14 @@ def _find_component(position, comp, walkable) -> int | None:
         if cid not in nearest_rep or distance(tile) < distance(nearest_rep[cid]):
             nearest_rep[cid] = tile
     one_way = None
-    for cid, tile in sorted(nearest_rep.items(), key=lambda kv: distance(kv[1])):
+    ranked = sorted(nearest_rep.items(), key=lambda kv: distance(kv[1]))
+    for cid, tile in ranked[:max_candidates]:
         if walkable(position, tile):
             if walkable(tile, position):
                 return cid
             if one_way is None:
                 one_way = cid
-    return one_way
+    return None if mutual_only else one_way
 
 
 def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
@@ -473,7 +482,9 @@ def _walk_out_of_pocket(max_steps: int = 24) -> Generator:
     for _ in range(max_steps):
         avatar = get_player_avatar()
         position = (avatar.map_group_and_number, avatar.local_coordinates)
-        if graph is not None and _find_component(position, graph["comp"], _walkable) is not None:
+        # Mutual only: a one-way match means we can still be inside an
+        # exitless strip that merely LOOKS connected downhill.
+        if graph is not None and _find_component(position, graph["comp"], _walkable, mutual_only=True) is not None:
             return  # back on modeled ground
         for direction in ("Down", "Left", "Right", "Up"):
             before = get_player_avatar().local_coordinates
@@ -531,14 +542,14 @@ def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generato
                         # can transiently wall us in and fail every check.
                         # Wait for the world to settle and re-plan.
                         if plan_attempt == 2:
-                            # A mid-leg ledge hop can strand us in a strip that
-                            # holds no portal tiles — no component, so EVERY
-                            # plan fails. Physically step out (ledge strips
-                            # always drain somewhere), then let the caller's
-                            # retry re-plan from modeled ground.
-                            graph = _load_nav_graph()
-                            if graph is not None and _find_component(position, graph["comp"], _walkable) is None:
-                                yield from _walk_out_of_pocket()
+                            # A mid-leg ledge hop can strand us in a strip the
+                            # graph can't model (no portal tiles, or only
+                            # one-way reachable) — every plan fails. Step out
+                            # physically (ledge strips always drain), then let
+                            # the caller's retry re-plan from modeled ground.
+                            # Unconditional: _walk_out_of_pocket no-ops fast
+                            # when we're already on mutually-reachable ground.
+                            yield from _walk_out_of_pocket()
                             raise
                         for _ in range(120):
                             yield

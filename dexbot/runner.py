@@ -21,6 +21,16 @@ class SkillTimeout(SkillError):
     pass
 
 
+class StepTimeout(SkillError):
+    """A single controller step (one generator advance) exceeded its wall-time
+    budget — a planning or menu loop wedged. Raised via SIGALRM so even a
+    CPU-bound spin inside one step gets interrupted and reported instead of
+    freezing the run for hours."""
+
+
+_STEP_BUDGET_SECONDS = 120
+
+
 _events_path = PROJECT_ROOT / "logs" / "skills.jsonl"
 
 # Called once per emulated frame from run_skill — used by run.py for telemetry
@@ -53,6 +63,32 @@ def _checkpoint_phase(skill: str, phase: str) -> None:
         (phases_dir / f"{safe}.ss1").write_bytes(context.emulator.get_save_state())
     except Exception:
         pass
+
+
+def _with_step_watchdog(controller) -> None:
+    """Advance a controller one step under a wall-time budget. Any single step
+    normally takes milliseconds; planning pathologies have wedged steps for
+    hours at 100% CPU with the avatar frozen. SIGALRM interrupts even a
+    CPU-bound step (main thread only — which run_skill is)."""
+    import signal
+
+    if not hasattr(signal, "SIGALRM"):
+        next(controller)
+        return
+
+    def _on_alarm(signum, frame):
+        raise StepTimeout(
+            f"controller step exceeded {_STEP_BUDGET_SECONDS}s "
+            f"(wedged at {frame.f_code.co_filename}:{frame.f_lineno} in {frame.f_code.co_name})"
+        )
+
+    previous = signal.signal(signal.SIGALRM, _on_alarm)
+    signal.alarm(_STEP_BUDGET_SECONDS)
+    try:
+        next(controller)
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous)
 
 
 def _make_bot_mode(skill: Generator, on_battle_started=None):
@@ -144,7 +180,7 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
 
             try:
                 if len(context.controller_stack) > 0:
-                    next(context.controller_stack[-1])
+                    _with_step_watchdog(context.controller_stack[-1])
             except (StopIteration, GeneratorExit):
                 # Upstream semantics: pop and STILL advance the frame below.
                 # Re-processing the same frame would double-run the listeners,
