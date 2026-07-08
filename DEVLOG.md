@@ -1,5 +1,15 @@
 # DEVLOG
 
+## 2026-07-08 — Cut-conditional nav edges (class fix #3) ✓ — westbound Kanto open, dex 26
+
+**The nav graph now carries conditional edges** (`cut_edges` per epoch section, 26 game-wide): for every cuttable tree (`EventScript_CutTree` objects), adjacent tiles in different components get a directed edge carrying the action (tree, stand tile, facing — computed at build time by mutual-A* comp assignment of the tree's neighbors). The planner BFS traverses them when Cut is usable; `navigate_to` executes the route's `{"cut": ...}` step via the shared `perform_cut` (which gyms' `_cut_tree` now delegates to). The cut is performed per traversal — trees respawn on map reload, so it's an action, not graph state. Verified live: Vermilion → Diglett's Cave → cut the Route 2 tree → Route 3 grass, planned in 0.36s, executed unattended.
+
+**Sweeps: dex 23 → 26.** Diglett/Drowzee/Dugtrio (Route 11 + Diglett's Cave, once annotated — remember: verify map IDs against the enum, (3,42) was Route 23 not 24). Then the long-deferred western species through the cut route: Jigglypuff (Route 3), **Clefairy (Mt Moon B2F, 6% slot)**, **Nidoran♀ (1% slot)**. Blastoise arrived by evolution during the Surge grind.
+
+**Economy learned the hard way:** the ball budget ran dry mid-sweep (Clefairy/Nidoran♀ deferred on "No Poké Balls"). `restock_pokeballs_if_low` now funds itself by selling junk-tier items at the nearest mart when broke — collectibles first, then Super Potions above a reserve of 4. **FRLG cannot sell TMs at all** (the TM Case pocket is unreachable from the mart sell menu — upstream's `ItemPocket.frlg_index` has no TmsAndHms entry, and that's authentic game behavior, not a bug). Vs Seeker rematches (a gift in Vermilion's Pokémon Center) are the real M8 income engine, noted in KNOWN_LIMITATIONS.
+
+**State:** Badges 3/8, **dex 26/124**, 35 tests green, all committed. **Next:** interact() primitive consolidation (class fix #2), M8 crash-resume drill on the checkpoint infra, then the Route 9/Rock Tunnel corridor toward Lavender/Celadon (needs Flash or dark-cave navigation policy) and badge 4 planning.
+
 ## 2026-07-08 — Badge 3 (Surge) ✓; phase checkpointing shipped; in-battle item use fixed for good
 
 **Owner set the direction: convert instance-fixes into class-fixes** (the bottleneck is world-interaction traps found one at a time via slow e2e runs). Priority: (1) phase checkpointing/resume, (2) a hardened interact() primitive, (3) Cut/Surf-conditional nav edges. This session shipped #1 and it immediately paid for itself.
