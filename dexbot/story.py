@@ -419,11 +419,32 @@ def _ctx_placeholder():
     pass
 
 
+def get_tea() -> Generator:
+    """Collect the tea from the old woman in Celadon Condominiums 1F.
+    GOT_TEA opens Saffron City's four guard gates — a major routing unlock
+    (the nav graph excludes Saffron-entering warps until this flag is set)."""
+    from modules.map_data import MapFRLG
+    from modules.memory import get_event_flag
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+
+    if get_event_flag("GOT_TEA"):
+        return
+    yield from navigate_to(MapFRLG.CELADON_CITY_CONDOMINIUMS_1F, (2, 10))  # beside the tea woman (obj 4 @ 2,9)
+    yield from talk_to_npc(4)
+    yield from wait_for_no_script_to_run("B")
+    yield from wait_for_player_avatar_to_be_controllable("B")
+    if not get_event_flag("GOT_TEA"):
+        raise SkillError("Tea woman did not hand over the tea (GOT_TEA unset)")
+
+
 STORY_SKILLS = {
     "clear_mt_moon": clear_mt_moon,
     "cross_nugget_bridge": cross_nugget_bridge,
     "visit_bill": visit_bill,
     "get_hm_cut": get_hm_cut,
+    "get_tea": get_tea,
 }
 
 

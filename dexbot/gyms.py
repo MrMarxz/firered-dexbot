@@ -247,8 +247,55 @@ def beat_surge(min_level: int = 38) -> Generator:
     yield from _escape_vermilion_gym_yard()
 
 
-GYMS = {"brock": beat_brock, "misty": beat_misty, "surge": beat_surge}
-_DEFAULT_FIXTURE = {"brock": "m6_pre_brock_dex.ss1", "misty": "m7_ss_ticket.ss1", "surge": "m7_cerulean_sweep.ss1"}
+def beat_erika(min_level: int = 40) -> Generator:
+    """Beat Erika (badge 4, Celadon). Her Grass types resist Blastoise's Water,
+    so the damage plan is neutral moves (Bite) plus a hard level lead; the
+    healing battle strategy drinks Super Potions through Sleep Powder turns."""
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG, PokemonCenter
+    from modules.memory import get_event_flag
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+    from modules.player import get_player
+    from modules.pokemon_party import get_party
+
+    from dexbot.boxes import deposit_party_fodder
+    from dexbot.planner import _nearest_mart
+    from dexbot.runner import _log_event
+
+    if get_event_flag("BADGE04_GET"):
+        return
+
+    yield from deposit_party_fodder(keep=1)
+    if max(p.level for p in get_party() if not p.is_egg) < min_level:
+        yield from grind_levels(min_level)
+    yield from ensure_healthy(minimum_fraction=0.99, center=PokemonCenter.CeladonCity)
+
+    if get_item_bag().quantity_of(get_item_by_name("Super Potion")) < 5:
+        affordable = get_player().money // 700
+        if affordable > 0:
+            from dexbot.openings import buy_items
+
+            yield from buy_items([("Super Potion", min(8, affordable))], _nearest_mart())
+
+    _log_event(skill="beat_erika", status="phase", phase="fight")
+    yield from navigate_to(MapFRLG.CELADON_CITY_GYM, (6, 5))  # in front of Erika (obj 7 @ 6,4)
+    yield from talk_to_npc(7)
+    yield from wait_for_no_script_to_run("B")
+    yield from wait_for_player_avatar_to_be_controllable("B")
+
+    if not get_event_flag("BADGE04_GET"):
+        raise SkillError("Erika was not defeated (badge flag unset)")
+
+
+GYMS = {"brock": beat_brock, "misty": beat_misty, "surge": beat_surge, "erika": beat_erika}
+_DEFAULT_FIXTURE = {
+    "brock": "m6_pre_brock_dex.ss1",
+    "misty": "m7_ss_ticket.ss1",
+    "surge": "m7_cerulean_sweep.ss1",
+    "erika": "m7_rock_tunnel_sweep.ss1",
+}
 
 
 def main() -> None:
