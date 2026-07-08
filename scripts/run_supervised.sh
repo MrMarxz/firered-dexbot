@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 FAILS=0
 while true; do
     START=$(date +%s)
-    .venv/bin/python -u run.py --goal living-dex
+    .venv/bin/python -u run.py --goal living-dex "$@"
     CODE=$?
     if [ $CODE -eq 0 ]; then
         echo "[supervisor] clean exit (planner idle) — done."

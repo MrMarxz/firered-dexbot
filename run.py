@@ -18,6 +18,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--goal", default="living-dex", choices=["living-dex"])
     parser.add_argument("--profile", default="livingdex")
+    parser.add_argument("--video", action="store_true", help="show a live game window (needs a display)")
     args = parser.parse_args()
 
     verify_rom()
@@ -43,6 +44,37 @@ def main() -> None:
             last_checkpoint = frame
 
     runner.frame_hooks.extend([telemetry.tick, checkpoint_hook])
+
+    if args.video:
+        # Live view: a plain Tk window fed from the emulator's frame buffer
+        # every 30 frames (~0.5-2 fps of wall time at unthrottled speed — a
+        # fast-forward view, not gameplay speed). Closing the window is safe;
+        # the run continues headless.
+        import tkinter as tk
+
+        from PIL import ImageTk
+
+        window = tk.Tk()
+        window.title(f"dexbot — {args.profile}")
+        video_label = tk.Label(window)
+        video_label.pack()
+        video_state = {"frame": 0, "alive": True}
+
+        def video_hook() -> None:
+            if not video_state["alive"]:
+                return
+            video_state["frame"] += 1
+            if video_state["frame"] % 30:
+                return
+            try:
+                image = ImageTk.PhotoImage(context.emulator.get_screenshot().resize((480, 320)))
+                video_label.configure(image=image)
+                video_label.image = image
+                window.update()
+            except tk.TclError:  # window closed by the user
+                video_state["alive"] = False
+
+        runner.frame_hooks.append(video_hook)
 
     from modules.memory import game_has_started
     from dexbot.runner import run_skill

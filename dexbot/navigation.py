@@ -74,7 +74,9 @@ def _get_warp_edges() -> dict:
     return _warp_edges
 
 
-_walkable_cache: set = set()  # proven-walkable pairs only — see below
+_walkable_cache: set = set()  # proven-walkable pairs — permanent (see below)
+_walkable_neg: dict = {}  # failed pairs -> monotonic expiry (TTL — see below)
+_NEG_TTL_SECONDS = 90.0
 
 
 def _walkable(source: tuple[tuple[int, int], tuple[int, int]], dest: tuple[tuple[int, int], tuple[int, int]]) -> bool:
@@ -84,22 +86,32 @@ def _walkable(source: tuple[tuple[int, int], tuple[int, int]], dest: tuple[tuple
     forest, caves, ...), so warp-route planning verifies every same-level leg
     with the real pathfinder instead of trusting level identity.
 
-    Only SUCCESSES are cached. `calculate_path` blocks the live NPCs' tiles, so
-    a wandering NPC in a choke point makes every check from the walled-off side
-    fail *transiently*; caching such a False poisons all future plans in the
-    process ("No warp route" forever, even after the NPC moves on). Walkability
-    that exists is static — failures must be recomputed each time.
+    Successes cache permanently (FRLG gates only ever open). Failures cache
+    with a short TTL: `calculate_path` blocks the live NPCs' tiles, so a
+    wandering NPC in a choke point makes checks fail *transiently* — a
+    permanent False poisons all future plans ("No warp route" forever), but NO
+    negative caching lets component scans re-run identical multi-second failed
+    A* for hours of CPU (USR1-diagnosed twice). 90s bounds the staleness: a
+    blocked plan retries and self-heals within ~one NPC wander cycle.
     """
+    import time as _time
+
     from modules.map_path import calculate_path
 
     key = (source, dest)
     if key in _walkable_cache:
         return True
+    expiry = _walkable_neg.get(key)
+    if expiry is not None:
+        if expiry > _time.monotonic():
+            return False
+        del _walkable_neg[key]
     try:
         calculate_path(source, dest)
         _walkable_cache.add(key)
         return True
     except Exception:
+        _walkable_neg[key] = _time.monotonic() + _NEG_TTL_SECONDS
         return False
 
 
