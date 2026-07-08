@@ -348,10 +348,19 @@ def plan_and_catch_all() -> int:
     from dexbot.runner import SkillError, _log_event
 
     caught = 0
+    caught_since_reset = 0
     deferred: set = set()
     while True:
         queue = [q for q in missing_catchable() if q[0] not in deferred]
         if not queue:
+            # Retry deferrals as long as passes make progress: a transient
+            # failure (whiteout recovery wedge, wandering NPC wall) usually
+            # succeeds on a fresh skill start. No progress twice → truly stuck.
+            if deferred and caught_since_reset > 0:
+                print(f"[planner] retrying {len(deferred)} deferred: {sorted(deferred)}")
+                deferred.clear()
+                caught_since_reset = 0
+                continue
             return caught
         restock_pokeballs_if_low()
         # Objective boundary: the optional LLM planner may pick any valid queue
@@ -416,6 +425,7 @@ def plan_and_catch_all() -> int:
         if failed:
             continue
         caught += 1
+        caught_since_reset += 1
         print(f"[planner] caught {species} ({rate}% on {map_key})")
         # Keep slots open: a full party makes the next catch fail. HM mules
         # are kept by deposit_party_fodder itself.

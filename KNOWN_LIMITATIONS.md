@@ -36,6 +36,14 @@
   no-damage-possible matchup (Wobbuffet-style walls, out-of-PP corners) hits
   the same wedge. Class fix wanted: fight_all_battles should flee when N turns
   produce zero state change.
+- **Post-whiteout recovery inside catch_species can wedge.** Seen live
+  (catch_Gastly, stall 234206): the party whited out in Pokémon Tower, the
+  whiteout handler recovered to the Lavender PC, and the skill then made no
+  progress for 30k frames until the watchdog deferred it. The planner's
+  deferred-retry pass (retry deferrals while passes make progress) papers over
+  it — a fresh skill start succeeds — but the in-skill resume path after
+  whiteout deserves the interact()-class treatment. Also unclear why an L47
+  Blastoise whited out vs L13-25 tower ghosts; replay the stall fixture.
 - **The economy is thin**: income so far is one-off (Nugget, trainer payouts
   during story treks, junk-item liquidation when broke — FRLG cannot sell TMs,
   the TM Case is unreachable from the mart sell menu). Ball/potion budgets can
