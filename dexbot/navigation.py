@@ -520,6 +520,85 @@ def _plan_warp_route_live(
     raise SkillError(f"No warp route from {start} to {dest}")
 
 
+def walk_carefully(map_key, dest: tuple[int, int], max_repaths: int = 8) -> Generator:
+    """Walk to `dest` on the current level with TAP-AND-SETTLE inputs — for
+    forced-movement areas (spin-tile mazes). Upstream's walker holds the
+    direction key, which fights the slides and retries internally forever;
+    here each waypoint is one short tap, then we wait for the slide to resolve
+    and re-path from wherever the maze actually delivered us. calculate_path
+    models slides exactly (waypoint coords are slide LANDINGS)."""
+    from modules.context import context
+    from modules.map_data import MapFRLG
+    from modules.map_path import PathFindingError, calculate_path
+    from modules.player import get_player_avatar, player_avatar_is_controllable
+
+    if isinstance(map_key, MapFRLG):
+        map_key = map_key.value
+    dest = tuple(dest)
+
+    def settle(max_frames: int = 900) -> Generator:
+        # Position stable for 20 frames = the slide finished. (The controllable
+        # flag flickers true mid-slide and exits too early.)
+        last = None
+        stable = 0
+        for _ in range(max_frames):
+            yield
+            avatar = get_player_avatar()
+            cur = (avatar.map_group_and_number, avatar.local_coordinates)
+            if cur == last:
+                stable += 1
+                if stable >= 20 and player_avatar_is_controllable():
+                    return
+            else:
+                stable = 0
+                last = cur
+
+    for _ in range(max_repaths):
+        yield from settle()
+        avatar = get_player_avatar()
+        pos = (avatar.map_group_and_number, avatar.local_coordinates)
+        if pos == (map_key, dest):
+            return
+        try:
+            waypoints = calculate_path(pos, (map_key, dest))
+        except PathFindingError as e:
+            raise SkillError(f"walk_carefully: no path {pos} -> {dest}: {e}")
+        derailed = False
+        for wp in waypoints:
+            context.emulator.reset_held_buttons()
+            context.emulator.hold_button(wp.walking_direction)
+            for _ in range(12):  # one tile-step tap
+                yield
+            context.emulator.reset_held_buttons()
+            yield from settle()
+            avatar = get_player_avatar()
+            if avatar.map_group_and_number != map_key:
+                return  # a warp fired (stairs/door) — the caller continues from there
+            if (avatar.map_group_and_number, avatar.local_coordinates) != (tuple(wp.map), tuple(wp.coordinates)):
+                derailed = True  # a slide took us elsewhere — re-path from here
+                break
+        if not derailed:
+            avatar = get_player_avatar()
+            if (avatar.map_group_and_number, avatar.local_coordinates) == (map_key, dest):
+                return
+    raise SkillError(f"walk_carefully: could not reach {dest} on {map_key} after {max_repaths} re-paths")
+
+
+_spinner_maps: dict = {}
+
+
+def _has_spinners(map_key) -> bool:
+    """Whether a map contains forced-movement (spin) tiles — those defeat the
+    held-direction walker, so legs there use walk_carefully instead."""
+    key = tuple(map_key)
+    if key not in _spinner_maps:
+        from modules.map_path import _get_all_maps_metadata
+
+        pm = _get_all_maps_metadata().get(key)
+        _spinner_maps[key] = bool(pm) and any(t.forced_movement_to for t in pm.tiles)
+    return _spinner_maps[key]
+
+
 def _walk_out_of_pocket(max_steps: int = 24) -> Generator:
     """Blind-step out of an unmodeled pocket (a ledge strip with no portal
     tiles): try each direction until the position changes, up to `max_steps`
@@ -621,7 +700,10 @@ def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generato
                         avatar = get_player_avatar()
                         position = (avatar.map_group_and_number, avatar.local_coordinates)
             if not cached_route:
-                yield from navigate_same_level(map, coordinates, run=run)
+                if _has_spinners(position[0]) or _has_spinners(map):
+                    yield from walk_carefully(map, coordinates)
+                else:
+                    yield from navigate_same_level(map, coordinates, run=run)
                 return
             step = cached_route[0]
             if isinstance(step, dict) and step.get("cut"):
@@ -633,9 +715,23 @@ def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generato
             # Step onto the next warp; upstream follows it (final waypoint).
             warp_map, warp_coords = step
             current_target = (warp_map, warp_coords)
-            yield from navigate_same_level(warp_map, warp_coords, run=run)
+            if _has_spinners(position[0]) or _has_spinners(warp_map):
+                # Spin-tile floors defeat the held-direction walker (it fights
+                # the slides and retries internally forever) — tap-and-settle.
+                yield from walk_carefully(warp_map, warp_coords)
+            else:
+                yield from navigate_same_level(warp_map, warp_coords, run=run)
             cached_route = cached_route[1:] or None  # consume; None re-plans final walk
             target_failures = 0
+        except SkillError:
+            # A leg desynced from reality (e.g. spin-maze slide momentum
+            # carried us through a warp ahead of the route pointer, making the
+            # next leg cross-level). Re-plan from wherever we actually are.
+            cached_route = None
+            interruptions += 1
+            if interruptions > 30:
+                raise
+            continue
         except BotModeError as e:
             # One-time overworld triggers (tutorial NPCs, etc.) interrupt walking.
             # Mash through the script, then re-plan from wherever we ended up.

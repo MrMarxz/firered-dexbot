@@ -1,10 +1,10 @@
-modules/battle_action_selection.py   | 22 +++++++++++++++++++++-
- modules/battle_handler.py            | 22 ++++++++++++++++++++--
- modules/battle_move_replacing.py     |  6 ++++++
- modules/battle_strategies/default.py |  5 +++++
- modules/map_path.py                  |  8 +++++++-
+modules/battle_action_selection.py   | 22 ++++++++++++++-
+ modules/battle_handler.py            | 22 +++++++++++++--
+ modules/battle_move_replacing.py     |  6 ++++
+ modules/battle_strategies/default.py |  5 ++++
+ modules/map_path.py                  | 53 +++++++++++++++++++++++++++++++++++-
  modules/modes/util/items.py          |  2 +-
- 6 files changed, 60 insertions(+), 5 deletions(-)
+ 6 files changed, 105 insertions(+), 5 deletions(-)
 
 --- Changes ---
 
@@ -100,13 +100,62 @@ modules/battle_strategies/default.py
   +5 -0
 
 modules/map_path.py
-  @@ -289,7 +289,7 @@ class PathMap:
+  @@ -249,6 +249,51 @@ class PathMap:
+  +                elif tile.tile_type.startswith("Spin "):
+  +                    # FRLG spin arrows (Rocket Hideout, Viridian Gym): stepping
+  +                    # on slides you along the arrow chain until a non-spin tile.
+  +                    # Landing is approach-direction-independent.
+  +                    accessible_from_direction = [True, True, True, True]
+  +                    _spin_deltas = {
+  +                        "Spin Up": (0, -1),
+  +                        "Spin Down": (0, 1),
+  +                        "Spin Left": (-1, 0),
+  +                        "Spin Right": (1, 0),
+  +                    }
+  +                    # The slide continues across NORMAL tiles too — it ends
+  +                    # only on 'Stop Spinning', collision, or the map edge;
+  +                    # crossing another arrow changes the slide direction.
+  +                    destination = tile
+  +                    steps = 0
+  +                    slide_dx, slide_dy = _spin_deltas[tile.tile_type]
+  +                    _seen_spin = set()
+  +                    while steps < 64:
+  +                        state_key = (destination.local_position, (slide_dx, slide_dy))
+  +                        if state_key in _seen_spin:
+  +                            break  # arrow loop — give up where we are
+  +                        _seen_spin.add(state_key)
+  +                        if destination.tile_type in _spin_deltas:
+  +                            slide_dx, slide_dy = _spin_deltas[destination.tile_type]
+  +                        elif destination.tile_type == "Stop Spinning" and steps > 0:
+  +                            break
+  +                        elif steps > 0 and destination.tile_type not in _spin_deltas:
+  +                            # normal tile mid-slide: keep sliding same direction
+  +                            pass
+  +                        x, y = destination.local_position
+  +                        nx, ny = x + slide_dx, y + slide_dy
+  +                        if not (0 <= nx < map_data.map_size[0] and 0 <= ny < map_data.map_size[1]):
+  +                            break
+  +                        next_tile = all_tiles[tile_index(nx, ny)]
+  +                        if next_tile is None or next_tile.collision:
+  +                            break
+  +                        destination = next_tile
+  +                        steps += 1
+  +                    forced_movement_to = {
+  +                        Direction.North: (destination.map_group_and_number, destination.local_position, steps),
+  +                        Direction.East: (destination.map_group_and_number, destination.local_position, steps),
+  +                        Direction.South: (destination.map_group_and_number, destination.local_position, steps),
+  +                        Direction.West: (destination.map_group_and_number, destination.local_position, steps),
+  +                    }
+                   elif tile.tile_type == "Ice":
+                       accessible_from_direction = [True, True, True, True]
+                       forced_movement_to = {}
+  @@ -289,7 +334,7 @@ class PathMap:
   -                        if tile.tile_type.endswith(" Arrow Warp"):
   +                        if tile.tile_type.endswith(" Arrow Warp") or tile.tile_type.startswith("Stair Warp"):
                                match tile.tile_type:
                                    case "North Arrow Warp":
                                        extra_warp_direction = Direction.North
-  @@ -299,6 +299,12 @@ class PathMap:
+  @@ -299,6 +344,12 @@ class PathMap:
   +                                # FRLG diagonal staircases: the warp fires when walking in the
   +                                # stair's horizontal direction while standing on the tile.
   +                                case "Stair Warp Up/Right" | "Stair Warp Down/Right":
@@ -116,7 +165,7 @@ modules/map_path.py
                            warps_to = (
                                (destination.map_group, destination.map_number),
                                destination.local_position,
-  +7 -1
+  +52 -1
 
 modules/modes/util/items.py
   @@ -193,7 +193,7 @@ def teach_hm_or_tm(hm_or_tm: Item, party_index: int, move_index_to_replace: int
