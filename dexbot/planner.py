@@ -375,19 +375,45 @@ def plan_and_catch_all() -> int:
                 on_battle_started=fight_all_battles,
             )
 
-        try:
-            run_skill(
-                catch_species(species, map_key, tile),
-                f"catch_{species}",
-                timeout_frames=600_000,
-                on_battle_started=make_catch_decider(species),
-            )
-        except SkillError as e:
-            # Objective failed (unreachable, stranded, ...): defer it and move
-            # on — a later story unlock usually fixes it. Never abort the loop.
-            deferred.add(species)
-            print(f"[planner] deferred {species}: {e}")
-            _log_event(skill=f"catch_{species}", status="deferred", error=str(e))
+        failed = False
+        for attempt in range(2):
+            try:
+                run_skill(
+                    catch_species(species, map_key, tile),
+                    f"catch_{species}",
+                    timeout_frames=600_000,
+                    on_battle_started=make_catch_decider(species),
+                )
+                break
+            except SkillError as e:
+                # Failure boundary: the LLM may pick a recovery action;
+                # options[0] ("defer") is the deterministic default — a later
+                # story unlock usually fixes it. Never abort the loop.
+                action = "defer"
+                if attempt == 0:
+                    from dexbot.llm_planner import consult_on_failure
+
+                    action, rationale = consult_on_failure(
+                        f"catch_{species}", str(e), capture_state(), ["defer", "heal_then_retry", "retry"]
+                    )
+                    print(f"[planner] {species} failed → {action} ({rationale})")
+                if action == "defer":
+                    deferred.add(species)
+                    failed = True
+                    print(f"[planner] deferred {species}: {e}")
+                    _log_event(skill=f"catch_{species}", status="deferred", error=str(e))
+                    break
+                _log_event(skill=f"catch_{species}", status="advisor_retry", error=str(e), action=action)
+                if action == "heal_then_retry":
+                    from dexbot.catching import ensure_healthy, fight_all_battles
+
+                    run_skill(
+                        ensure_healthy(),
+                        "advisor_heal",
+                        timeout_frames=600_000,
+                        on_battle_started=fight_all_battles,
+                    )
+        if failed:
             continue
         caught += 1
         print(f"[planner] caught {species} ({rate}% on {map_key})")

@@ -10,11 +10,14 @@ for long stretches on the owner's PC (Ryzen 5800, RTX 3070 8GB VRAM, 64GB RAM).
 ## Non-negotiable constraints
 
 1. The bot reads game state from emulator memory only. Never from pixels/screenshots.
-2. No LLM calls in the runtime loop by default. The runtime must complete the living dex
-   with zero LLM involvement. An optional planner may call a local Ollama endpoint
-   (OpenAI-compatible API, configurable base URL + model in config); it is strictly additive.
-   Never call the Anthropic API or claude CLI from the bot at runtime. Claude Code's role
-   is development only.
+2. LLM for reasoning, determinism for execution (owner directive, 2026-07-08 — the best of
+   Clad3815/gpt-play-pokemon-firered and 40Cakes/pokebot-gen3). Skills execute frame-perfect
+   with zero LLM involvement. An LLM (local Ollama or any OpenAI-compatible endpoint, incl.
+   hosted ones via config.json llm_planner.api_key_env) is consulted at BOUNDARIES:
+   objective selection and failure recovery — i.e. wherever determinism fails. It receives
+   structured JSON state and an enumerated list of valid choices; a validator rejects
+   anything not in the list and falls back to the deterministic default, so the bot still
+   completes the living dex with the LLM disabled or unreachable.
 3. ROM is user-provided. Expect it at roms/firered.gba. On startup, verify MD5 equals
    `e26ee0d44e809351c8ce2d73c7400cdd` (FireRed USA 1.0) and abort with a clear message if not.
    Never download, fetch, or generate ROM data.
@@ -35,10 +38,13 @@ for long stretches on the owner's PC (Ryzen 5800, RTX 3070 8GB VRAM, 64GB RAM).
   Every skill: idempotent where possible, emits structured telemetry, has a timeout and a
   failure state (never hangs silently).
 - **L2 Planner** — default: deterministic priority queue over missing dex entries, ordered by
-  a dependency graph (story flags, HMs, badges, money). Optional: Ollama planner that receives
-  structured JSON state + an enumerated list of currently-valid objectives and returns one
-  choice with rationale. A validator rejects any response not in the list and falls back to
-  the queue. Planner is consulted only at objective boundaries.
+  a dependency graph (story flags, HMs, badges, money). LLM reasoning layer
+  (dexbot/llm_planner.py, any OpenAI-compatible endpoint) receives structured JSON state +
+  an enumerated list of currently-valid choices and returns one with rationale. A validator
+  rejects any response not in the list and falls back to the deterministic default. Consulted
+  at objective boundaries (pick next objective) and failure boundaries (pick the recovery
+  action — defer/heal_then_retry/retry — after a skill fails). Grow the option vocabulary as
+  recovery skills land; never let the LLM emit free-form actions or game facts.
 - **L3 Ops** — JSONL telemetry (logs/), auto-savestates every 5 min + before every risky
   maneuver (Safari entry, gym fight, story script), crash-resume from latest checkpoint,
   DEVLOG.md updated every session, dex-progress dashboard as a simple CLI/HTML status page.
@@ -95,9 +101,12 @@ for long stretches on the owner's PC (Ryzen 5800, RTX 3070 8GB VRAM, 64GB RAM).
   (ball/potion budgeting, payday routes), Safari Zone strategy (step budget, bait/rock policy
   from documented mechanics), Repel management, evolution handling (level/stone/friendship),
   crash-resume drills (kill -9 the bot mid-run; it must resume from checkpoint).
-- **M9 — Optional Ollama planner**: Implement the L2 LLM planner behind a config flag with
-  the validator + queue fallback. Acceptance: with an intentionally garbage model response
-  injected in tests, the bot proceeds correctly via fallback.
+- **M9 — LLM reasoning layer**: L2 LLM behind a config flag with the validator + fallback,
+  consulted at objective AND failure boundaries (owner directive: LLM where determinism
+  fails). Acceptance: with an intentionally garbage model response injected in tests, the
+  bot proceeds correctly via fallback (tests/test_m9_llm_planner.py — done for both
+  boundaries). Ongoing: widen the failure-boundary option vocabulary as recovery skills
+  land (rebuild nav graph, grind, restock, re-probe with scripts/probe_maze.py, ...).
 - **M10 — The run** 🧍: Full living-dex attempt with dashboard. Log everything. Expect
   failures; each failure becomes a DEVLOG entry and a fix.
 
