@@ -56,3 +56,18 @@ def test_west_sweep_progress():
     # These four were unreachable until the Cut-conditional nav edges landed.
     assert {"Jigglypuff", "Clefairy", "Nidoran♀"} <= owned
     assert get_party().has_pokemon_with_move("Cut")
+
+
+def test_rock_tunnel_sweep_progress():
+    from dexbot.emulator import setup_headless_emulator
+
+    context = setup_headless_emulator(is_test_run=True)
+    context.emulator.load_save_state((PROJECT_ROOT / "fixtures" / "m7_rock_tunnel_sweep.ss1").read_bytes())
+    context.emulator.run_single_frame()
+
+    from modules.pokedex import get_pokedex
+
+    owned = {s.name for s in get_pokedex().owned_species}
+    assert len(owned) >= 30
+    # Rock Tunnel corridor — reached via the Cut route (Saffron gated off).
+    assert {"Voltorb", "Machop", "Growlithe", "Onix"} <= owned

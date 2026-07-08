@@ -1,5 +1,19 @@
 # DEVLOG
 
+## 2026-07-08 — Rock Tunnel corridor swept: dex 30; long day hardening the navigation halt-modes
+
+Watching a live `--video` window (new: `run.py --video`, a Tk frame-buffer view; `scripts/run_supervised.sh` auto-resumes through the ~hourly silent emulator deaths) turned a string of "why is it stuck?" reports into a systematic halt-mode purge. Every stall was navigation, and each had a distinct root cause — all now fixed, verified from snapshots, committed:
+
+- **Planning CPU-spin (three sites)**: entry/dest component scans re-ran identical multi-second failed A* uncached. Fixes: successes cache permanently + failures cache with a 900s TTL; component scans cap at the 6 nearest reps; a per-plan failure memo; find-dest's-component-once instead of testing every candidate. `_pick_reachable_center` is graph-only (the live fallback burned two CPU-hours once).
+- **Per-step SIGALRM watchdog** (`_STEP_BUDGET_SECONDS=120`): any single controller step that wedges aborts with the exact `file:line` and defers, instead of freezing for hours. `StepTimeout` is a `BaseException` so the codebase's broad `except Exception` blocks can't swallow it. This is the general safety net — halts now self-report in ≤2 min.
+- **Saffron is script-gated, not collision-gated**: `calculate_path` can't see the gate guards, so the graph routed through Saffron; the bot walked into the Route 6 gatehouse and the guard dialogue froze it. `_story_gated_warp_dests` excludes Saffron-entering warps until `GOT_TEA`; `navigate_to` also drains an inherited open dialogue (B) on entry.
+- **The post-cut loop (the one the user kept seeing)**: the graph joins a cut tree's two sides ONLY by the cut edge, so after cutting, re-plan re-picked that edge, `perform_cut` no-op'd (tree gone, no yield), spin. Fix: step ACROSS the cleared tile into the far component, plus a direct-walk short-circuit in `_plan_via_graph` (dest walkable from start → empty route). Verified gate→cut→Route 10 in 5s.
+- **Ledge-pocket escape** + **same-map-first component ranking** (interiors have no global coords) + **clean ball-depletion deferral** + **trainer-gauntlet income patrols** (Route 9/11/Rock Tunnel/etc.) round it out.
+
+**Payoff:** the Rock Tunnel corridor swept unattended — **Voltorb, Machop, Growlithe, Onix** (4 species in 163s once unblocked), fixture `m7_rock_tunnel_sweep.ss1`, dex **30/124**. Both supervisor exits (crash-resume and clean-idle) exercised.
+
+**State:** Badges 3/8, dex 30/124, 36 tests green, all committed. **Next:** the loop is now robust enough for long unattended runs — remaining deferred species need Surf (Vermilion/Safari water), the bike (Cycling Road), or Celadon (`GOT_TEA` → Saffron opens). Badge 4 is Erika (Celadon, Grass gym). Renewable income (Vs Seeker) is the last M8 economy piece.
+
 ## 2026-07-08 — Cut-conditional nav edges (class fix #3) ✓ — westbound Kanto open, dex 26
 
 **The nav graph now carries conditional edges** (`cut_edges` per epoch section, 26 game-wide): for every cuttable tree (`EventScript_CutTree` objects), adjacent tiles in different components get a directed edge carrying the action (tree, stand tile, facing — computed at build time by mutual-A* comp assignment of the tree's neighbors). The planner BFS traverses them when Cut is usable; `navigate_to` executes the route's `{"cut": ...}` step via the shared `perform_cut` (which gyms' `_cut_tree` now delegates to). The cut is performed per traversal — trees respawn on map reload, so it's an action, not graph state. Verified live: Vermilion → Diglett's Cave → cut the Route 2 tree → Route 3 grass, planned in 0.36s, executed unattended.
