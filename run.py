@@ -4,7 +4,9 @@ Boots the persistent 'livingdex' profile (resumes from its last state, or plays
 the opening from a fresh save), then loops the deterministic planner. Writes
 JSONL telemetry and an auto-savestate checkpoint every 5 minutes of game time.
 
-No LLM is involved anywhere in this loop.
+LLM for reasoning, determinism for execution: the L2 layer (dexbot/llm_planner.py)
+is consulted at objective and failure boundaries when enabled; every consultation
+falls back to the deterministic default, so this loop also runs LLM-free.
 """
 
 import argparse
