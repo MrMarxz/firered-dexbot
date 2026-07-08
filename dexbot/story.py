@@ -563,7 +563,31 @@ def clear_rocket_hideout() -> Generator:
             raise SkillError("Lift Key not obtained on B4F")
 
     _log_event(skill="clear_rocket_hideout", status="phase", phase="ride_lift")
-    yield from navigate_to(MapFRLG.ROCKET_HIDEOUT_B1F, (24, 26))  # below the B1F lift doors
+    # B1F's lift corridor (south section) is entered via the B2F stairs at
+    # (23,12) → lands B1F (15,30). The corridor to the door front is guarded
+    # by a grunt whose TEMPLATE blocks pathing — walk it blind; the
+    # line-of-sight ambush fires and the battle listener handles the fight.
+    if get_player_avatar().map_group_and_number != MapFRLG.ROCKET_HIDEOUT_B1F.value or (
+        get_player_avatar().local_coordinates[1] < 26
+    ):
+        yield from navigate_to(MapFRLG.ROCKET_HIDEOUT_B2F, (23, 12))  # stairs → B1F south
+    for _ in range(40):
+        avatar = get_player_avatar()
+        if avatar.map_group_and_number != MapFRLG.ROCKET_HIDEOUT_B1F.value:
+            raise SkillError("Left B1F during the lift approach")
+        x, y = avatar.local_coordinates
+        if (x, y) == (24, 26):
+            break
+        direction = "Right" if x < 24 else ("Left" if x > 24 else ("Up" if y > 26 else "Down"))
+        context.emulator.reset_held_buttons()
+        context.emulator.hold_button(direction)
+        for _ in range(24):
+            yield
+        context.emulator.reset_held_buttons()
+        for _ in range(12):
+            yield
+    if get_player_avatar().local_coordinates != (24, 26):
+        raise SkillError("Could not reach the lift door front (grunt corridor)")
     yield from ensure_facing_direction("Up")
     context.emulator.press_button("A")  # use the Lift Key on the door
     yield
