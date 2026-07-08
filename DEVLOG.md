@@ -1,5 +1,13 @@
 # DEVLOG
 
+## 2026-07-08 (later) — Badge 4 + Vs Seeker + spin mazes solved; Rocket Hideout 90% done (precise handoff)
+
+**Landed:** Badge 4 (Erika — interior gym hedge cut, L40 floor), `get_tea` (Saffron routing open), `get_vs_seeker` (registered to Select; renewable Route 11 rematch income wired into restocks), Great Ball restocking, **FRLG spin-tile mazes as a class** (upstream patch models 'Spin *' arrows incl. slides across normal tiles; `walk_carefully` tap-and-settle executor; auto-used on spinner maps — Viridian Gym pre-solved), **progress watchdog** (30k-frame no-observable-change → abort + auto-saved stall state/screenshot in `fixtures/_stalls/` — pure gold, first trip diagnosed in 55s), ground **item-ball collection** (funding sweeps the current map's loot first). Tower correctly gated on the Silph Scope (wilds are unidentifiable GHOSTs — 38 Great Balls proved it).
+
+**In flight — `clear_rocket_hideout` (phases work through ride_lift):** poster ✓ stairs ✓ spin maze ✓ Lift Key ✓. **The remaining blocker:** B1F's east corridor (rows ~18, tiles (22,18)/(24,18)) has RIGHT-pushing conveyor arrows the tile model reads as 'Normal' (col 0, elev 3) — southbound is one-way blocked there, so planned Down-paths fail invisibly and walk_carefully re-path-loops (the progress watchdog now catches it: see `fixtures/_stalls/clear_rocket_hideout_182635.*`). Empirically: generous 30-frame holds push through Rightward fine (verified to (26,18)). **Next session:** dump the raw metatile behavior BYTE at those tiles, extend the upstream Spin translation (they're likely 'Walk Right'-class behaviors unmapped for FRLG), then the lift flow (unlock door at B1F (24,26) facing Up with the Lift Key, enter, panel at car (0,2) facing Left, pick the LAST floor entry, exit south onto B4F's Giovanni side, talk obj 1, Scope ball obj 2 @ (20,5)). The `ride_lift` phase checkpoint + dev_resume make each iteration ~2s.
+
+**State:** Badges **4**/8, dex **30/124**, 37 tests green. After the Scope: tower catches (Gastly/Cubone/Haunter) → Mr. Fuji → Poké Flute → Snorlax (+Routes 12/16) → Koga corridor southward.
+
 ## 2026-07-08 — Rock Tunnel corridor swept: dex 30; long day hardening the navigation halt-modes
 
 Watching a live `--video` window (new: `run.py --video`, a Tk frame-buffer view; `scripts/run_supervised.sh` auto-resumes through the ~hourly silent emulator deaths) turned a string of "why is it stuck?" reports into a systematic halt-mode purge. Every stall was navigation, and each had a distinct root cause — all now fixed, verified from snapshots, committed:
