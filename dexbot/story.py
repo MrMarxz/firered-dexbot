@@ -462,6 +462,134 @@ def get_vs_seeker() -> Generator:
     yield from register_key_item(seeker)
 
 
+def clear_rocket_hideout() -> Generator:
+    """Celadon Game Corner → Rocket Hideout → Giovanni → the SILPH SCOPE.
+    Unlocks Pokémon Tower catches and, downstream, the Poké Flute/Snorlax.
+
+    Layout facts (empirical): grunt obj 11 guards the poster at (11,1); the
+    hidden stairs open at (15,2) (metatile swap — cached collision is stale, so
+    the approach is blind). B4F's Lift Key section is stair-reachable; the
+    Giovanni section is ELEVATOR-ONLY (doors: B1F (24,25), car panel bg (0,2),
+    exit lands B4F (20-21,23)). Scope item ball appears at (20,5) after the fight."""
+    from modules.context import context
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG, PokemonCenter
+    from modules.memory import get_event_flag
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import (
+        ensure_facing_direction,
+        navigate_to as navigate_same_level,
+        wait_for_player_avatar_to_be_controllable,
+    )
+    from modules.player import get_player_avatar
+
+    from dexbot.catching import ensure_healthy
+    from dexbot.runner import _log_event
+
+    scope = get_item_by_name("Silph Scope")
+    if get_item_bag().quantity_of(scope) > 0:
+        return
+
+    def drain(button: str = "B") -> Generator:
+        yield from wait_for_no_script_to_run(button)
+        yield from wait_for_player_avatar_to_be_controllable(button)
+
+    yield from ensure_healthy(minimum_fraction=0.9, center=PokemonCenter.CeladonCity)
+
+    if not get_event_flag("OPENED_ROCKET_HIDEOUT"):
+        _log_event(skill="clear_rocket_hideout", status="phase", phase="poster")
+        yield from navigate_to(MapFRLG.CELADON_CITY_GAME_CORNER, (11, 3))  # below the grunt (obj 11 @ 11,2)
+        if get_event_flag("HIDE_GAME_CORNER_ROCKET") is False:
+            yield from talk_to_npc(11)  # fight; he flees and unhides the poster
+            yield from drain()
+        yield from navigate_same_level(MapFRLG.CELADON_CITY_GAME_CORNER, (11, 2))
+        yield from ensure_facing_direction("Up")
+        context.emulator.press_button("A")  # the poster switch
+        yield
+        yield from drain()
+
+    _log_event(skill="clear_rocket_hideout", status="phase", phase="descend")
+    # Stairs at (15,2) are a metatile swap — cached collision blocks pathing,
+    # so approach blind along row 2 (bounded, position-checked).
+    yield from navigate_same_level(MapFRLG.CELADON_CITY_GAME_CORNER, (11, 2))
+    for _ in range(8):
+        avatar = get_player_avatar()
+        if avatar.map_group_and_number == MapFRLG.ROCKET_HIDEOUT_B1F.value:
+            break
+        before = avatar.local_coordinates
+        context.emulator.reset_held_buttons()
+        context.emulator.hold_button("Right")
+        for _ in range(24):
+            yield
+        context.emulator.reset_held_buttons()
+        for _ in range(12):
+            yield
+        if get_player_avatar().local_coordinates == before and (
+            get_player_avatar().map_group_and_number != MapFRLG.ROCKET_HIDEOUT_B1F.value
+        ):
+            raise SkillError("Hidden stairs did not open (blocked walking right on row 2)")
+    if get_player_avatar().map_group_and_number != MapFRLG.ROCKET_HIDEOUT_B1F.value:
+        raise SkillError("Did not reach Rocket Hideout B1F")
+
+    if get_item_bag().quantity_of(get_item_by_name("Lift Key")) == 0:
+        _log_event(skill="clear_rocket_hideout", status="phase", phase="lift_key")
+        yield from navigate_to(MapFRLG.ROCKET_HIDEOUT_B4F, (3, 3))  # Grunt1/Lift Key corner
+        yield from talk_to_npc(3)  # Grunt1 — fight; drops the Lift Key story
+        yield from drain()
+        # The key is an item ball right there (obj 4 @ 3,2) in some states —
+        # grab it if present.
+        yield from navigate_same_level(MapFRLG.ROCKET_HIDEOUT_B4F, (3, 3))
+        yield from ensure_facing_direction("Up")
+        context.emulator.press_button("A")
+        yield
+        yield from drain()
+        if get_item_bag().quantity_of(get_item_by_name("Lift Key")) == 0:
+            raise SkillError("Lift Key not obtained on B4F")
+
+    _log_event(skill="clear_rocket_hideout", status="phase", phase="ride_lift")
+    yield from navigate_to(MapFRLG.ROCKET_HIDEOUT_B1F, (24, 25))  # lift doors, B1F side
+    yield from navigate_same_level(MapFRLG.ROCKET_HIDEOUT_ELEVATOR, (1, 2))
+    yield from ensure_facing_direction("Left")  # panel bg @ (0,2)
+    context.emulator.press_button("A")
+    yield
+    # Floor menu: B1F / B2F / B4F — pick the last entry.
+    for _ in range(40):
+        yield
+    context.emulator.press_button("Down")
+    yield
+    context.emulator.press_button("Down")
+    yield
+    context.emulator.press_button("A")
+    for _ in range(120):  # ride animation
+        yield
+    yield from drain()
+    # Walk out of the car (south) onto B4F's Giovanni side.
+    for _ in range(6):
+        if get_player_avatar().map_group_and_number == MapFRLG.ROCKET_HIDEOUT_B4F.value:
+            break
+        context.emulator.reset_held_buttons()
+        context.emulator.hold_button("Down")
+        for _ in range(24):
+            yield
+        context.emulator.reset_held_buttons()
+    if get_player_avatar().map_group_and_number != MapFRLG.ROCKET_HIDEOUT_B4F.value:
+        raise SkillError("Elevator did not deliver us to B4F")
+
+    _log_event(skill="clear_rocket_hideout", status="phase", phase="giovanni")
+    yield from navigate_same_level(MapFRLG.ROCKET_HIDEOUT_B4F, (19, 5))  # in front of Giovanni (obj 1 @ 19,4)
+    yield from talk_to_npc(1)
+    yield from drain()
+    # The Silph Scope item ball appears beside his desk (obj 2 @ 20,5).
+    yield from navigate_same_level(MapFRLG.ROCKET_HIDEOUT_B4F, (20, 6))
+    yield from ensure_facing_direction("Up")
+    context.emulator.press_button("A")
+    yield
+    yield from drain()
+    if get_item_bag().quantity_of(scope) == 0:
+        raise SkillError("Silph Scope not obtained after Giovanni")
+
+
 STORY_SKILLS = {
     "clear_mt_moon": clear_mt_moon,
     "cross_nugget_bridge": cross_nugget_bridge,
@@ -469,6 +597,7 @@ STORY_SKILLS = {
     "get_hm_cut": get_hm_cut,
     "get_tea": get_tea,
     "get_vs_seeker": get_vs_seeker,
+    "clear_rocket_hideout": clear_rocket_hideout,
 }
 
 
