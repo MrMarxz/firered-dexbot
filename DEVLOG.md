@@ -1,5 +1,43 @@
 # DEVLOG
 
+## 2026-07-08 (night) — Rocket Hideout CLEARED: Silph Scope obtained ✓ (the answer was B2F, not B1F)
+
+**`clear_rocket_hideout` completes end-to-end from the ride_lift checkpoint; 37 tests green.**
+The whole B1F-south obsession was a wrong turn — the elevator is boarded on **B2F**.
+
+**How the knot actually unties** (empirical probe + pret map scripts, don't re-derive):
+- The hideout has THREE script-conditional metatile barriers/blockers, invisible to both map
+  data and probing-walls-as-walls: **B1F (20-21,19-21)** opens on defeating TRAINER_GRUNT_12
+  (the "phantom column" — it IS the RBY-style route, gated); **B4F (17-18,12-13)** opens after
+  beating BOTH door guards (objects 6 @ (16,14) and 5 @ (19,14) — sight range 0, talk to
+  fight); and the **Moon Stone item ball at B2F (2,5)** body-blocks the west corridor (an
+  A-press pickup, then the tile is free — plus we get a Moon Stone).
+- Behind that ball, B2F's spin maze connects the north landing (21,2) to the **south-east
+  room with the elevator doors (28-29,16)**. `scripts/probe_maze.py` (committed — savestate-
+  per-position BFS with battle resolution + A-press obstruction clearing) found the 47-press
+  path; it replays deterministically with tap-and-settle waypoint asserts.
+- Elevator: doors need the Lift Key A-press (sets FLAG_CAN_USE_ROCKET_HIDEOUT_LIFT); car
+  panel is a **bg event (0,2) faced Up from (0,3)** (not (1,2)/Left as previously guessed);
+  the floor menu **defaults to the current floor** → B4F is one Down from B2F, and input
+  before ~120 frames is swallowed while the prompt prints (the skill retries the whole panel
+  interaction if the exit lands on the wrong floor). Exit = South Arrow Warp (2,5), dynamic
+  destination → B4F (20,23), Giovanni's side. Guards → barrier → blind walk up x=17 →
+  Giovanni (19,5) → Scope ball at (20,5), grabbed **facing Right from (19,5)** (row 6 is wall).
+- Dead ends now PROVEN dead (probe, exhaustive): B2F north↔south only via the ball corridor;
+  B1F north stops at row 18 (barrier); B4F stair-side stops at x≤13. The earlier "B2F maze
+  can't reach (23,12)" result was correct but irrelevant — that pocket is entered from the
+  SE room, and the SE room from the maze.
+
+**Class lessons banked:** (1) "map data open + game blocked" = a script-conditional metatile
+(on_load `call_if_not_defeated` → `setmetatile`) — check pret's map scripts.inc before
+modeling; (2) item balls are solid objects — a "wall" can be inventory; (3) probe BFS keyed
+on position discards flag-progress (talk-fights that don't move you) — probe found the maze,
+pret found the barriers, the combination closed it.
+
+**State:** Badges 4/8, dex 30/124, **Silph Scope in bag**, 37 tests green. **Next:** tower
+catches (Gastly/Cubone/Haunter annotations already gated on HIDE_SILPH_SCOPE) → Mr. Fuji →
+Poké Flute → Snorlax + Routes 12/16 → Koga corridor.
+
 ## 2026-07-08 (later) — Badge 4 + Vs Seeker + spin mazes solved; Rocket Hideout 90% done (precise handoff)
 
 **Landed:** Badge 4 (Erika — interior gym hedge cut, L40 floor), `get_tea` (Saffron routing open), `get_vs_seeker` (registered to Select; renewable Route 11 rematch income wired into restocks), Great Ball restocking, **FRLG spin-tile mazes as a class** (upstream patch models 'Spin *' arrows incl. slides across normal tiles; `walk_carefully` tap-and-settle executor; auto-used on spinner maps — Viridian Gym pre-solved), **progress watchdog** (30k-frame no-observable-change → abort + auto-saved stall state/screenshot in `fixtures/_stalls/` — pure gold, first trip diagnosed in 55s), ground **item-ball collection** (funding sweeps the current map's loot first). Tower correctly gated on the Silph Scope (wilds are unidentifiable GHOSTs — 38 Great Balls proved it).

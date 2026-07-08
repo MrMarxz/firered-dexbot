@@ -11,6 +11,17 @@
   badge-count mismatch it auto-rebuilds in-process (~10s). Non-badge geometry
   changes (a boulder pushed, a cut tree — trees respawn so that's fine) are
   otherwise not re-detected; rebuild manually if a route looks stale.
+- **Script-conditional metatile barriers are modeled as permanent walls.**
+  Rocket Hideout B1F's barrier (20-21,19-21, opens on TRAINER_GRUNT_12) is
+  hard-excluded via `_is_optional_blocker`, and B4F's (17-18,12-13) plus the
+  spin maze are bypassed with a probe-derived hardcoded route in
+  `clear_rocket_hideout` — correct for our one pass through, but the graph
+  will never route through such barriers even when they're open. If a future
+  area needs one post-open (Silph Co has similar gadgets), model the flag.
+  Discovery protocol when "map data open, game blocked": read pret's
+  `data/maps/<Map>/scripts.inc` on_load handlers; probe with
+  `scripts/probe_maze.py` (fights ambushes, A-presses obstructions — but keys
+  states on position, so flag-only progress like talk-fights needs pret).
 - **Nav-graph walk edges are rep-to-rep**: a directed walk edge A→B is proven
   between one representative tile pair; if a component is internally mutual
   but the one-way passage only works from part of it (shouldn't happen for
