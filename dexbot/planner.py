@@ -161,12 +161,56 @@ def restock_pokeballs_if_low(minimum: int = 10) -> None:
     from dexbot.openings import buy_pokeballs
 
     balls = get_item_bag().quantity_of(get_item_by_name("Poké Ball"))
-    affordable = get_player().money // 200
     needed = minimum - balls
-    if needed <= 0 or affordable < 1:
+    if needed <= 0:
+        return
+    if get_player().money < needed * 200:
+        _fund_by_selling(needed * 200 + 1000)
+    affordable = get_player().money // 200
+    if affordable < 1:
         return
     quantity = min(needed + 5, affordable, 40)
     run_skill(buy_pokeballs(quantity, _nearest_mart()), f"restock_{quantity}_pokeballs", timeout_frames=120_000)
+
+
+# Sold when broke, in order. Collectibles are pure money; non-HM TMs are dead
+# weight until a teach-TM skill exists (and are re-buyable in Celadon); Super
+# Potions above a reserve of 4 go last.
+_SELLABLE = ("Nugget", "Pearl", "Big Pearl", "Stardust", "Star Piece", "Tiny Mushroom", "Big Mushroom")
+
+
+def _fund_by_selling(target_money: int) -> None:
+    """Best-effort: sell junk-tier bag items at the nearest mart until we have
+    `target_money`. ponytail: trainer-rematch income (Vs Seeker) is the real
+    M8 economy engine; this liquidation keeps catch trips funded until then."""
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.player import get_player
+
+    from dexbot.openings import sell_items
+
+    to_sell: list[tuple[str, int]] = []
+    projected = get_player().money
+    bag = get_item_bag()
+
+    def plan_sale(name: str, quantity: int) -> None:
+        nonlocal projected
+        item = get_item_by_name(name)
+        if quantity > 0 and projected < target_money:
+            to_sell.append((name, quantity))
+            projected += (item.price // 2) * quantity
+
+    for name in _SELLABLE:
+        plan_sale(name, bag.quantity_of(get_item_by_name(name)))
+    if projected < target_money:
+        for slot in bag.tms_hms:
+            if not slot.item.name.startswith("HM"):
+                plan_sale(slot.item.name, slot.quantity)
+    if projected < target_money:
+        reserve = 4
+        surplus = bag.quantity_of(get_item_by_name("Super Potion")) - reserve
+        plan_sale("Super Potion", max(0, surplus))
+    if to_sell:
+        run_skill(sell_items(to_sell, _nearest_mart()), f"fund_sell_{len(to_sell)}_items", timeout_frames=120_000)
 
 
 def _nearest_mart():
