@@ -563,7 +563,24 @@ def clear_rocket_hideout() -> Generator:
             raise SkillError("Lift Key not obtained on B4F")
 
     _log_event(skill="clear_rocket_hideout", status="phase", phase="ride_lift")
-    yield from navigate_to(MapFRLG.ROCKET_HIDEOUT_B1F, (24, 25))  # lift doors, B1F side
+    yield from navigate_to(MapFRLG.ROCKET_HIDEOUT_B1F, (24, 26))  # below the B1F lift doors
+    yield from ensure_facing_direction("Up")
+    context.emulator.press_button("A")  # use the Lift Key on the door
+    yield
+    yield from drain()
+    # Step into the car (the door tile is a warp once unlocked).
+    for _ in range(6):
+        if get_player_avatar().map_group_and_number == MapFRLG.ROCKET_HIDEOUT_ELEVATOR.value:
+            break
+        context.emulator.reset_held_buttons()
+        context.emulator.hold_button("Up")
+        for _ in range(24):
+            yield
+        context.emulator.reset_held_buttons()
+        for _ in range(12):
+            yield
+    if get_player_avatar().map_group_and_number != MapFRLG.ROCKET_HIDEOUT_ELEVATOR.value:
+        raise SkillError("Could not enter the lift (door still locked?)")
     yield from navigate_same_level(MapFRLG.ROCKET_HIDEOUT_ELEVATOR, (1, 2))
     yield from ensure_facing_direction("Left")  # panel bg @ (0,2)
     context.emulator.press_button("A")
