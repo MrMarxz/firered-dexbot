@@ -176,7 +176,7 @@ def restock_pokeballs_if_low(minimum: int = 10) -> None:
 # Sold when broke, in order. Collectibles are pure money; non-HM TMs are dead
 # weight until a teach-TM skill exists (and are re-buyable in Celadon); Super
 # Potions above a reserve of 4 go last.
-_SELLABLE = ("Nugget", "Pearl", "Big Pearl", "Stardust", "Star Piece", "Tiny Mushroom", "Big Mushroom")
+_SELLABLE = ("Nugget", "Pearl", "Big Pearl", "Stardust", "Star Piece", "Tinymushroom", "Big Mushroom")
 
 
 def _fund_by_selling(target_money: int) -> None:
