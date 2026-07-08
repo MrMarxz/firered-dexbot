@@ -123,20 +123,14 @@ def make_catch_decider(target_species: str):
     return on_battle_started
 
 
-def _try_level(center):
-    from dexbot.navigation import _map_level
-
-    try:
-        _map_level(center.value[0].value)
-        return True
-    except Exception:
-        return False
-
 
 def _pick_reachable_center():
-    """The closest *reachable* known Pokémon Center (route-planned — one-way
-    ledges make story-order proximity wrong, e.g. Route 4 east → Cerulean only)."""
-    from dexbot.navigation import _plan_warp_route
+    """The fewest-warps *reachable* Pokémon Center, GRAPH-ONLY planning.
+
+    Never fall back to the live search here: an unreachable candidate answers
+    None in milliseconds via the graph, but burns MINUTES of uncached failed
+    A* in the live fallback (this spun a run at 100% CPU for two hours)."""
+    from dexbot.navigation import _plan_via_graph, _walkable
     from modules.map_data import PokemonCenter
     from modules.player import get_player_avatar
 
@@ -147,26 +141,22 @@ def _pick_reachable_center():
         PokemonCenter.PewterCity,
         PokemonCenter.Route4,
         PokemonCenter.CeruleanCity,
+        PokemonCenter.VermilionCity,
+        PokemonCenter.Route10,
+        PokemonCenter.LavenderTown,
+        PokemonCenter.CeladonCity,
     ]
-    # Order candidates by straight-line proximity to the current map so the
-    # first reachable one is almost always the nearest — and return early,
-    # avoiding a full warp-graph BFS to every center (each is expensive).
-    from dexbot.navigation import _map_level
-
-    try:
-        here_level = _map_level(position[0])
-    except Exception:
-        here_level = None
-    candidates.sort(key=lambda c: abs((_map_level(c.value[0].value) if _try_level(c) else 0) - (here_level or 0)))
     best = None
     for candidate in candidates:
-        try:
-            route = _plan_warp_route(position, (candidate.value[0].value, candidate.value[1]))
-        except Exception:
+        route = _plan_via_graph(
+            position, (candidate.value[0].value, candidate.value[1]), frozenset(), _walkable
+        )
+        if route is None:
             continue
-        best = (candidate, len(route))
-        if len(route) <= 1:  # already at/adjacent to this center — good enough
-            break
+        if best is None or len(route) < best[1]:
+            best = (candidate, len(route))
+            if len(route) <= 1:  # already at/adjacent to this center
+                break
     if best is None:
         raise SkillError("No reachable Pokémon Center from here")
     return best[0]

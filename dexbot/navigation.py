@@ -103,7 +103,12 @@ def _walkable(source: tuple[tuple[int, int], tuple[int, int]], dest: tuple[tuple
         return False
 
 
-_WALKABLE_BUDGET = 2000  # max A* checks per plan; bounds worst-case planning time
+# Max A* checks per LIVE-fallback plan. Kept tight: since failed checks are
+# never cached (transient NPC walls), each can cost ~200-500ms of pure CPU on
+# level 180 — 2000 of them froze a run for two hours with zero frames advanced.
+# The graph answers almost everything now; the fallback only needs enough for
+# same-level direct walks and stale-graph gaps.
+_WALKABLE_BUDGET = 250
 
 
 def _global_coords(map_key: tuple[int, int], local: tuple[int, int]) -> tuple[int, int] | None:
