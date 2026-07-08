@@ -167,7 +167,8 @@ def restock_pokeballs_if_low(minimum: int = 15) -> None:
     if get_player().money < needed * 200:
         _fund_by_selling(needed * 200 + 1000)
     if get_player().money < needed * 200:
-        _earn_by_patrol()
+        if not _earn_by_vs_seeker():
+            _earn_by_patrol()
         _fund_by_selling(needed * 200 + 1000)
     affordable = get_player().money // 200
     if affordable < 1:
@@ -182,6 +183,42 @@ def restock_pokeballs_if_low(minimum: int = 15) -> None:
 # Route 9, Route 11, Rock Tunnel 1F/B1F (trainer-dense), Route 10, Route 6.
 _PATROL_ROUTES = [(3, 27), (3, 29), (1, 81), (1, 82), (3, 28), (3, 24)]
 _patrolled: set = set()
+
+
+def _earn_by_vs_seeker() -> bool:
+    """Renewable income: on Route 11 (dense, already-beaten trainer line), use
+    the registered Vs Seeker (Select) to re-arm rematches, then walk the line —
+    line-of-sight rematch fights pay out every time. Returns False if the
+    Seeker isn't owned yet (caller falls back to one-shot patrols)."""
+    from modules.context import context
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.player import get_player
+
+    from dexbot.catching import _encounter_tiles, ensure_healthy, fight_all_battles
+    from dexbot.navigation import navigate_to
+    from dexbot.runner import SkillError
+
+    if get_item_bag().quantity_of(get_item_by_name("VS Seeker")) == 0:
+        return False
+    route_key = (3, 29)  # Route 11
+    tiles = _encounter_tiles(route_key)
+    money_before = get_player().money
+
+    def seeker_sweep():
+        yield from ensure_healthy(minimum_fraction=0.9)
+        yield from navigate_to(route_key, tiles[0])
+        context.emulator.press_button("Select")  # use the registered Seeker
+        for _ in range(600):  # scan animation + '!!' markers
+            yield
+        yield from navigate_to(route_key, tiles[-1])
+        yield from navigate_to(route_key, tiles[0])
+
+    try:
+        run_skill(seeker_sweep(), "earn_vs_seeker", timeout_frames=600_000, on_battle_started=fight_all_battles)
+    except SkillError as e:
+        print(f"[planner] vs-seeker sweep failed: {e}")
+    print(f"[planner] vs-seeker income: {get_player().money - money_before}")
+    return True
 
 
 def _earn_by_patrol() -> None:

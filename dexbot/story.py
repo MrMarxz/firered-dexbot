@@ -441,12 +441,34 @@ def get_tea() -> Generator:
         raise SkillError("Tea woman did not hand over the tea (GOT_TEA unset)")
 
 
+def get_vs_seeker() -> Generator:
+    """Collect the Vs Seeker (Vermilion Pokémon Center, obj 5) and register it
+    to Select. Trainer rematches are the renewable income engine (M8)."""
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.items import register_key_item
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+
+    seeker = get_item_by_name("VS Seeker")
+    if get_item_bag().quantity_of(seeker) == 0:
+        yield from navigate_to(MapFRLG.VERMILION_CITY_POKEMON_CENTER_1F, (6, 5))  # below the woman (obj 5 @ 6,4)
+        yield from talk_to_npc(5)
+        yield from wait_for_no_script_to_run("B")
+        yield from wait_for_player_avatar_to_be_controllable("B")
+        if get_item_bag().quantity_of(seeker) == 0:
+            raise SkillError("Vs Seeker woman did not hand it over")
+    yield from register_key_item(seeker)
+
+
 STORY_SKILLS = {
     "clear_mt_moon": clear_mt_moon,
     "cross_nugget_bridge": cross_nugget_bridge,
     "visit_bill": visit_bill,
     "get_hm_cut": get_hm_cut,
     "get_tea": get_tea,
+    "get_vs_seeker": get_vs_seeker,
 }
 
 
