@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Supervisor for the living-dex run: the emulator occasionally dies silently
+# (segfault-class, roughly hourly); run.py resumes from current_state.ss1
+# losing at most 5 game-minutes. Restart on crash; stop on clean exit
+# (planner idle) or after too many rapid failures.
+cd "$(dirname "$0")/.."
+FAILS=0
+while true; do
+    START=$(date +%s)
+    .venv/bin/python -u run.py --goal living-dex
+    CODE=$?
+    if [ $CODE -eq 0 ]; then
+        echo "[supervisor] clean exit (planner idle) — done."
+        break
+    fi
+    ELAPSED=$(( $(date +%s) - START ))
+    if [ $ELAPSED -lt 120 ]; then
+        FAILS=$((FAILS + 1))
+    else
+        FAILS=0
+    fi
+    if [ $FAILS -ge 5 ]; then
+        echo "[supervisor] 5 rapid failures — giving up (real bug, not emulator flake)."
+        exit 1
+    fi
+    echo "[supervisor] run died (exit $CODE) after ${ELAPSED}s — resuming from checkpoint."
+    sleep 2
+done

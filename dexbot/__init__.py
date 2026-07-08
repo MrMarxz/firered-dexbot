@@ -5,9 +5,19 @@ preloads the vendored libmgba shared library (no root install needed).
 """
 
 import ctypes
+import faulthandler
 import hashlib
+import signal
 import sys
 from pathlib import Path
+
+# `kill -USR1 <pid>` dumps all Python stacks to stderr — the only way to see
+# where a wedged headless run is spinning (yama ptrace_scope blocks py-spy).
+if hasattr(signal, "SIGUSR1"):
+    try:
+        faulthandler.register(signal.SIGUSR1)
+    except (ValueError, RuntimeError):
+        pass  # non-main thread or unsupported platform
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 POKEBOT_ROOT = PROJECT_ROOT / "pokebot-gen3"
