@@ -21,11 +21,13 @@ class SkillTimeout(SkillError):
     pass
 
 
-class StepTimeout(SkillError):
+class StepTimeout(BaseException):
     """A single controller step (one generator advance) exceeded its wall-time
-    budget — a planning or menu loop wedged. Raised via SIGALRM so even a
-    CPU-bound spin inside one step gets interrupted and reported instead of
-    freezing the run for hours."""
+    budget — a planning or menu loop wedged. Raised via SIGALRM. Deliberately
+    a BaseException: the wedged code paths sit inside broad `except Exception`
+    blocks (e.g. _walkable treats any failure as 'not walkable'), which would
+    swallow a normal exception and keep spinning. run_skill converts it back
+    to a SkillTimeout at the step boundary."""
 
 
 _STEP_BUDGET_SECONDS = 120
@@ -181,6 +183,10 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
             try:
                 if len(context.controller_stack) > 0:
                     _with_step_watchdog(context.controller_stack[-1])
+            except StepTimeout as wedge:
+                # Convert to the normal skill-failure path here, where nothing
+                # can swallow it — the deferral/retry machinery takes over.
+                raise SkillTimeout(str(wedge)) from None
             except (StopIteration, GeneratorExit):
                 # Upstream semantics: pop and STILL advance the frame below.
                 # Re-processing the same frame would double-run the listeners,
