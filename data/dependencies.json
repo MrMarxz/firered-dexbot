@@ -99,16 +99,28 @@
    "requires": []
   },
   "1,90": {
-   "requires": []
+   "requires": [
+    "HIDE_SILPH_SCOPE"
+   ],
+   "_note": "tower wilds are unidentifiable GHOSTs without the Silph Scope — balls cannot connect (38 Great Balls lost learning this)"
   },
   "1,91": {
-   "requires": []
+   "requires": [
+    "HIDE_SILPH_SCOPE"
+   ],
+   "_note": "tower wilds are unidentifiable GHOSTs without the Silph Scope — balls cannot connect (38 Great Balls lost learning this)"
   },
   "1,92": {
-   "requires": []
+   "requires": [
+    "HIDE_SILPH_SCOPE"
+   ],
+   "_note": "tower wilds are unidentifiable GHOSTs without the Silph Scope — balls cannot connect (38 Great Balls lost learning this)"
   },
   "1,93": {
-   "requires": []
+   "requires": [
+    "HIDE_SILPH_SCOPE"
+   ],
+   "_note": "tower wilds are unidentifiable GHOSTs without the Silph Scope — balls cannot connect (38 Great Balls lost learning this)"
   }
  },
  "objectives": {
