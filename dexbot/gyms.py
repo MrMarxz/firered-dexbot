@@ -279,8 +279,16 @@ def beat_erika(min_level: int = 40) -> Generator:
 
             yield from buy_items([("Super Potion", min(8, affordable))], _nearest_mart())
 
+    # Erika's garden is sealed by an interior cut hedge at (6,8) — a warp-less
+    # pocket the nav graph cannot model, so enter the gym, cut, then walk.
+    _log_event(skill="beat_erika", status="phase", phase="enter_gym")
+    yield from navigate_to(MapFRLG.CELADON_CITY_GYM, (6, 9))  # below the hedge
+    yield from _cut_tree(MapFRLG.CELADON_CITY_GYM, (6, 8), (6, 9), "Up")
+
+    from modules.modes.util.walking import navigate_to as navigate_same_level
+
     _log_event(skill="beat_erika", status="phase", phase="fight")
-    yield from navigate_to(MapFRLG.CELADON_CITY_GYM, (6, 5))  # in front of Erika (obj 7 @ 6,4)
+    yield from navigate_same_level(MapFRLG.CELADON_CITY_GYM, (6, 5))  # in front of Erika (obj 7 @ 6,4)
     yield from talk_to_npc(7)
     yield from wait_for_no_script_to_run("B")
     yield from wait_for_player_avatar_to_be_controllable("B")
