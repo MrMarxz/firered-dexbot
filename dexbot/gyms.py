@@ -80,30 +80,9 @@ def beat_misty(min_level: int = 29) -> Generator:
 
 
 def _cut_tree(map_enum, tree_tile: tuple[int, int], stand_tile: tuple[int, int], facing: str) -> Generator:
-    """Cut the tree at `tree_tile` from `stand_tile` facing `facing` (needs a
-    party member with Cut + Cascade Badge). FRLG flow: face tree → A → yes."""
-    from modules.context import context
-    from modules.map import get_map_objects
-    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_for_yes_no_question
-    from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_controllable
+    from dexbot.navigation import perform_cut
 
-    map_key = map_enum.value if hasattr(map_enum, "value") else map_enum
-    if not any(
-        o.map_group_and_number == map_key and o.current_coords == tree_tile and "isPlayer" not in o.flags
-        for o in get_map_objects()
-    ):
-        # Tree object not live-loaded here: either we're far away (it will be
-        # checked again after walking) or it's already cut. Walk first.
-        pass
-    yield from navigate_to(map_enum, stand_tile)
-    if not any(o.current_coords == tree_tile and "isPlayer" not in o.flags for o in get_map_objects()):
-        return  # already cut (object gone until map reload)
-    yield from ensure_facing_direction(facing)
-    context.emulator.press_button("A")
-    yield
-    yield from wait_for_yes_no_question("Yes")
-    yield from wait_for_no_script_to_run("B")
-    yield from wait_for_player_avatar_to_be_controllable("B")
+    yield from perform_cut(map_enum, tree_tile, stand_tile, facing)
 
 
 def _press_trash_can(can_id: int) -> Generator:

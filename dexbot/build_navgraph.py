@@ -55,16 +55,18 @@ def build(context, save_every_level: bool = True) -> dict:
             portals.setdefault(level, set()).add((src_map, src_coords))
             portals.setdefault(_map_level(dst_map), set()).add((dst_map, dst_coords))
 
-    # Resume this epoch's prior partial run; other epochs' sections are untouched.
+    # Resume this epoch's prior partial run; other epochs' sections are
+    # untouched. Sections from before the cut-edge format are rebuilt.
     epoch = sum(1 for n in range(1, 9) if get_event_flag(f"BADGE{n:02d}_GET"))
-    section = {"components": {}, "walk_edges": [], "levels_done": []}
+    section = {"components": {}, "walk_edges": [], "cut_edges": [], "levels_done": []}
     if GRAPH_PATH.exists():
         prior = json.loads(GRAPH_PATH.read_text()).get("epochs", {}).get(str(epoch))
-        if prior and "levels_done" in prior:
+        if prior and "levels_done" in prior and "cut_edges" in prior:
             section = prior
 
     components: dict[str, int] = section["components"]
     walk_edges = {tuple(e) for e in section["walk_edges"]}
+    cut_edges: list = section["cut_edges"]
     levels_done = set(section["levels_done"])
     next_id = max(components.values(), default=-1) + 1
 
@@ -98,22 +100,69 @@ def build(context, save_every_level: bool = True) -> dict:
             for rep_b, cb in reps:
                 if ca != cb and _walkable(rep_a, rep_b):
                     walk_edges.add((ca, cb))
+        cut_edges.extend(_cut_edges_for_level(level, reps, _distance, _walkable))
         levels_done.add(level)
         if save_every_level:
-            _write(components, walk_edges, levels_done, epoch)
+            _write(components, walk_edges, cut_edges, levels_done, epoch)
             print(f"  level {level}: {len(tiles)} portals, {len(reps)} components", flush=True)
 
-    _write(components, walk_edges, levels_done, epoch)
-    return {"components": components, "walk_edges": walk_edges}
+    _write(components, walk_edges, cut_edges, levels_done, epoch)
+    return {"components": components, "walk_edges": walk_edges, "cut_edges": cut_edges}
 
 
-def _write(components, walk_edges, levels_done, epoch: int) -> None:
+_FACING = {(0, -1): "Up", (0, 1): "Down", (-1, 0): "Left", (1, 0): "Right"}
+
+
+def _cut_edges_for_level(level, reps, _distance, _walkable) -> list:
+    """Conditional edges across this level's cuttable trees: for each pair of
+    tree-adjacent tiles in DIFFERENT components, an edge traversable by cutting
+    (trees respawn on map reload, so the cut is an action per traversal, not
+    state). Edge: [from_comp, to_comp, tree_map, tree_xy, stand_xy, facing]."""
+    from modules.map import get_map_data
+    from modules.map_path import _get_all_maps_metadata
+
+    result = []
+    for map_key, pm in _get_all_maps_metadata().items():
+        if pm.level != level:
+            continue
+        try:
+            objects = get_map_data(map_key, (0, 0)).objects
+        except Exception:
+            continue
+        for obj in objects:
+            if str(getattr(obj, "script_symbol", "")) != "EventScript_CutTree":
+                continue
+            tree = tuple(obj.local_coordinates)
+            # Which component does each adjacent tile belong to (mutual test
+            # against this level's reps, nearest first)?
+            sides = []  # (stand_tile, facing, comp)
+            for (dx, dy), facing in ((d, f) for d, f in _FACING.items()):
+                stand = (tree[0] + dx * -1, tree[1] + dy * -1)  # tile the delta points FROM
+                if stand[0] < 0 or stand[1] < 0:
+                    continue
+                pos = (map_key, stand)
+                comp = None
+                for rep_tile, cid in sorted(reps, key=lambda r: _distance(pos, r[0])):
+                    if _walkable(pos, rep_tile) and _walkable(rep_tile, pos):
+                        comp = cid
+                        break
+                if comp is not None:
+                    sides.append((stand, facing, comp))
+            for stand_a, facing_a, ca in sides:
+                for _stand_b, _facing_b, cb in sides:
+                    if ca != cb:
+                        result.append([ca, cb, list(map_key), list(tree), list(stand_a), facing_a])
+    return result
+
+
+def _write(components, walk_edges, cut_edges, levels_done, epoch: int) -> None:
     epochs = {}
     if GRAPH_PATH.exists():
         epochs = json.loads(GRAPH_PATH.read_text()).get("epochs", {})
     epochs[str(epoch)] = {
         "components": components,
         "walk_edges": sorted(walk_edges),
+        "cut_edges": cut_edges,
         "levels_done": sorted(levels_done),
     }
     GRAPH_PATH.write_text(json.dumps({"epochs": epochs}) + "\n")
@@ -133,7 +182,8 @@ def main() -> None:
     graph = build(context)
     n_components = len(set(graph["components"].values()))
     print(f"nav graph: {len(graph['components'])} portal tiles, {n_components} components, "
-          f"{len(graph['walk_edges'])} one-way walk edges in {time.time() - t0:.0f}s -> {GRAPH_PATH}")
+          f"{len(graph['walk_edges'])} one-way walk edges, {len(graph['cut_edges'])} cut edges "
+          f"in {time.time() - t0:.0f}s -> {GRAPH_PATH}")
 
 
 if __name__ == "__main__":

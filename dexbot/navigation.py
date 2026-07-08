@@ -116,6 +116,38 @@ def _global_coords(map_key: tuple[int, int], local: tuple[int, int]) -> tuple[in
     return (local[0] + pm.offset[0], local[1] + pm.offset[1])
 
 
+def perform_cut(map_key, tree_tile: tuple[int, int], stand_tile: tuple[int, int], facing: str) -> Generator:
+    """Cut the tree at `tree_tile` from `stand_tile` facing `facing` (needs a
+    party member with Cut + Cascade Badge). FRLG flow: face tree → A → yes.
+    No-op if the tree object is already gone (cut earlier this map load)."""
+    from modules.context import context
+    from modules.map import get_map_objects
+    from modules.map_data import MapFRLG
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_for_yes_no_question
+    from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_controllable
+
+    if isinstance(map_key, MapFRLG):
+        map_key = map_key.value
+    yield from navigate_to(map_key, tuple(stand_tile))
+    if not any(
+        o.current_coords == tuple(tree_tile) and "isPlayer" not in o.flags for o in get_map_objects()
+    ):
+        return  # already cut (object gone until map reload)
+    yield from ensure_facing_direction(facing)
+    context.emulator.press_button("A")
+    yield
+    yield from wait_for_yes_no_question("Yes")
+    yield from wait_for_no_script_to_run("B")
+    yield from wait_for_player_avatar_to_be_controllable("B")
+
+
+def _cut_available() -> bool:
+    from modules.memory import get_event_flag
+    from modules.pokemon_party import get_party
+
+    return get_event_flag("BADGE02_GET") and get_party().has_pokemon_with_move("Cut")
+
+
 _nav_graphs: dict[int, dict | None] = {}  # epoch -> parsed graph | None
 _rebuild_attempted: set[int] = set()
 
@@ -152,7 +184,12 @@ def _load_nav_graph() -> dict | None:
             walk: dict[int, list] = {}
             for a, b in raw["walk_edges"]:
                 walk.setdefault(a, []).append(b)
-            return {"comp": comp, "walk": walk}
+            cut: dict[int, list] = {}
+            for a, b, tree_map, tree, stand, facing in raw["cut_edges"]:
+                cut.setdefault(a, []).append(
+                    (b, {"cut": True, "map": tuple(tree_map), "tree": tuple(tree), "stand": tuple(stand), "facing": facing})
+                )
+            return {"comp": comp, "walk": walk, "cut": cut}
         except Exception:
             return None
 
@@ -253,7 +290,10 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
         tiles = sorted(dest_reps[cid], key=distance_to_dest)
         dest_reps[cid] = list(dict.fromkeys([tiles[0], tiles[len(tiles) // 2], tiles[-1]]))
 
-    # 0-1 BFS: walk edges are free, warp edges cost one leg.
+    # 0-1 BFS: walk edges are free, warp edges cost one leg. Cut edges (cost 1)
+    # are traversable when a party member can use Cut — the route then carries
+    # an action step ({"cut": ...}) the executor performs at that point.
+    cut_ok = _cut_available()
     queue = deque([(entry, [])])
     seen = {entry}
     while queue:
@@ -268,6 +308,11 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
             if next_cid not in seen:
                 seen.add(next_cid)
                 queue.append((next_cid, [*route, src_tile]))
+        if cut_ok:
+            for next_cid, action in graph["cut"].get(cid, []):
+                if next_cid not in seen:
+                    seen.add(next_cid)
+                    queue.append((next_cid, [*route, action]))
     return None  # no graph route (e.g. blacklisted bridge) — let live search try
 
 
@@ -409,8 +454,15 @@ def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generato
             if not cached_route:
                 yield from navigate_same_level(map, coordinates, run=run)
                 return
+            step = cached_route[0]
+            if isinstance(step, dict) and step.get("cut"):
+                # Conditional edge: cut the tree, then continue the route.
+                yield from perform_cut(step["map"], step["tree"], step["stand"], step["facing"])
+                cached_route = cached_route[1:] or None
+                target_failures = 0
+                continue
             # Step onto the next warp; upstream follows it (final waypoint).
-            warp_map, warp_coords = cached_route[0]
+            warp_map, warp_coords = step
             current_target = (warp_map, warp_coords)
             yield from navigate_same_level(warp_map, warp_coords, run=run)
             cached_route = cached_route[1:] or None  # consume; None re-plans final walk
