@@ -431,7 +431,9 @@ def get_tea() -> Generator:
 
     if get_event_flag("GOT_TEA"):
         return
-    yield from navigate_to(MapFRLG.CELADON_CITY_CONDOMINIUMS_1F, (2, 10))  # beside the tea woman (obj 4 @ 2,9)
+    # (3,9): beside the tea woman (obj 4 @ 2,9). Her nook is only reachable
+    # from the mansion's BACK door region; (2,10) south of her is a counter.
+    yield from navigate_to(MapFRLG.CELADON_CITY_CONDOMINIUMS_1F, (3, 9))
     yield from talk_to_npc(4)
     yield from wait_for_no_script_to_run("B")
     yield from wait_for_player_avatar_to_be_controllable("B")
