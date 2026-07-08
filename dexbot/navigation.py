@@ -150,6 +150,8 @@ def perform_cut(map_key, tree_tile: tuple[int, int], stand_tile: tuple[int, int]
         wait_for_player_avatar_to_be_controllable,
     )
 
+    from modules.player import get_player_avatar
+
     if isinstance(map_key, MapFRLG):
         map_key = map_key.value
     # Same-level walk only: the stand tile is in the cut edge's from-component,
@@ -158,16 +160,33 @@ def perform_cut(map_key, tree_tile: tuple[int, int], stand_tile: tuple[int, int]
     # navigate_to → ...); if we're NOT where the plan assumed, this raises a
     # path error and the caller's replan machinery takes over.
     yield from navigate_same_level(map_key, tuple(stand_tile))
-    if not any(
+    tree_present = any(
         o.current_coords == tuple(tree_tile) and "isPlayer" not in o.flags for o in get_map_objects()
-    ):
-        return  # already cut (object gone until map reload)
-    yield from ensure_facing_direction(facing)
-    context.emulator.press_button("A")
-    yield
-    yield from wait_for_yes_no_question("Yes")
-    yield from wait_for_no_script_to_run("B")
-    yield from wait_for_player_avatar_to_be_controllable("B")
+    )
+    if tree_present:
+        yield from ensure_facing_direction(facing)
+        context.emulator.press_button("A")
+        yield
+        yield from wait_for_yes_no_question("Yes")
+        yield from wait_for_no_script_to_run("B")
+        yield from wait_for_player_avatar_to_be_controllable("B")
+    # Step ACROSS the (now-cleared) tree tile into the destination component.
+    # Essential even when the tree was already cut: the graph still models the
+    # two sides as joined ONLY by this cut edge, so without physically crossing,
+    # the next re-plan re-selects the same edge and perform_cut no-ops forever
+    # (a yieldless tight loop). Bounded + position-checked (a raw hold into a
+    # wall never terminates); stop as soon as a step stalls.
+    for _ in range(2):
+        before = get_player_avatar().local_coordinates
+        context.emulator.reset_held_buttons()
+        context.emulator.hold_button(facing)
+        for _ in range(24):
+            yield
+        context.emulator.reset_held_buttons()
+        for _ in range(8):
+            yield
+        if get_player_avatar().local_coordinates == before:
+            break
 
 
 def _story_gated_warp_dests() -> frozenset:
@@ -318,6 +337,14 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
         if not result:
             failed.add(key)
         return result
+
+    # Direct-walk short-circuit: if the destination is simply walkable from the
+    # start (same level, no obstruction right now), the answer is the empty
+    # route — no warps, no cuts. Without this, a plan from a spot that already
+    # walks to dest can still route through a (redundant) cut edge, and after
+    # physically crossing that tree the re-plan picks it AGAIN — a no-op loop.
+    if _map_level(start[0]) == _map_level(dest[0]) and walkable(start, dest):
+        return []
 
     entry = _find_component(start, comp, walkable)
     if entry is None:
