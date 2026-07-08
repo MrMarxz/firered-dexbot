@@ -462,6 +462,34 @@ def get_vs_seeker() -> Generator:
     yield from register_key_item(seeker)
 
 
+def _descend_hidden_stairs() -> Generator:
+    """Game Corner (11,2) → the opened hidden stairs at (15,2). The stairs are
+    a metatile swap so cached collision blocks pathing — walk right blind
+    (bounded, position-checked) until the map flips to Rocket Hideout B1F."""
+    from modules.context import context
+    from modules.map_data import MapFRLG
+    from modules.modes.util.walking import navigate_to as navigate_same_level
+    from modules.player import get_player_avatar
+
+    yield from navigate_same_level(MapFRLG.CELADON_CITY_GAME_CORNER, (11, 2))
+    for _ in range(8):
+        avatar = get_player_avatar()
+        if avatar.map_group_and_number == MapFRLG.ROCKET_HIDEOUT_B1F.value:
+            return
+        before = avatar.local_coordinates
+        context.emulator.reset_held_buttons()
+        context.emulator.hold_button("Right")
+        for _ in range(24):
+            yield
+        context.emulator.reset_held_buttons()
+        for _ in range(12):
+            yield
+        if get_player_avatar().local_coordinates == before:
+            break
+    if get_player_avatar().map_group_and_number != MapFRLG.ROCKET_HIDEOUT_B1F.value:
+        raise SkillError("Did not reach Rocket Hideout B1F via the hidden stairs")
+
+
 def clear_rocket_hideout() -> Generator:
     """Celadon Game Corner → Rocket Hideout → Giovanni → the SILPH SCOPE.
     Unlocks Pokémon Tower catches and, downstream, the Poké Flute/Snorlax.
@@ -495,9 +523,13 @@ def clear_rocket_hideout() -> Generator:
         yield from wait_for_no_script_to_run(button)
         yield from wait_for_player_avatar_to_be_controllable(button)
 
-    yield from ensure_healthy(minimum_fraction=0.9, center=PokemonCenter.CeladonCity)
+    hideout_maps = {(1, 42), (1, 43), (1, 44), (1, 45), (1, 46)}
+    already_inside = get_player_avatar().map_group_and_number in hideout_maps
 
-    if not get_event_flag("OPENED_ROCKET_HIDEOUT"):
+    if not already_inside:
+        yield from ensure_healthy(minimum_fraction=0.9, center=PokemonCenter.CeladonCity)
+
+    if not already_inside and not get_event_flag("OPENED_ROCKET_HIDEOUT"):
         _log_event(skill="clear_rocket_hideout", status="phase", phase="poster")
         yield from navigate_to(MapFRLG.CELADON_CITY_GAME_CORNER, (11, 3))  # below the grunt (obj 11 @ 11,2)
         if get_event_flag("HIDE_GAME_CORNER_ROCKET") is False:
@@ -509,28 +541,11 @@ def clear_rocket_hideout() -> Generator:
         yield
         yield from drain()
 
-    _log_event(skill="clear_rocket_hideout", status="phase", phase="descend")
-    # Stairs at (15,2) are a metatile swap — cached collision blocks pathing,
-    # so approach blind along row 2 (bounded, position-checked).
-    yield from navigate_same_level(MapFRLG.CELADON_CITY_GAME_CORNER, (11, 2))
-    for _ in range(8):
-        avatar = get_player_avatar()
-        if avatar.map_group_and_number == MapFRLG.ROCKET_HIDEOUT_B1F.value:
-            break
-        before = avatar.local_coordinates
-        context.emulator.reset_held_buttons()
-        context.emulator.hold_button("Right")
-        for _ in range(24):
-            yield
-        context.emulator.reset_held_buttons()
-        for _ in range(12):
-            yield
-        if get_player_avatar().local_coordinates == before and (
-            get_player_avatar().map_group_and_number != MapFRLG.ROCKET_HIDEOUT_B1F.value
-        ):
-            raise SkillError("Hidden stairs did not open (blocked walking right on row 2)")
-    if get_player_avatar().map_group_and_number != MapFRLG.ROCKET_HIDEOUT_B1F.value:
-        raise SkillError("Did not reach Rocket Hideout B1F")
+    if not already_inside:
+        _log_event(skill="clear_rocket_hideout", status="phase", phase="descend")
+        # Stairs at (15,2) are a metatile swap — cached collision blocks
+        # pathing, so approach blind along row 2 (bounded, position-checked).
+        yield from _descend_hidden_stairs()
 
     if get_item_bag().quantity_of(get_item_by_name("Lift Key")) == 0:
         _log_event(skill="clear_rocket_hideout", status="phase", phase="lift_key")
