@@ -28,6 +28,14 @@
   SCCs, but NPC templates can shift with story state), a leg can fail at
   execution — corrected by the blacklist-and-replan machinery.
 
+- **Unwinnable battles wedge until the watchdog fires.** A wild GHOST in
+  Pokémon Tower without the Silph Scope loops "too scared to move!" for 30k
+  frames before the progress watchdog aborts (seen live 2026-07-08, stall
+  232742). The battle engine has no "this fight cannot be won → flee" rule;
+  the tower case self-resolves once the Scope is owned, but any future
+  no-damage-possible matchup (Wobbuffet-style walls, out-of-PP corners) hits
+  the same wedge. Class fix wanted: fight_all_battles should flee when N turns
+  produce zero state change.
 - **The economy is thin**: income so far is one-off (Nugget, trainer payouts
   during story treks, junk-item liquidation when broke — FRLG cannot sell TMs,
   the TM Case is unreachable from the mart sell menu). Ball/potion budgets can

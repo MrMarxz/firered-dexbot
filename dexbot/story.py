@@ -557,9 +557,36 @@ def clear_rocket_hideout() -> Generator:
         # pathing, so approach blind along row 2 (bounded, position-checked).
         yield from _descend_hidden_stairs()
 
+    def descend_stairs_chain() -> Generator:
+        # Cross-map planning inside the hideout is unreliable (spin mazes +
+        # script-swapped metatiles blow the route budget), but the stairs
+        # chain is fixed: B1F (17,2) → B2F (28,2) → walk row 2 → B2F (21,2) →
+        # B3F (18,2) → walk the maze → B3F (15,18) → B4F (11,15). Same-level
+        # legs only; stepping on a stair tile warps by itself.
+        chain = {
+            MapFRLG.ROCKET_HIDEOUT_B1F.value: (MapFRLG.ROCKET_HIDEOUT_B1F, (17, 2)),
+            MapFRLG.ROCKET_HIDEOUT_B2F.value: (MapFRLG.ROCKET_HIDEOUT_B2F, (21, 2)),
+            MapFRLG.ROCKET_HIDEOUT_B3F.value: (MapFRLG.ROCKET_HIDEOUT_B3F, (15, 18)),
+        }
+        for _ in range(3):
+            here = get_player_avatar().map_group_and_number
+            if here == MapFRLG.ROCKET_HIDEOUT_B4F.value:
+                return
+            if here not in chain:
+                raise SkillError(f"Not in the hideout stairs chain (at {here})")
+            level, stairs = chain[here]
+            yield from navigate_same_level(level, stairs)
+            for _ in range(120):
+                if get_player_avatar().map_group_and_number != here:
+                    break
+                yield
+        if get_player_avatar().map_group_and_number != MapFRLG.ROCKET_HIDEOUT_B4F.value:
+            raise SkillError("Hideout stairs chain did not reach B4F")
+
     if get_item_bag().quantity_of(get_item_by_name("Lift Key")) == 0:
         _log_event(skill="clear_rocket_hideout", status="phase", phase="lift_key")
-        yield from navigate_to(MapFRLG.ROCKET_HIDEOUT_B4F, (3, 3))  # Grunt1/Lift Key corner
+        yield from descend_stairs_chain()
+        yield from navigate_same_level(MapFRLG.ROCKET_HIDEOUT_B4F, (3, 3))  # Grunt1/Lift Key corner
         yield from talk_to_npc(3)  # Grunt1 — fight; drops the Lift Key story
         yield from drain()
         # The key is an item ball right there (obj 4 @ 3,2) in some states —
@@ -615,12 +642,18 @@ def clear_rocket_hideout() -> Generator:
                 raise SkillError(f"Hideout route diverged: pressed {step}, expected {expected}, got {got}")
 
     # Reach B2F's north landing (21,2). Normal flow arrives from the Lift Key
-    # corner on B4F; resumes may already be on B2F.
+    # corner on B4F; resumes may be on any hideout floor — same-level stair
+    # legs only (cross-map planning in here blows the route budget).
     if get_player_avatar().map_group_and_number == MapFRLG.ROCKET_HIDEOUT_B4F.value:
         yield from navigate_same_level(MapFRLG.ROCKET_HIDEOUT_B4F, (11, 15))  # stairs → B3F (15,18)
         for _ in range(90):
             yield
+    if get_player_avatar().map_group_and_number == MapFRLG.ROCKET_HIDEOUT_B3F.value:
         yield from navigate_same_level(MapFRLG.ROCKET_HIDEOUT_B3F, (18, 2))  # stairs → B2F (21,2)
+        for _ in range(90):
+            yield
+    if get_player_avatar().map_group_and_number == MapFRLG.ROCKET_HIDEOUT_B1F.value:
+        yield from navigate_same_level(MapFRLG.ROCKET_HIDEOUT_B1F, (17, 2))  # stairs → B2F (28,2)
         for _ in range(90):
             yield
     if get_player_avatar().map_group_and_number != MapFRLG.ROCKET_HIDEOUT_B2F.value:
@@ -745,8 +778,16 @@ def main() -> None:
     fixture = sys.argv[2] if len(sys.argv) > 2 else "m7_badge_brock.ss1"
     out = sys.argv[3] if len(sys.argv) > 3 else f"m7_{which}.ss1"
 
-    context = setup_headless_emulator(is_test_run=True)
-    context.emulator.load_save_state((PROJECT_ROOT / "fixtures" / fixture).read_bytes())
+    if fixture == "--live":
+        # Run against the persistent living-dex profile (same resume behavior
+        # as run.py): story progress lands in current_state.ss1 for real.
+        from dexbot.emulator import get_or_create_profile
+
+        context = setup_headless_emulator(profile=get_or_create_profile("livingdex"), is_test_run=False)
+        out = None
+    else:
+        context = setup_headless_emulator(is_test_run=True)
+        context.emulator.load_save_state((PROJECT_ROOT / "fixtures" / fixture).read_bytes())
     context.emulator.run_single_frame()
 
     from dexbot.runner import attach_video_window
@@ -770,7 +811,10 @@ def main() -> None:
             except Exception as heal_error:  # noqa: BLE001
                 print(f"retry heal failed ({heal_error}); retrying anyway")
     print(f"{which} done")
-    (PROJECT_ROOT / "fixtures" / out).write_bytes(context.emulator.get_save_state())
+    if out is None:
+        context.emulator.create_save_state(suffix=which)  # persists to the profile
+    else:
+        (PROJECT_ROOT / "fixtures" / out).write_bytes(context.emulator.get_save_state())
 
 
 if __name__ == "__main__":
