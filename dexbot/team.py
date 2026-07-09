@@ -54,6 +54,76 @@ def _mon_to_roster(mon, location: str) -> RosterMon:
     )
 
 
+def _viability(m: RosterMon) -> tuple:
+    # ponytail: level captures "trained-ness" and correlates with evolution
+    # stage, so we skip a species-data stage lookup; deterministic dex-number
+    # tie-break. Add a stage multiplier only if selection quality demands it.
+    return (m.level, -m.national_dex)
+
+
+def _knows_any(m: RosterMon, moves: frozenset) -> bool:
+    return any(mv in moves for mv in m.moves)
+
+
+def _is_false_swipe_user(m: RosterMon) -> bool:
+    return "False Swipe" in m.moves or m.species_name in FALSE_SWIPE_LEARNERS
+
+
+def select_party(objective: TeamObjective, roster: list[RosterMon], cap: int = 6) -> list[RosterMon]:
+    """Deterministically pick ≤cap mons: mandatory HM mules, then catch-kit
+    roles (sleep / False-Swipe / non-powder paralysis) for catch objectives,
+    then viability-fill under a type-diversity cap."""
+    chosen: dict[bytes, RosterMon] = {}
+
+    def add(m):
+        if m is not None and m.id_bytes not in chosen and len(chosen) < cap:
+            chosen[m.id_bytes] = m
+
+    # 1. Mandatory HM mules (highest-viability holder per field move).
+    for fm in objective.field_moves:
+        holders = sorted((m for m in roster if fm in m.moves), key=_viability, reverse=True)
+        if holders:
+            add(holders[0])
+
+    # 2. Catch-kit roles — add the best available for each missing role.
+    if objective.kind == "catch":
+        for pred in (
+            lambda m: _knows_any(m, SLEEP_MOVES),  # ×2 status, strongest lever
+            _is_false_swipe_user,  # guaranteed 1 HP (Cubone→False Swipe)
+            lambda m: _knows_any(m, NON_POWDER_PARALYSIS),  # Grass-safe paralysis backup
+        ):
+            if not any(pred(m) for m in chosen.values()):
+                cands = sorted((m for m in roster if pred(m) and m.id_bytes not in chosen),
+                               key=_viability, reverse=True)
+                add(cands[0] if cands else None)
+
+    # 3. Fill remaining slots by viability under a type-diversity cap
+    #    (≤2 mons sharing a primary type unless nothing else remains).
+    def primary(m):
+        return m.types[0] if m.types else "?"
+
+    type_count: dict[str, int] = {}
+    for m in chosen.values():
+        type_count[primary(m)] = type_count.get(primary(m), 0) + 1
+
+    remaining = sorted((m for m in roster if m.id_bytes not in chosen), key=_viability, reverse=True)
+    deferred = []
+    for m in remaining:
+        if len(chosen) >= cap:
+            break
+        if type_count.get(primary(m), 0) >= 2:
+            deferred.append(m)
+            continue
+        add(m)
+        type_count[primary(m)] = type_count.get(primary(m), 0) + 1
+    for m in deferred:  # relax the diversity cap only if slots remain
+        if len(chosen) >= cap:
+            break
+        add(m)
+
+    return sorted(chosen.values(), key=_viability, reverse=True)
+
+
 def enumerate_roster() -> list[RosterMon]:
     """Every owned individual across party and PC boxes (eggs/empties skipped)."""
     from modules.pokemon_party import get_party
