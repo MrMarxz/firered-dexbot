@@ -235,6 +235,10 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
     previous_frame_info = None
     last_sample = None
     frames_at_last_progress = 0
+    from collections import deque
+
+    recent_positions: deque = deque(maxlen=10)  # sampled every 2000 frames
+    recent_rest: deque = deque(maxlen=10)
     try:
         while len(context.controller_stack) > 0:
             context.frame += 1
@@ -297,6 +301,9 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
             previous_frame_info.previous_frame = None
             if frames % 2000 == 0:
                 sample = _progress_sample()
+                if sample is not None:
+                    recent_positions.append(sample[:2])
+                    recent_rest.append(sample[2:])
                 if sample != last_sample:
                     last_sample = sample
                     frames_at_last_progress = frames
@@ -306,6 +313,23 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
                         f"Skill {name!r} made no observable progress for "
                         f"{frames - frames_at_last_progress} frames at {sample[:2] if sample else '?'} "
                         f"(stall state: {state_path})"
+                    )
+                # Pacing detector: oscillating between a couple of tiles resets
+                # the standstill check above (position "changes"), so a walk
+                # loop bouncing off an obstacle looked alive for hours. A full
+                # window pinned to ≤4 tiles with money/balls/HP/game-state
+                # frozen is a stall — report it within ~20k frames (seconds of
+                # wall time unthrottled), not never.
+                if (
+                    len(recent_positions) == recent_positions.maxlen
+                    and 1 < len(set(recent_positions)) <= 4
+                    and len(set(recent_rest)) == 1
+                ):
+                    pacing_tiles = sorted(set(recent_positions))
+                    state_path = _dump_stall(name, sample)
+                    raise SkillError(
+                        f"Skill {name!r} is pacing between {pacing_tiles} "
+                        f"with no other progress (stall state: {state_path})"
                     )
             if frames > timeout_frames:
                 raise SkillTimeout(f"Skill {name!r} exceeded {timeout_frames} frames")
