@@ -160,7 +160,13 @@ def restock_pokeballs_if_low(minimum: int = 15) -> None:
 
     from dexbot.openings import buy_pokeballs
 
-    balls = get_item_bag().quantity_of(get_item_by_name("Poké Ball"))
+    # Count every catch-capable ball — the upstream catch strategy picks the
+    # best one in the bag, so 39 Great Balls with 1 Poké Ball is NOT "low"
+    # (counting only Poké Balls sent the bot marching to a mart mid-corridor).
+    balls = sum(
+        get_item_bag().quantity_of(get_item_by_name(name))
+        for name in ("Poké Ball", "Great Ball", "Ultra Ball")
+    )
     needed = minimum - balls
     if needed <= 0:
         return

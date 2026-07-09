@@ -755,6 +755,15 @@ def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generato
             interruptions += 1
             if interruptions > 30:
                 raise
+            if "are not on connected maps" in str(e) and current_target is not None:
+                # The graph over-merged: this leg pairs maps in different
+                # upstream connection clusters (Route 14 → Saffron through a
+                # gate building). Permanently impossible as a walk — blacklist
+                # at once and re-plan; letting it propagate crash-loops the
+                # supervisor.
+                blacklist.add(current_target)
+                target_failures = 0
+                continue
             if "Could not find a path" in str(e):
                 # Either a wandering NPC (current + previous tile both count as
                 # blocked) sitting in a choke point — wait it out — or the warp
