@@ -103,6 +103,11 @@ def build(context, save_every_level: bool = True) -> dict:
                 if ca != cb and _walkable(rep_a, rep_b):
                     walk_edges.add((ca, cb))
         cut_edges.extend(_cut_edges_for_level(level, reps, components, _distance, _walkable))
+        # _cut_edges_for_level mints component ids for warpless pocket sides;
+        # resync the portal counter or the next level's portals reuse those
+        # ids (a Saffron portal collided with Route 14's pocket — one "component"
+        # spanning two levels routed walking legs through gate buildings).
+        next_id = max(components.values(), default=-1) + 1
         levels_done.add(level)
         if save_every_level:
             _write(components, walk_edges, cut_edges, levels_done, epoch)
