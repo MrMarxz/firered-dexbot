@@ -462,6 +462,55 @@ def get_vs_seeker() -> Generator:
     yield from register_key_item(seeker)
 
 
+def get_bicycle() -> Generator:
+    """Bike Voucher from the Vermilion Fan Club Chairman (obj 1), then swap it
+    for a free Bicycle at the Cerulean Bike Shop clerk (obj 1). The Bicycle
+    opens the Cycling Road (Route 17/18) — its own trainers for income, dex
+    access, and it lifts the bike-gate that was walling navigation to Route 16.
+    """
+    from modules.context import context
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import (
+        navigate_to as navigate_same_level,
+        wait_for_player_avatar_to_be_controllable,
+    )
+
+    bicycle = get_item_by_name("Bicycle")
+    voucher = get_item_by_name("Bike Voucher")
+    if get_item_bag().quantity_of(bicycle) > 0:
+        return
+
+    def talk_until(npc_id: int, item, tries: int = 8) -> Generator:
+        # Gift/exchange dialogues vary (text-only or a yes/no); mash A through
+        # them until the expected item lands, then settle.
+        for _ in range(tries):
+            if get_item_bag().quantity_of(item) > 0:
+                return
+            yield from talk_to_npc(npc_id)
+            for _ in range(90):
+                context.emulator.press_button("A")
+                for _ in range(6):
+                    yield
+            yield from wait_for_no_script_to_run("B")
+            yield from wait_for_player_avatar_to_be_controllable("B")
+
+    if get_item_bag().quantity_of(voucher) == 0:
+        yield from navigate_to(MapFRLG.VERMILION_CITY_POKEMON_FAN_CLUB, (5, 5))  # below Chairman (obj 1 @ 5,4)
+        yield from navigate_same_level(MapFRLG.VERMILION_CITY_POKEMON_FAN_CLUB, (5, 5))
+        yield from talk_until(1, voucher)
+        if get_item_bag().quantity_of(voucher) == 0:
+            raise SkillError("Fan Club Chairman did not give the Bike Voucher")
+
+    yield from navigate_to(MapFRLG.CERULEAN_CITY_BIKE_SHOP, (9, 4))  # below the clerk (obj 1 @ 9,3)
+    yield from navigate_same_level(MapFRLG.CERULEAN_CITY_BIKE_SHOP, (9, 4))
+    yield from talk_until(1, bicycle)
+    if get_item_bag().quantity_of(bicycle) == 0:
+        raise SkillError("Bike Shop clerk did not hand over the Bicycle")
+
+
 def get_amulet_coin() -> Generator:
     """Collect the Amulet Coin from Oak's aide (Route 16 North gate 2F, obj 3).
     Available once the dex has ≥40 owned; it DOUBLES a battle's prize money when
@@ -1034,6 +1083,7 @@ STORY_SKILLS = {
     "get_hm_cut": get_hm_cut,
     "get_tea": get_tea,
     "get_vs_seeker": get_vs_seeker,
+    "get_bicycle": get_bicycle,
     "get_amulet_coin": get_amulet_coin,
     "clear_rocket_hideout": clear_rocket_hideout,
     "rescue_mr_fuji": rescue_mr_fuji,
