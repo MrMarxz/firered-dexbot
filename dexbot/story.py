@@ -479,21 +479,32 @@ def _go_talk(map_enum, npc_id: int) -> Generator:
     from dexbot.runner import SkillError, SkillTimeout
 
     if get_player_avatar().map_group_and_number != map_enum.value:
-        # Aim at any walkable NPC-adjacent tile just to route INTO the building;
-        # the interior final leg may error (unreachable pick) but we still land
-        # inside, which is all we need.
+        # Route INTO the building via an ENTRY tile, not an NPC-neighbour.
+        # An NPC-neighbour can be calc-unreachable (the Chairman's open 'up'
+        # tile is), and navigate_to to an unreachable dest blows the budget
+        # during planning without landing us inside. The tiles one step inside
+        # from the door warps ARE always reachable (you land next to them on
+        # entry) — target those, then let talk_to_npc do the interior approach.
         md = get_map_data(map_enum, (0, 0))
-        npc = next(o.local_coordinates for o in md.objects if o.local_id == npc_id)
-        approach = next(
-            ((npc[0] + dx, npc[1] + dy) for dx, dy in ((0, 1), (0, -1), (-1, 0), (1, 0))
-             if not get_map_data(map_enum, (npc[0] + dx, npc[1] + dy)).collision),
-            npc,
-        )
-        try:
-            yield from navigate_to(map_enum, approach)
-        except (SkillError, SkillTimeout):
-            if get_player_avatar().map_group_and_number != map_enum.value:
-                raise  # never made it inside
+        warps = {w.local_coordinates for w in md.warps}
+        entries = []
+        for wx, wy in warps:
+            for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+                n = (wx + dx, wy + dy)
+                try:
+                    if n not in warps and not get_map_data(map_enum, n).collision:
+                        entries.append(n)
+                except Exception:
+                    continue
+        for target in entries:
+            try:
+                yield from navigate_to(map_enum, target)
+            except (SkillError, SkillTimeout):
+                pass
+            if get_player_avatar().map_group_and_number == map_enum.value:
+                break
+        if get_player_avatar().map_group_and_number != map_enum.value:
+            raise SkillError(f"Could not enter {map_enum} to reach obj {npc_id}")
     yield from talk_to_npc(npc_id)
 
 
