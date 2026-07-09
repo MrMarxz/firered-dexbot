@@ -855,6 +855,51 @@ def clear_rocket_hideout() -> Generator:
     yield from _exit_rocket_hideout()
 
 
+def catch_snorlax() -> Generator:
+    """Wake the Route 12 Snorlax with the Poké Flute and CATCH it (one per
+    spot; Route 16 holds the only backup — run this with a catch-capable
+    battle handler, never plain fight_all_battles). Snorlax obj 5 @ (14,70)
+    blocks the road south of Lavender; facing it and pressing A offers the
+    flute prompt, YES starts the battle. Catching (or beating) it clears the
+    road — the southbound Koga corridor and Routes 12/13 open either way."""
+    from modules.context import context
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG, PokemonCenter
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import (
+        ensure_facing_direction,
+        wait_for_player_avatar_to_be_controllable,
+    )
+    from modules.pokedex import get_pokedex
+
+    from dexbot.catching import ensure_healthy
+    from dexbot.runner import _log_event
+
+    if "Snorlax" in {s.name for s in get_pokedex().owned_species}:
+        return
+    if get_item_bag().quantity_of(get_item_by_name("Poké Flute")) == 0:
+        raise SkillError("No Poké Flute — run rescue_mr_fuji first")
+
+    _log_event(skill="catch_snorlax", status="phase", phase="approach")
+    yield from ensure_healthy(minimum_fraction=0.9, center=PokemonCenter.LavenderTown)
+    yield from navigate_to(MapFRLG.ROUTE12, (14, 69))  # directly north of Snorlax
+
+    _log_event(skill="catch_snorlax", status="phase", phase="wake")
+    yield from ensure_facing_direction("Down")
+    context.emulator.press_button("A")
+    yield
+    # "...would you like to play the POKE FLUTE?" → YES, then the battle
+    # starts; the run's battle handler (a catch decider) takes it from there.
+    for _ in range(120):
+        yield
+    context.emulator.press_button("A")
+    yield
+    yield from wait_for_no_script_to_run("A")
+    yield from wait_for_player_avatar_to_be_controllable("B")
+    if "Snorlax" not in {s.name for s in get_pokedex().owned_species}:
+        raise SkillError("Snorlax not caught (fled or fainted?) — Route 16 holds the backup")
+
+
 def rescue_mr_fuji() -> Generator:
     """Pokémon Tower (Scope in hand) → ghost Marowak → 7F grunts → Mr. Fuji →
     the POKE FLUTE at the Volunteer Pokémon House. Unblocks Snorlax (Routes
@@ -960,6 +1005,7 @@ STORY_SKILLS = {
     "get_vs_seeker": get_vs_seeker,
     "clear_rocket_hideout": clear_rocket_hideout,
     "rescue_mr_fuji": rescue_mr_fuji,
+    "catch_snorlax": catch_snorlax,
 }
 
 
@@ -987,11 +1033,21 @@ def main() -> None:
 
     attach_video_window(context, "dexbot story")
 
+    from dexbot.catching import make_catch_decider
+
+    # catch_* story skills (Snorlax, later legendaries) must CATCH their
+    # battle, not KO it.
+    handler = (
+        make_catch_decider(which.removeprefix("catch_").capitalize())
+        if which.startswith("catch_")
+        else fight_all_battles
+    )
+
     attempts = 0
     while True:
         attempts += 1
         try:
-            run_skill(STORY_SKILLS[which](), which, timeout_frames=900_000, on_battle_started=fight_all_battles)
+            run_skill(STORY_SKILLS[which](), which, timeout_frames=900_000, on_battle_started=handler)
             break
         except Exception as e:  # noqa: BLE001 — bounded retries; last error re-raised
             if attempts >= 8:

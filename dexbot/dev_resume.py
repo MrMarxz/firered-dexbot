@@ -30,7 +30,7 @@ def main() -> None:
     context.emulator.load_save_state(checkpoint.read_bytes())
     context.emulator.run_single_frame()
 
-    from dexbot.catching import fight_all_battles
+    from dexbot.catching import fight_all_battles, make_catch_decider
     from dexbot.gyms import GYMS
     from dexbot.runner import run_skill
     from dexbot.story import STORY_SKILLS
@@ -40,7 +40,12 @@ def main() -> None:
     )
     if skill is None:
         raise SystemExit(f"Unknown skill {skill_name!r}")
-    run_skill(skill(), skill_name, timeout_frames=900_000, on_battle_started=fight_all_battles)
+    handler = (
+        make_catch_decider(skill_name.removeprefix("catch_").capitalize())
+        if skill_name.startswith("catch_")
+        else fight_all_battles
+    )
+    run_skill(skill(), skill_name, timeout_frames=900_000, on_battle_started=handler)
     print(f"{skill_name} done (resumed from {phase})")
 
 
