@@ -82,7 +82,11 @@ _walkable_neg: dict = {}  # failed pairs -> monotonic expiry (TTL — see below)
 _NEG_TTL_SECONDS = 900.0
 
 
-def _walkable(source: tuple[tuple[int, int], tuple[int, int]], dest: tuple[tuple[int, int], tuple[int, int]]) -> bool:
+def _walkable(
+    source: tuple[tuple[int, int], tuple[int, int]],
+    dest: tuple[tuple[int, int], tuple[int, int]],
+    max_nodes: int = 20_000,
+) -> bool:
     """Whether the A* finds a walking path between two positions (no player needed).
 
     Map "levels" are not internally connected (Kanto's outdoors is split by the
@@ -113,7 +117,11 @@ def _walkable(source: tuple[tuple[int, int], tuple[int, int]], dest: tuple[tuple
         # max_nodes: a reachability probe only needs yes/no. An unbudgeted
         # failure exhausts the whole connected region (post-Snorlax Kanto,
         # tens of seconds); real paths expand a few thousand nodes at most.
-        calculate_path(source, dest, max_nodes=20_000)
+        # Component probes pass a much tighter budget still (~3k): a
+        # containing-component rep is nearby by construction, so a probe that
+        # needs more nodes than that is a "no" — twelve 20k failures inside
+        # one _find_component were the 60-120s planning wedges.
+        calculate_path(source, dest, max_nodes=max_nodes)
         _walkable_cache.add(key)
         return True
     except Exception:
@@ -320,8 +328,11 @@ def _find_component(position, comp, walkable, mutual_only: bool = False, max_can
     # always includes its map's own portal tiles.
     ranked = sorted(nearest_rep.items(), key=lambda kv: (kv[1][0] != position[0], distance(kv[1])))
     for cid, tile in ranked[:max_candidates]:
-        if walkable(position, tile):
-            if walkable(tile, position):
+        # Tight A* budget: the containing component's rep is nearby by
+        # construction, so a probe needing >3k nodes is a "no" — full-budget
+        # failures here were the 60-120s planning wedges.
+        if walkable(position, tile, max_nodes=3_000):
+            if walkable(tile, position, max_nodes=3_000):
                 return cid
             if one_way is None:
                 one_way = cid
@@ -348,11 +359,11 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
     failed: set = set()
     outer_walkable = walkable
 
-    def walkable(a, b) -> bool:  # noqa: A001 — deliberate shadow
+    def walkable(a, b, max_nodes: int = 20_000) -> bool:  # noqa: A001 — deliberate shadow
         key = (a, b)
         if key in failed:
             return False
-        result = outer_walkable(a, b)
+        result = outer_walkable(a, b, max_nodes=max_nodes)
         if not result:
             failed.add(key)
         return result
@@ -405,7 +416,7 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
     )
     for cid, tiles in ranked_dest[:6]:  # capped like the entry scan — see _find_component
         rep = tiles[0]
-        if walkable(rep, dest) and walkable(dest, rep):
+        if walkable(rep, dest, max_nodes=3_000) and walkable(dest, rep, max_nodes=3_000):
             dest_cid = cid
             break
 
@@ -468,8 +479,11 @@ def _plan_warp_route(
     A* to place start/dest in components). Fallback: the live best-first
     search below, kept for a missing/stale graph.
     """
+    import os as _os
     import time as _time
 
+    if _os.environ.get("DEXBOT_NAV_DEBUG"):
+        print(f"[nav] plan {start} -> {dest} (blacklist {len(blacklist)})", flush=True)
     t0 = _time.monotonic()
     route = _plan_via_graph(start, dest, frozenset(blacklist), _walkable)
     graph_seconds = _time.monotonic() - t0

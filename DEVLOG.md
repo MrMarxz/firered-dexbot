@@ -1,5 +1,42 @@
 # DEVLOG
 
+## 2026-07-09 (morning) — the "planning wedge" was a fainted Paras in slot 0 (plus real planning debt paid)
+
+**Symptom:** every catch objective (Gloom/Pidgeotto/Raticate) "wedged" — the 120s step
+watchdog fired with stacks on random innocent memory-read frames — while the identical
+plan from a fresh process took 0.3s. Whole sweeps ran 0-for-3 and idled out.
+
+**Root cause (found via DEXBOT_NAV_DEBUG plan tracing: 18,744 identical plans in 45s,
+start == dest):** a faint had ROTATED the party, putting Paras (0 HP) in slot 0 with a
+healthy Blastoise behind. `needs_heal()` keys on party[0] → always true; `ensure_healthy()`
+keys on first_non_fainted → always satisfied. catch_species livelocked navigate → spin
+(instant bail) → no-op heal at ~400 plans/second, and the occasional cache-cold iteration
+blew the step budget with the avatar frozen. Fix: `ensure_healthy` treats a fainted slot-0
+as heal-worthy (revive at the center). Predicate-pair lesson: when a loop's bail-out
+condition and its remedy read DIFFERENT state, their disagreement is an infinite loop.
+
+**Real planning debt paid along the way (the livelock amplified it into visibility):**
+- `calculate_path(max_nodes=...)` upstream patch — a FAILED search otherwise exhausts the
+  whole connected region, and post-Snorlax/Koga Kanto is one huge level (tens of seconds
+  per probe). `_walkable` defaults to 20k nodes; component probes pass 3k (a containing
+  component's rep is nearby by construction — needing more nodes IS the answer "no").
+- Direct-walk short-circuit is component-guarded (skipped when start/dest components are
+  known-different) instead of being tried first.
+- navigate_to's replan/blacklist retry paths yield a frame per iteration so each re-plan
+  sits in its own watchdogged step.
+- Ops instrumentation kept: `DEXBOT_DUMP=1` (30s faulthandler stack dumps), plan-entry
+  tracing under `DEXBOT_NAV_DEBUG=1`, and permanent >5s slow-plan log lines.
+
+**Debug-method lessons:** (1) SIGALRM/USR1 single samples land on innocent frames — count
+CALLS (tracing) or take repeated dumps (`faulthandler.dump_traceback_later`) before
+believing any one stack; (2) verify a "clean" repro is ALIVE (a dead process produces
+zero dumps and looks perfectly healthy); (3) `pgrep -f` matches your own wrapper — anchor
+with `ps -eo pid,args | grep '\.venv/bin/python -u run\.py'`.
+
+Also this morning (before the hunt): rescue_mr_fuji (Poké Flute), catch_snorlax (Routes
+12/13/16 open), tower catches — see entries below; dex 30 → 38, and the peer session
+landed beat_koga (badge 5) + Route 14/15 annotations in parallel.
+
 ## 2026-07-09 (small hours) — Scope LIVE; tower catches rolling; hybrid LLM architecture (owner directive)
 
 **Owner directive (rescinds brief constraint 2): LLM for reasoning, determinism for execution**

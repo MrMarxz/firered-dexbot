@@ -190,11 +190,17 @@ def ensure_healthy(minimum_fraction: float = 0.5, center=None) -> Generator:
     from modules.pokemon import StatusCondition
 
     lead = get_party().first_non_fainted
+    starter = get_party()[0]
     if not (
         lead is None
         or lead.current_hp / lead.total_hp < minimum_fraction
         or lead.status_condition != StatusCondition.Healthy
-        or get_party()[0].status_condition != StatusCondition.Healthy
+        # Slot 0 fainted counts as heal-worthy: faints rotate the party, and
+        # the catch/grind loops' needs_heal() keys on party[0] — a fainted
+        # Paras in slot 0 with a healthy Blastoise behind it livelocked
+        # navigate→spin→"heal"(no-op) at 400 plans/second for a whole morning.
+        or starter.current_hp == 0
+        or starter.status_condition != StatusCondition.Healthy
     ):
         return
 
