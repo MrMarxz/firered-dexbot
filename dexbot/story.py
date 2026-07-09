@@ -549,43 +549,48 @@ def _talk_over_counter(map_enum, npc_id: int) -> Generator:
     raise SkillError(f"No counter-front tile to talk to obj {npc_id} on {map_enum}")
 
 
+def _talk_until(map_enum, npc_id: int, item, tries: int = 8) -> Generator:
+    """Approach NPC `npc_id` and mash A through its dialogue until `item` lands
+    in the bag. A-mashing answers YES to gift/exchange yes/no prompts (the
+    Amulet Coin aide's '40 caught?' prompt, the Bike Shop trade) — draining
+    with B instead answers NO and gets nothing."""
+    from modules.context import context
+    from modules.items import get_item_bag
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+
+    for _ in range(tries):
+        if get_item_bag().quantity_of(item) > 0:
+            return
+        yield from _go_talk(map_enum, npc_id)
+        for _ in range(90):
+            context.emulator.press_button("A")
+            for _ in range(6):
+                yield
+        yield from wait_for_no_script_to_run("B")
+        yield from wait_for_player_avatar_to_be_controllable("B")
+
+
 def get_bicycle() -> Generator:
     """Bike Voucher from the Vermilion Fan Club Chairman (obj 1), then swap it
     for a free Bicycle at the Cerulean Bike Shop clerk (obj 1). The Bicycle
     opens the Cycling Road (Route 17/18) — its own trainers for income, dex
     access, and it lifts the bike-gate that was walling navigation to Route 16.
     """
-    from modules.context import context
     from modules.items import get_item_bag, get_item_by_name
     from modules.map_data import MapFRLG
-    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
-    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
 
     bicycle = get_item_by_name("Bicycle")
     voucher = get_item_by_name("Bike Voucher")
     if get_item_bag().quantity_of(bicycle) > 0:
         return
 
-    def talk_until(map_enum, npc_id: int, item, tries: int = 8) -> Generator:
-        # Gift/exchange dialogues vary (text-only or a yes/no); mash A through
-        # them until the expected item lands, re-approaching each try.
-        for _ in range(tries):
-            if get_item_bag().quantity_of(item) > 0:
-                return
-            yield from _go_talk(map_enum, npc_id)
-            for _ in range(90):
-                context.emulator.press_button("A")
-                for _ in range(6):
-                    yield
-            yield from wait_for_no_script_to_run("B")
-            yield from wait_for_player_avatar_to_be_controllable("B")
-
     if get_item_bag().quantity_of(voucher) == 0:
-        yield from talk_until(MapFRLG.VERMILION_CITY_POKEMON_FAN_CLUB, 1, voucher)  # Chairman
+        yield from _talk_until(MapFRLG.VERMILION_CITY_POKEMON_FAN_CLUB, 1, voucher)  # Chairman
         if get_item_bag().quantity_of(voucher) == 0:
             raise SkillError("Fan Club Chairman did not give the Bike Voucher")
 
-    yield from talk_until(MapFRLG.CERULEAN_CITY_BIKE_SHOP, 1, bicycle)  # clerk
+    yield from _talk_until(MapFRLG.CERULEAN_CITY_BIKE_SHOP, 1, bicycle)  # clerk
     if get_item_bag().quantity_of(bicycle) == 0:
         raise SkillError("Bike Shop clerk did not hand over the Bicycle")
 
@@ -598,8 +603,6 @@ def get_amulet_coin() -> Generator:
     Give it to the battle lead afterward so gym/patrol payouts double."""
     from modules.items import get_item_bag, get_item_by_name
     from modules.map_data import MapFRLG
-    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
-    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
     from modules.pokedex import get_pokedex
 
     coin = get_item_by_name("Amulet Coin")
@@ -608,9 +611,9 @@ def get_amulet_coin() -> Generator:
     if len(get_pokedex().owned_species) < 40:
         raise SkillError("Amulet Coin needs 40+ owned species")
 
-    yield from _go_talk(MapFRLG.ROUTE16_NORTH_ENTRANCE_2F, 3)  # Oak's aide (obj 3)
-    yield from wait_for_no_script_to_run("B")
-    yield from wait_for_player_avatar_to_be_controllable("B")
+    # The aide asks a yes/no ('caught 40?') before giving the coin — _talk_until
+    # mashes A (answers YES); draining with B answers NO and gets nothing.
+    yield from _talk_until(MapFRLG.ROUTE16_NORTH_ENTRANCE_2F, 3, coin)  # Oak's aide (obj 3)
     if get_item_bag().quantity_of(coin) == 0:
         raise SkillError("Aide did not hand over the Amulet Coin")
 
