@@ -855,6 +855,102 @@ def clear_rocket_hideout() -> Generator:
     yield from _exit_rocket_hideout()
 
 
+def rescue_mr_fuji() -> Generator:
+    """Pokémon Tower (Scope in hand) → ghost Marowak → 7F grunts → Mr. Fuji →
+    the POKE FLUTE at the Volunteer Pokémon House. Unblocks Snorlax (Routes
+    12/16) and the southbound Koga corridor.
+
+    Layout facts (ROM warps + pret scripts): up-stairs per floor — 1F (18,9),
+    2F (4,10), 3F (18,10), 4F (4,10), 5F (18,10), 6F (11,16). The 2F rival
+    (coord events (17,5)/(16,6)) and the 6F ghost Marowak ((11,15)/(12,16),
+    must be DEFEATED, cannot be caught) fire mid-walk — the battle listener
+    fights them; if a script interrupt aborts the walk, the skill is
+    flag-idempotent and the story runner's retry re-enters past them. 7F's
+    three grunts (sight 4) ambush on the approach to Fuji (obj 1 @ (11,4));
+    his dialogue warps us to the Volunteer House (4,7) — pret: sets
+    RESCUED_MR_FUJI, unhides house-Fuji (obj 1 @ (3,3)), who gives the flute."""
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG, PokemonCenter
+    from modules.memory import get_event_flag
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import (
+        navigate_to as navigate_same_level,
+        wait_for_player_avatar_to_be_controllable,
+    )
+    from modules.player import get_player_avatar
+
+    from dexbot.catching import ensure_healthy
+    from dexbot.runner import _log_event
+
+    flute = get_item_by_name("Poké Flute")
+    if get_item_bag().quantity_of(flute) > 0:
+        return
+
+    def drain(button: str = "B") -> Generator:
+        yield from wait_for_no_script_to_run(button)
+        yield from wait_for_player_avatar_to_be_controllable(button)
+
+    house = MapFRLG.LAVENDER_TOWN_VOLUNTEER_POKEMON_HOUSE
+
+    if not get_event_flag("RESCUED_MR_FUJI"):
+        _log_event(skill="rescue_mr_fuji", status="phase", phase="climb")
+        floors = [
+            (MapFRLG.POKEMON_TOWER_1F, (18, 9)),
+            (MapFRLG.POKEMON_TOWER_2F, (4, 10)),
+            (MapFRLG.POKEMON_TOWER_3F, (18, 10)),
+            (MapFRLG.POKEMON_TOWER_4F, (4, 10)),
+            (MapFRLG.POKEMON_TOWER_5F, (18, 10)),
+            (MapFRLG.POKEMON_TOWER_6F, (11, 16)),
+        ]
+        tower_maps = {f.value for f, _ in floors} | {MapFRLG.POKEMON_TOWER_7F.value}
+        if get_player_avatar().map_group_and_number not in tower_maps:
+            yield from ensure_healthy(minimum_fraction=0.9, center=PokemonCenter.LavenderTown)
+            yield from navigate_to(MapFRLG.POKEMON_TOWER_1F, (11, 17))  # just inside the entrance
+        from modules.modes import BotModeError
+
+        for floor, stairs in floors:
+            if get_player_avatar().map_group_and_number != floor.value:
+                continue  # resumes start above the lower floors
+            yield from drain()
+            for _ in range(4):
+                try:
+                    yield from navigate_same_level(floor, stairs)
+                    break
+                except BotModeError:
+                    # A coord-event trigger (2F rival, 6F Marowak) aborted the
+                    # walk. Advance its dialogue into the battle — the battle
+                    # listener fights it — then re-walk; defeated triggers
+                    # don't re-fire.
+                    yield from drain("A")
+            for _ in range(180):  # stair warp under our feet
+                if get_player_avatar().map_group_and_number != floor.value:
+                    break
+                yield
+            yield from drain()
+        if get_player_avatar().map_group_and_number != MapFRLG.POKEMON_TOWER_7F.value:
+            raise SkillError("Did not reach Pokémon Tower 7F")
+
+        _log_event(skill="rescue_mr_fuji", status="phase", phase="fuji")
+        yield from navigate_same_level(MapFRLG.POKEMON_TOWER_7F, (11, 5))  # grunts ambush en route
+        yield from drain()
+        yield from talk_to_npc(1)  # Mr. Fuji — his script warps us to the house
+        yield from drain()
+        for _ in range(300):
+            if get_player_avatar().map_group_and_number == house.value:
+                break
+            yield
+        yield from drain()
+
+    _log_event(skill="rescue_mr_fuji", status="phase", phase="flute")
+    if get_player_avatar().map_group_and_number != house.value:
+        yield from navigate_to(house, (4, 6))
+    yield from talk_to_npc(1)  # Fuji @ (3,3) hands over the POKE FLUTE
+    yield from drain()
+    if get_item_bag().quantity_of(flute) == 0:
+        raise SkillError("Poké Flute not obtained from Mr. Fuji")
+
+
 STORY_SKILLS = {
     "clear_mt_moon": clear_mt_moon,
     "cross_nugget_bridge": cross_nugget_bridge,
@@ -863,6 +959,7 @@ STORY_SKILLS = {
     "get_tea": get_tea,
     "get_vs_seeker": get_vs_seeker,
     "clear_rocket_hideout": clear_rocket_hideout,
+    "rescue_mr_fuji": rescue_mr_fuji,
 }
 
 
@@ -903,7 +1000,14 @@ def main() -> None:
             from dexbot.catching import ensure_healthy
 
             try:
-                run_skill(ensure_healthy(minimum_fraction=2.0), "retry_heal", timeout_frames=120_000)
+                # fight_all_battles: the default battle handler tries to CATCH
+                # wilds met on the heal trek and flips to Manual with no balls.
+                run_skill(
+                    ensure_healthy(minimum_fraction=2.0),
+                    "retry_heal",
+                    timeout_frames=120_000,
+                    on_battle_started=fight_all_battles,
+                )
             except Exception as heal_error:  # noqa: BLE001
                 print(f"retry heal failed ({heal_error}); retrying anyway")
     print(f"{which} done")
