@@ -176,10 +176,12 @@ class WeakeningCatchStrategy:
         return _Strategy()
 
 
-def make_healing_battle_strategy(flee_below: float = 0.35):
+def make_healing_battle_strategy(flee_below: float = 0.5):
     """Universal battle policy for a solo/overleveled champion with thin supplies:
 
-    - low HP + a potion in the bag → drink it (works in any battle);
+    - low HP + a potion in the bag → drink the STRONGEST one (survival beats
+      potion-efficiency; a 20-HP Potion can't out-heal Toxic + Sludge on a big
+      mon, which lost us Koga);
     - low HP, no potion, WILD battle → run away (the grind/catch loop heals
       between battles, so this avoids whiteout thrash);
     - low HP, no potion, TRAINER battle → fight on (can't flee) and let a
@@ -193,9 +195,9 @@ def make_healing_battle_strategy(flee_below: float = 0.35):
             own = battle_state.own_side.active_battler
             if own is not None and own.current_hp / own.total_hp < flee_below:
                 bag = get_item_bag()
-                for name in ("Potion", "Super Potion", "Hyper Potion"):
+                for name in ("Full Restore", "Hyper Potion", "Super Potion", "Potion"):
                     item = get_item_by_name(name)
-                    if bag.quantity_of(item) > 0:
+                    if item is not None and bag.quantity_of(item) > 0:
                         return TurnAction.use_item_on(item, own.party_index)
                 if not battle_state.is_trainer_battle:
                     return TurnAction.run_away()

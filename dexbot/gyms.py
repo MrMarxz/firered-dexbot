@@ -312,24 +312,39 @@ def beat_koga(min_level: int = 45) -> Generator:
     from modules.player import get_player
     from modules.pokemon_party import get_party
 
-    from dexbot.boxes import deposit_party_fodder
     from dexbot.planner import _nearest_mart
     from dexbot.runner import _log_event
 
     if get_event_flag("BADGE05_GET"):
         return
 
-    yield from deposit_party_fodder(keep=1)
+    # Bring a diverse team (Koga is Poison), not a solo lead + L11 mule — one
+    # faint on solo Blastoise sent the mule out and whited us out. assemble_party
+    # keeps HM mules and fills with the best battlers.
+    from dexbot.team import TeamObjective, assemble_party
+
+    yield from assemble_party(
+        TeamObjective(kind="gym", field_moves=("Cut",), prefer_offense_types=("Ground", "Psychic"),
+                      avoid_defense_types=("Poison",))
+    )
     if max(p.level for p in get_party() if not p.is_egg) < min_level:
         yield from grind_levels(min_level)
     yield from ensure_healthy(minimum_fraction=0.99, center=PokemonCenter.FuchsiaCity)
 
-    if get_item_bag().quantity_of(get_item_by_name("Super Potion")) < 5:
-        affordable = get_player().money // 700
-        if affordable > 0:
-            from dexbot.openings import buy_items
+    # Hyper Potions (200 HP) out-heal Toxic + Sludge where Super Potions (50)
+    # can't; buy as many as affordable, fall back to Super if broke.
+    from dexbot.openings import buy_items
 
-            yield from buy_items([("Super Potion", min(8, affordable))], _nearest_mart())
+    if get_item_bag().quantity_of(get_item_by_name("Hyper Potion")) < 6:
+        hyper = min(8, get_player().money // 1200)
+        if hyper > 0:
+            yield from buy_items([("Hyper Potion", hyper)], _nearest_mart())
+    if get_item_bag().quantity_of(get_item_by_name("Hyper Potion")) < 4 and get_item_bag().quantity_of(
+        get_item_by_name("Super Potion")
+    ) < 5:
+        supers = min(8, get_player().money // 700)
+        if supers > 0:
+            yield from buy_items([("Super Potion", supers)], _nearest_mart())
 
     _log_event(skill="beat_koga", status="phase", phase="enter_gym")
     yield from navigate_to(MapFRLG.FUCHSIA_CITY_GYM, (7, 14))  # below Koga (obj 7 @ 7,13)
