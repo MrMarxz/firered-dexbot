@@ -335,8 +335,11 @@ def beat_koga(min_level: int = 45) -> Generator:
     # can't; buy as many as affordable, fall back to Super if broke.
     from dexbot.openings import buy_items
 
-    if get_item_bag().quantity_of(get_item_by_name("Hyper Potion")) < 6:
-        hyper = min(8, get_player().money // 1200)
+    if get_item_bag().quantity_of(get_item_by_name("Hyper Potion")) < 15:
+        # A full-stack loadout: the last attempt used all 6 Hyper Potions and
+        # nearly cleared the gauntlet + Koga. Buy up to 15 (bag max ~99) so the
+        # attrition can't outlast the supply.
+        hyper = min(15, get_player().money // 1200)
         if hyper > 0:
             yield from buy_items([("Hyper Potion", hyper)], _nearest_mart())
     if get_item_bag().quantity_of(get_item_by_name("Hyper Potion")) < 4 and get_item_bag().quantity_of(
