@@ -10,10 +10,18 @@ falls back to the deterministic default, so this loop also runs LLM-free.
 """
 
 import argparse
+import faulthandler
+import os
 import time
 
 import dexbot  # noqa: F401 — sys.path + libmgba bootstrap
 from dexbot import verify_rom
+
+if os.environ.get("DEXBOT_DUMP"):
+    # Ops instrumentation: dump all stacks to stderr every 30s — cheap, and
+    # the only way to see WHERE a long-running process spends its wedge time
+    # (yama blocks py-spy; single USR1 samples land on innocent frames).
+    faulthandler.dump_traceback_later(30, repeat=True)
 
 
 def main() -> None:

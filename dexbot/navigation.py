@@ -468,10 +468,22 @@ def _plan_warp_route(
     A* to place start/dest in components). Fallback: the live best-first
     search below, kept for a missing/stale graph.
     """
+    import time as _time
+
+    t0 = _time.monotonic()
     route = _plan_via_graph(start, dest, frozenset(blacklist), _walkable)
+    graph_seconds = _time.monotonic() - t0
+    if graph_seconds > 5:
+        print(f"[nav] slow graph plan {graph_seconds:.1f}s {start} -> {dest} (route: {route is not None})")
     if route is not None:
         return route
-    return _plan_warp_route_live(start, dest, blacklist)
+    t0 = _time.monotonic()
+    try:
+        return _plan_warp_route_live(start, dest, blacklist)
+    finally:
+        live_seconds = _time.monotonic() - t0
+        if live_seconds > 5:
+            print(f"[nav] slow LIVE plan {live_seconds:.1f}s {start} -> {dest}")
 
 
 def _plan_warp_route_live(
