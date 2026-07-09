@@ -103,10 +103,14 @@ matter; Cubone must have reached L33).
 target and `RunAway` for other wilds — unchanged. Only the strategy's internal
 decision changes.
 
-**Ball economy (folded in here):** switch the default restock purchase from
-Great Balls to **Ultra Balls** (×2 vs ×1.5) once affordable, in
-`planner.restock_pokeballs_if_low`. Upstream's `_get_best_poke_ball` then throws
-Ultras automatically.
+**Ball economy — DEFERRED follow-up (not in C's core):** switching the default
+restock from Great Balls (×1.5) to **Ultra Balls** (×2) needs verifying which
+marts stock Ultra Balls at the current badge stage and that `buy_items`
+degrades gracefully if an item is unstocked (else a shop-menu stall). Implement
+as a preference ladder Ultra→Great→Poké with a stock check. Marginal gain vs.
+stall risk, so it ships after the core rotate/False-Swipe/status work. Upstream's
+`_get_best_poke_ball` already throws whatever best ball is in the bag, so this is
+purely a purchasing change.
 
 ## Out of scope (→ B)
 

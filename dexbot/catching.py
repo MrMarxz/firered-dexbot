@@ -8,12 +8,60 @@ Run acceptance:  .venv/bin/python -m dexbot.catching
 """
 
 import sys
+from dataclasses import dataclass
 from typing import Generator
 
 from dexbot import PROJECT_ROOT
 from dexbot.kb import best_encounter_map
 from dexbot.navigation import navigate_to
 from dexbot.runner import SkillError, run_skill
+
+# HP fraction at/below which False Swipe would risk over-driving past 1 HP is
+# irrelevant (it can't KO), but below this we treat the target as "low enough"
+# and stop spending turns chipping.
+_ONE_HP_FLOOR = 0.05
+
+
+@dataclass(frozen=True)
+class CatchView:
+    """Everything choose_catch_action needs — built from a BattleState by the
+    strategy adapter, or by hand in unit tests."""
+
+    active_index: int
+    active_knows_false_swipe: bool
+    party_weakener_index: int | None  # best benched weakener's party index, or None
+    opponent_hp_fraction: float
+    opponent_is_statused: bool
+    one_turn_catch_chance: float
+    safe_chip_move_index: int | None
+    status_move_index: int | None
+    false_swipe_move_index: int | None
+
+
+def choose_catch_action(v: CatchView) -> tuple[str, int | None]:
+    """Pure catch-battle policy. Returns one of:
+    ("rotate", party_index) | ("move", move_index) | ("ball", None).
+
+    Precedence: good-enough odds → throw; else rotate to the weakener; else
+    Sleep (status) first; else False Swipe to 1 HP; else safe non-KO chip;
+    else throw. See the sub-project C spec for the rationale (Gen III catch
+    math: HP ×~3 at 1 HP, sleep ×2, Ultra Ball ×2, all multiplicative)."""
+    if v.one_turn_catch_chance >= 0.5:
+        return ("ball", None)
+    # Rotate to the designated weakener if the active mon isn't it.
+    active_is_weakener = v.active_knows_false_swipe
+    if not active_is_weakener and v.party_weakener_index is not None and v.party_weakener_index != v.active_index:
+        return ("rotate", v.party_weakener_index)
+    # Sleep (or best status) before anything else — ×2 and it doesn't spend HP.
+    if not v.opponent_is_statused and v.status_move_index is not None:
+        return ("move", v.status_move_index)
+    # False Swipe drives to exactly 1 HP without a KO.
+    if v.active_knows_false_swipe and v.false_swipe_move_index is not None and v.opponent_hp_fraction > _ONE_HP_FLOOR:
+        return ("move", v.false_swipe_move_index)
+    # No False Swipe: chip with the strongest move that can't KO, while HP high.
+    if v.opponent_hp_fraction > 0.5 and v.safe_chip_move_index is not None:
+        return ("move", v.safe_chip_move_index)
+    return ("ball", None)
 
 
 def _species_is_owned(species_name: str) -> bool:
@@ -50,24 +98,80 @@ class WeakeningCatchStrategy:
         from modules.battle_strategies import BattleStrategyUtil, TurnAction
         from modules.battle_strategies.catch import CatchStrategy
 
+        from dexbot.team import SLEEP_MOVES
+
+        def _knows_false_swipe(battler) -> tuple[bool, int | None]:
+            for i, lm in enumerate(battler.moves):
+                if lm is not None and lm.pp > 0 and lm.move.name == "False Swipe":
+                    return True, i
+            return False, None
+
         class _Strategy(CatchStrategy):
             def decide_turn(self, battle_state):
                 opponent = battle_state.opponent.active_battler
-                if opponent.current_hp / opponent.total_hp > 0.4:
-                    util = BattleStrategyUtil(battle_state)
-                    own = battle_state.own_side.active_battler
-                    best = None
-                    for index, learned in enumerate(own.moves):
-                        if learned is None or learned.pp == 0 or learned.move.base_power == 0:
-                            continue
-                        damage = util.calculate_move_damage_range(learned.move, own, opponent)
-                        # Worst case (max roll, crit) must not KO the target.
-                        crit_max = util.calculate_move_damage_range(learned.move, own, opponent, True).max
-                        if crit_max < opponent.current_hp and (best is None or damage.max > best[1]):
-                            best = (index, damage.max)
-                    if best is not None:
-                        return TurnAction.use_move(best[0])
-                return super().decide_turn(battle_state)
+                own = battle_state.own_side.active_battler
+                util = BattleStrategyUtil(battle_state)
+
+                # Safe non-KO chip: strongest damaging move whose worst-case
+                # (max roll + crit) still can't KO the target.
+                safe_chip = None
+                best_dmg = -1
+                for index, learned in enumerate(own.moves):
+                    if learned is None or learned.pp == 0 or learned.move.base_power == 0:
+                        continue
+                    crit_max = util.calculate_move_damage_range(learned.move, own, opponent, True).max
+                    dmg = util.calculate_move_damage_range(learned.move, own, opponent).max
+                    if crit_max < opponent.current_hp and dmg > best_dmg:
+                        safe_chip, best_dmg = index, dmg
+
+                knows_fs, fs_index = _knows_false_swipe(own)
+
+                # Map the active battler + find the best benched weakener by
+                # real party index (rotate_lead takes a party index). Match on
+                # personality_value (stable per individual).
+                from modules.pokemon_party import get_party
+
+                party = [p for p in get_party()]
+                active_index = 0
+                for i, p in enumerate(party):
+                    if not p.is_egg and p.personality_value == own.personality_value:
+                        active_index = i
+                        break
+                weakener_index = None
+                for i, p in enumerate(party):
+                    if p.is_egg or p.current_hp == 0 or i == active_index:
+                        continue
+                    names = {m.move.name for m in p.moves if m is not None}
+                    if "False Swipe" in names or (names & SLEEP_MOVES):
+                        weakener_index = i
+                        break
+
+                ball = self._get_best_poke_ball(battle_state)
+                if ball is None:
+                    return TurnAction.switch_to_manual()
+                odds = util.calculate_catch_success_chance(
+                    battle_state, self._get_poke_ball_catch_rate_multiplier(battle_state, ball)
+                )
+
+                from modules.pokemon import StatusCondition
+
+                view = CatchView(
+                    active_index=active_index,
+                    active_knows_false_swipe=knows_fs and fs_index is not None,
+                    party_weakener_index=weakener_index,
+                    opponent_hp_fraction=opponent.current_hp / opponent.total_hp,
+                    opponent_is_statused=opponent.status_permanent != StatusCondition.Healthy,
+                    one_turn_catch_chance=odds,
+                    safe_chip_move_index=safe_chip,
+                    status_move_index=self._get_best_status_changing_move(battle_state),
+                    false_swipe_move_index=fs_index,
+                )
+                kind, arg = choose_catch_action(view)
+                if kind == "rotate" and arg is not None and arg != view.active_index:
+                    return TurnAction.rotate_lead(arg)
+                if kind == "move" and arg is not None:
+                    return TurnAction.use_move(arg)
+                return super().decide_turn(battle_state)  # throws the best ball
 
         return _Strategy()
 
