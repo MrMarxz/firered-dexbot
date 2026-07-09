@@ -73,7 +73,10 @@ def main() -> None:
                 video_label.configure(image=image)
                 video_label.image = image
                 window.update()
-            except tk.TclError:  # window closed by the user
+            except Exception:  # noqa: BLE001 — window closed / Tk teardown mid-
+                # frame raises more than TclError (PhotoImage AttributeError,
+                # RuntimeError); the view is decoration and must NEVER kill the
+                # run — it did once, rolling back to the last checkpoint.
                 video_state["alive"] = False
 
         runner.frame_hooks.append(video_hook)

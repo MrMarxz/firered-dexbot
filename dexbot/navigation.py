@@ -354,19 +354,7 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
             failed.add(key)
         return result
 
-    # Direct-walk short-circuit: if the destination is simply walkable from the
-    # start (same level, no obstruction right now), the answer is the empty
-    # route — no warps, no cuts. Without this, a plan from a spot that already
-    # walks to dest can still route through a (redundant) cut edge, and after
-    # physically crossing that tree the re-plan picks it AGAIN — a no-op loop.
-    if _map_level(start[0]) == _map_level(dest[0]) and walkable(start, dest):
-        return []
-
     entry = _find_component(start, comp, walkable)
-    if entry is None:
-        return None
-    # Warp adjacency: each warp joins its source tile's component to its
-    # landing tile's component, traversed by stepping on the source tile.
     gated = _story_gated_warp_dests()
     warp_adj: dict[int, list] = {}
     for elist in _get_warp_edges().values():
@@ -417,6 +405,25 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
         if walkable(rep, dest) and walkable(dest, rep):
             dest_cid = cid
             break
+
+    # Direct-walk short-circuit: if the destination is simply walkable from the
+    # start (same level, no obstruction right now), the answer is the empty
+    # route — no warps, no cuts. Without this, a plan from a spot that already
+    # walks to dest can still route through a (redundant) cut edge, and after
+    # physically crossing that tree the re-plan picks it AGAIN — a no-op loop.
+    # GUARDED by component knowledge: when start and dest belong to KNOWN
+    # DIFFERENT components, the direct A* is guaranteed to fail — and a failed
+    # A* exhausts the whole connected region (post-Snorlax level 180 = most of
+    # Kanto, tens of seconds); five candidate tiles per catch objective blew
+    # the 120s step budget on pure exhausts. Skip it and let the BFS route.
+    if (
+        _map_level(start[0]) == _map_level(dest[0])
+        and (entry is None or dest_cid is None or entry == dest_cid)
+        and walkable(start, dest)
+    ):
+        return []
+    if entry is None:
+        return None
 
     # 0-1 BFS: walk edges are free, warp edges cost one leg. Cut edges (cost 1)
     # are traversable when a party member can use Cut — the route then carries
