@@ -54,8 +54,19 @@ def deposit_party_fodder(keep: int = 1) -> Generator:
     interior = get_player_avatar().map_group_and_number
 
     yield from navigate_to(interior, (7, 4))  # in front of the nurse
-    context.emulator.press_button("A")
-    yield
+    yield from wait_for_player_avatar_to_be_standing_still("B")  # settle before talking
+    # Bounded mash: a single A eaten mid-tile-transition left us idle at the
+    # counter with no prompt and wait_for_yes_no spinning forever (30k-frame
+    # stall). Re-press until the heal prompt opens.
+    from modules.tasks import get_global_script_context
+
+    for _ in range(20):
+        sc = get_global_script_context()
+        if sc is not None and sc.is_active:
+            break
+        context.emulator.press_button("A")
+        for _ in range(12):
+            yield
     yield from wait_for_yes_no_question("Yes")
     yield from wait_for_no_script_to_run("B")
     yield from wait_for_player_avatar_to_be_standing_still("B")

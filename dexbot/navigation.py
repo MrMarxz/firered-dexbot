@@ -457,6 +457,22 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
     # A* exhausts the whole connected region (post-Snorlax level 180 = most of
     # Kanto, tens of seconds); five candidate tiles per catch objective blew
     # the 120s step budget on pure exhausts. Skip it and let the BFS route.
+    def _finalize(route):
+        # A route made ONLY of cut edges deserves a direct-walk double-check:
+        # cut trees respawn per map load, so the graph's split can be STALE
+        # (tree currently down = both sides one region). Returning the cut
+        # route then shuttles the player across the tree line forever — walk
+        # to the stand, no-op cut, step back across, re-plan, repeat (203
+        # plans/stall observed). If start already walks to dest, say so.
+        if (
+            route
+            and all(isinstance(s, dict) and s.get("cut") for s in route)
+            and _map_level(start[0]) == _map_level(dest[0])
+            and walkable(start, dest)
+        ):
+            return []
+        return route
+
     # Entry-component fallback: the nearest mutual component can be a SHADOW
     # (a single-tile comp minted for a cut-edge stand when a transient NPC
     # walled the build's mutual check) whose only edge is disabled — the BFS
@@ -493,9 +509,9 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
             cid, route = queue.popleft()
             if dest_cid is not None:
                 if cid == dest_cid:
-                    return route
+                    return _finalize(route)
             elif any(walkable(rep, dest) for rep in dest_reps.get(cid, ())):
-                return route
+                return _finalize(route)
             for next_cid in graph["walk"].get(cid, []):
                 if next_cid not in seen:
                     seen.add(next_cid)
