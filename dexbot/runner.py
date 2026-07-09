@@ -239,6 +239,8 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
 
     recent_positions: deque = deque(maxlen=10)  # sampled every 2000 frames
     recent_rest: deque = deque(maxlen=10)
+    faint_menu_frames = 0
+    faint_injected = False
     try:
         while len(context.controller_stack) > 0:
             context.frame += 1
@@ -276,6 +278,30 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
                     _log_event(skill=name, status="cleaned_stale_battle_controllers")
             else:
                 calm_overworld_frames = 0
+
+            # Faint→send-next safety net: script-started trainer/gym battles
+            # desync the BattleListener, so nothing drives the "choose your
+            # next Pokémon" menu after a faint — it hangs until the progress
+            # watchdog (the Koga stall). When that menu persists with living
+            # backups, inject upstream's faint handler to send the healthiest
+            # mon. Hardens every multi-mon battle.
+            _faint_tasks = ("task_returntochoosemonaftertext", "task_handlechoosemoninput")
+            if any(t in frame_info.active_tasks for t in _faint_tasks):
+                faint_menu_frames += 1
+            else:
+                faint_menu_frames = 0
+                faint_injected = False
+            if faint_menu_frames > 240 and not faint_injected:
+                from modules.pokemon_party import get_party
+
+                if len(get_party().non_fainted_pokemon) > 0:
+                    from modules.battle_handler import handle_fainted_pokemon
+
+                    from dexbot.catching import make_healing_battle_strategy
+
+                    context.controller_stack.append(handle_fainted_pokemon(make_healing_battle_strategy()))
+                    faint_injected = True
+                    _log_event(skill=name, status="faint_menu_injected")
 
             try:
                 if len(context.controller_stack) > 0:
