@@ -297,12 +297,59 @@ def beat_erika(min_level: int = 40) -> Generator:
         raise SkillError("Erika was not defeated (badge flag unset)")
 
 
-GYMS = {"brock": beat_brock, "misty": beat_misty, "surge": beat_surge, "erika": beat_erika}
+def beat_koga(min_level: int = 45) -> Generator:
+    """Beat Koga (badge 5, Fuchsia). The gym's invisible walls are real
+    collision in the map data, so A* threads the maze natively; the six
+    trainers en route are line-of-sight ambushes handled by the battle
+    listener. His Poison team leans on Toxic and Self-Destruct (Koffing),
+    so we bring a full-HP lead and a hard level floor."""
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG, PokemonCenter
+    from modules.memory import get_event_flag
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+    from modules.player import get_player
+    from modules.pokemon_party import get_party
+
+    from dexbot.boxes import deposit_party_fodder
+    from dexbot.planner import _nearest_mart
+    from dexbot.runner import _log_event
+
+    if get_event_flag("BADGE05_GET"):
+        return
+
+    yield from deposit_party_fodder(keep=1)
+    if max(p.level for p in get_party() if not p.is_egg) < min_level:
+        yield from grind_levels(min_level)
+    yield from ensure_healthy(minimum_fraction=0.99, center=PokemonCenter.FuchsiaCity)
+
+    if get_item_bag().quantity_of(get_item_by_name("Super Potion")) < 5:
+        affordable = get_player().money // 700
+        if affordable > 0:
+            from dexbot.openings import buy_items
+
+            yield from buy_items([("Super Potion", min(8, affordable))], _nearest_mart())
+
+    _log_event(skill="beat_koga", status="phase", phase="enter_gym")
+    yield from navigate_to(MapFRLG.FUCHSIA_CITY_GYM, (7, 14))  # below Koga (obj 7 @ 7,13)
+
+    _log_event(skill="beat_koga", status="phase", phase="fight")
+    yield from talk_to_npc(7)
+    yield from wait_for_no_script_to_run("B")
+    yield from wait_for_player_avatar_to_be_controllable("B")
+
+    if not get_event_flag("BADGE05_GET"):
+        raise SkillError("Koga was not defeated (badge flag unset)")
+
+
+GYMS = {"brock": beat_brock, "misty": beat_misty, "surge": beat_surge, "erika": beat_erika, "koga": beat_koga}
 _DEFAULT_FIXTURE = {
     "brock": "m6_pre_brock_dex.ss1",
     "misty": "m7_ss_ticket.ss1",
     "surge": "m7_cerulean_sweep.ss1",
     "erika": "m7_rock_tunnel_sweep.ss1",
+    "koga": "m8_post_snorlax.ss1",
 }
 
 
@@ -311,8 +358,17 @@ def main() -> None:
 
     which = sys.argv[1] if len(sys.argv) > 1 else "brock"
     fixture = sys.argv[2] if len(sys.argv) > 2 else _DEFAULT_FIXTURE.get(which, "m7_ss_ticket.ss1")
-    context = setup_headless_emulator(is_test_run=True)
-    context.emulator.load_save_state((PROJECT_ROOT / "fixtures" / fixture).read_bytes())
+    if fixture == "--live":
+        # Run against the persistent living-dex profile (same resume behavior
+        # as run.py): the badge lands in current_state.ss1 for real.
+        from dexbot.emulator import get_or_create_profile
+
+        context = setup_headless_emulator(profile=get_or_create_profile("livingdex"), is_test_run=False)
+        out = None
+    else:
+        context = setup_headless_emulator(is_test_run=True)
+        context.emulator.load_save_state((PROJECT_ROOT / "fixtures" / fixture).read_bytes())
+        out = PROJECT_ROOT / "fixtures" / f"m7_badge_{which}.ss1"
     context.emulator.run_single_frame()
 
     from dexbot.runner import attach_video_window
@@ -323,7 +379,8 @@ def main() -> None:
 
     run_skill(GYMS[which](), f"beat_{which}", timeout_frames=900_000, on_battle_started=fight_all_battles)
     print(f"{which} defeated")
-    (PROJECT_ROOT / "fixtures" / f"m7_badge_{which}.ss1").write_bytes(context.emulator.get_save_state())
+    if out is not None:
+        out.write_bytes(context.emulator.get_save_state())
 
 
 if __name__ == "__main__":
