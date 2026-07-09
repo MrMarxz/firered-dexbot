@@ -462,6 +462,33 @@ def get_vs_seeker() -> Generator:
     yield from register_key_item(seeker)
 
 
+def _go_talk(map_enum, npc_id: int) -> Generator:
+    """Navigate to a WALKABLE tile adjacent to NPC `npc_id` on `map_enum`, then
+    talk to it. Robust against blocked approach tiles (the Fan Club counter
+    below the Chairman is collision — guessing 'below' blew the route budget):
+    pick the neighbour the game marks walkable, let talk_to_npc face+press A."""
+    from modules.map import get_map_data
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.walking import navigate_to as navigate_same_level
+
+    md = get_map_data(map_enum, (0, 0))
+    npc = next(o.local_coordinates for o in md.objects if o.local_id == npc_id)
+    approach = None
+    for dx, dy in ((0, 1), (0, -1), (-1, 0), (1, 0)):
+        n = (npc[0] + dx, npc[1] + dy)
+        try:
+            if not get_map_data(map_enum, n).collision:
+                approach = n
+                break
+        except Exception:
+            continue
+    if approach is None:
+        raise SkillError(f"No walkable tile adjacent to obj {npc_id} on {map_enum}")
+    yield from navigate_to(map_enum, approach)
+    yield from navigate_same_level(map_enum, approach)  # settle onto it same-map
+    yield from talk_to_npc(npc_id)
+
+
 def get_bicycle() -> Generator:
     """Bike Voucher from the Vermilion Fan Club Chairman (obj 1), then swap it
     for a free Bicycle at the Cerulean Bike Shop clerk (obj 1). The Bicycle
@@ -471,25 +498,21 @@ def get_bicycle() -> Generator:
     from modules.context import context
     from modules.items import get_item_bag, get_item_by_name
     from modules.map_data import MapFRLG
-    from modules.modes.util.higher_level_actions import talk_to_npc
     from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
-    from modules.modes.util.walking import (
-        navigate_to as navigate_same_level,
-        wait_for_player_avatar_to_be_controllable,
-    )
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
 
     bicycle = get_item_by_name("Bicycle")
     voucher = get_item_by_name("Bike Voucher")
     if get_item_bag().quantity_of(bicycle) > 0:
         return
 
-    def talk_until(npc_id: int, item, tries: int = 8) -> Generator:
+    def talk_until(map_enum, npc_id: int, item, tries: int = 8) -> Generator:
         # Gift/exchange dialogues vary (text-only or a yes/no); mash A through
-        # them until the expected item lands, then settle.
+        # them until the expected item lands, re-approaching each try.
         for _ in range(tries):
             if get_item_bag().quantity_of(item) > 0:
                 return
-            yield from talk_to_npc(npc_id)
+            yield from _go_talk(map_enum, npc_id)
             for _ in range(90):
                 context.emulator.press_button("A")
                 for _ in range(6):
@@ -498,15 +521,11 @@ def get_bicycle() -> Generator:
             yield from wait_for_player_avatar_to_be_controllable("B")
 
     if get_item_bag().quantity_of(voucher) == 0:
-        yield from navigate_to(MapFRLG.VERMILION_CITY_POKEMON_FAN_CLUB, (5, 5))  # below Chairman (obj 1 @ 5,4)
-        yield from navigate_same_level(MapFRLG.VERMILION_CITY_POKEMON_FAN_CLUB, (5, 5))
-        yield from talk_until(1, voucher)
+        yield from talk_until(MapFRLG.VERMILION_CITY_POKEMON_FAN_CLUB, 1, voucher)  # Chairman
         if get_item_bag().quantity_of(voucher) == 0:
             raise SkillError("Fan Club Chairman did not give the Bike Voucher")
 
-    yield from navigate_to(MapFRLG.CERULEAN_CITY_BIKE_SHOP, (9, 4))  # below the clerk (obj 1 @ 9,3)
-    yield from navigate_same_level(MapFRLG.CERULEAN_CITY_BIKE_SHOP, (9, 4))
-    yield from talk_until(1, bicycle)
+    yield from talk_until(MapFRLG.CERULEAN_CITY_BIKE_SHOP, 1, bicycle)  # clerk
     if get_item_bag().quantity_of(bicycle) == 0:
         raise SkillError("Bike Shop clerk did not hand over the Bicycle")
 
@@ -519,12 +538,8 @@ def get_amulet_coin() -> Generator:
     Give it to the battle lead afterward so gym/patrol payouts double."""
     from modules.items import get_item_bag, get_item_by_name
     from modules.map_data import MapFRLG
-    from modules.modes.util.higher_level_actions import talk_to_npc
     from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
-    from modules.modes.util.walking import (
-        navigate_to as navigate_same_level,
-        wait_for_player_avatar_to_be_controllable,
-    )
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
     from modules.pokedex import get_pokedex
 
     coin = get_item_by_name("Amulet Coin")
@@ -533,9 +548,7 @@ def get_amulet_coin() -> Generator:
     if len(get_pokedex().owned_species) < 40:
         raise SkillError("Amulet Coin needs 40+ owned species")
 
-    yield from navigate_to(MapFRLG.ROUTE16_NORTH_ENTRANCE_2F, (10, 7))  # below the aide (obj 3 @ 10,6)
-    yield from navigate_same_level(MapFRLG.ROUTE16_NORTH_ENTRANCE_2F, (10, 7))
-    yield from talk_to_npc(3)
+    yield from _go_talk(MapFRLG.ROUTE16_NORTH_ENTRANCE_2F, 3)  # Oak's aide (obj 3)
     yield from wait_for_no_script_to_run("B")
     yield from wait_for_player_avatar_to_be_controllable("B")
     if get_item_bag().quantity_of(coin) == 0:
