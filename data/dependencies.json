@@ -1,261 +1,273 @@
 {
- "_comment": "Story-flag / HM / badge dependency graph for FireRed progression. Hand-authored from Bulbapedia's FRLG walkthrough + badge documentation. Nodes are objectives; 'requires' lists other node ids or event flags that must be complete first. Consumed by the M6 planner.",
- "hm_field_requirements": {
-  "Flash": "BADGE01_GET",
-  "Cut": "BADGE02_GET",
-  "Fly": "BADGE03_GET",
-  "Strength": "BADGE04_GET",
-  "Surf": "BADGE05_GET",
-  "Rock Smash": "BADGE06_GET",
-  "Waterfall": "BADGE07_GET"
- },
- "maps": {
-  "_comment": "Maps the planner may send the bot to, with flag requirements. Unannotated maps are off-limits until annotated (grows with story progress). safe_tile avoids trainer line-of-sight; min_lead_level gates maps with unavoidable trainer ambushes (Route 22 rival).",
-  "3,19": {
-   "requires": []
+  "_comment": "Story-flag / HM / badge dependency graph for FireRed progression. Hand-authored from Bulbapedia's FRLG walkthrough + badge documentation. Nodes are objectives; 'requires' lists other node ids or event flags that must be complete first. Consumed by the M6 planner.",
+  "hm_field_requirements": {
+    "Flash": "BADGE01_GET",
+    "Cut": "BADGE02_GET",
+    "Fly": "BADGE03_GET",
+    "Strength": "BADGE04_GET",
+    "Surf": "BADGE05_GET",
+    "Rock Smash": "BADGE06_GET",
+    "Waterfall": "BADGE07_GET"
   },
-  "3,20": {
-   "requires": []
+  "maps": {
+    "_comment": "Maps the planner may send the bot to, with flag requirements. Unannotated maps are off-limits until annotated (grows with story progress). safe_tile avoids trainer line-of-sight; min_lead_level gates maps with unavoidable trainer ambushes (Route 22 rival).",
+    "3,19": {
+      "requires": []
+    },
+    "3,20": {
+      "requires": []
+    },
+    "1,0": {
+      "requires": [],
+      "safe_tile": [
+        4,
+        58
+      ]
+    },
+    "3,41": {
+      "requires": [],
+      "safe_tile": [
+        38,
+        11
+      ]
+    },
+    "3,21": {
+      "requires": [
+        "BADGE01_GET"
+      ]
+    },
+    "3,22": {
+      "requires": [
+        "BADGE01_GET",
+        "GOT_FOSSIL_FROM_MT_MOON"
+      ],
+      "visit_last": true,
+      "_note": "Route 4 east is a one-way descent into Cerulean; going there strands the bot away from western Kanto until Diglett's Cave"
+    },
+    "1,1": {
+      "requires": [
+        "BADGE01_GET"
+      ]
+    },
+    "1,2": {
+      "requires": [
+        "BADGE01_GET"
+      ]
+    },
+    "1,3": {
+      "requires": [
+        "BADGE01_GET"
+      ]
+    },
+    "3,23": {
+      "requires": []
+    },
+    "3,24": {
+      "requires": []
+    },
+    "3,43": {
+      "requires": []
+    },
+    "3,44": {
+      "requires": []
+    },
+    "3,29": {
+      "requires": []
+    },
+    "1,37": {
+      "requires": []
+    },
+    "3,30": {
+      "requires": [
+        "HIDE_ROUTE_12_SNORLAX"
+      ],
+      "_note": "Route 12 — Snorlax (obj 5 @ 14,70) blocks the road until woken via catch_snorlax"
+    },
+    "3,27": {
+      "requires": []
+    },
+    "3,28": {
+      "requires": []
+    },
+    "1,81": {
+      "requires": []
+    },
+    "1,82": {
+      "requires": []
+    },
+    "3,26": {
+      "requires": []
+    },
+    "3,25": {
+      "requires": []
+    },
+    "1,90": {
+      "requires": [
+        "HIDE_SILPH_SCOPE"
+      ],
+      "_note": "tower wilds are unidentifiable GHOSTs without the Silph Scope — balls cannot connect (38 Great Balls lost learning this)"
+    },
+    "1,91": {
+      "requires": [
+        "HIDE_SILPH_SCOPE"
+      ],
+      "_note": "tower wilds are unidentifiable GHOSTs without the Silph Scope — balls cannot connect (38 Great Balls lost learning this)"
+    },
+    "1,92": {
+      "requires": [
+        "HIDE_SILPH_SCOPE"
+      ],
+      "_note": "tower wilds are unidentifiable GHOSTs without the Silph Scope — balls cannot connect (38 Great Balls lost learning this)"
+    },
+    "1,93": {
+      "requires": [
+        "HIDE_SILPH_SCOPE"
+      ],
+      "_note": "tower wilds are unidentifiable GHOSTs without the Silph Scope — balls cannot connect (38 Great Balls lost learning this)"
+    },
+    "3,31": {
+      "requires": [
+        "HIDE_ROUTE_12_SNORLAX"
+      ],
+      "_note": "Route 13 — south of Route 12, same gate"
+    },
+    "3,34": {
+      "requires": [],
+      "_note": "Route 16 NE grass is reachable from Celadon pre-Snorlax; the Cycling Road gate is not (own Snorlax + bike)"
+    },
+    "3,32": {
+      "requires": [
+        "HIDE_ROUTE_12_SNORLAX"
+      ],
+      "_note": "Route 14 — Koga corridor, south of Route 13"
+    },
+    "3,33": {
+      "requires": [
+        "HIDE_ROUTE_12_SNORLAX"
+      ],
+      "_note": "Route 15 — Koga corridor, west to Fuchsia"
+    }
   },
-  "1,0": {
-   "requires": [],
-   "safe_tile": [
-    4,
-    58
-   ]
-  },
-  "3,41": {
-   "requires": [],
-   "safe_tile": [
-    38,
-    11
-   ]
-  },
-  "3,21": {
-   "requires": [
-    "BADGE01_GET"
-   ]
-  },
-  "3,22": {
-   "requires": [
-    "BADGE01_GET",
-    "GOT_FOSSIL_FROM_MT_MOON"
-   ],
-   "visit_last": true,
-   "_note": "Route 4 east is a one-way descent into Cerulean; going there strands the bot away from western Kanto until Diglett's Cave"
-  },
-  "1,1": {
-   "requires": [
-    "BADGE01_GET"
-   ]
-  },
-  "1,2": {
-   "requires": [
-    "BADGE01_GET"
-   ]
-  },
-  "1,3": {
-   "requires": [
-    "BADGE01_GET"
-   ]
-  },
-  "3,23": {
-   "requires": []
-  },
-  "3,24": {
-   "requires": []
-  },
-  "3,43": {
-   "requires": []
-  },
-  "3,44": {
-   "requires": []
-  },
-  "3,29": {
-   "requires": []
-  },
-  "1,37": {
-   "requires": []
-  },
-  "3,30": {
-   "requires": [
-    "HIDE_ROUTE_12_SNORLAX"
-   ],
-   "_note": "Route 12 \u2014 Snorlax (obj 5 @ 14,70) blocks the road until woken via catch_snorlax"
-  },
-  "3,27": {
-   "requires": []
-  },
-  "3,28": {
-   "requires": []
-  },
-  "1,81": {
-   "requires": []
-  },
-  "1,82": {
-   "requires": []
-  },
-  "3,26": {
-   "requires": []
-  },
-  "3,25": {
-   "requires": []
-  },
-  "1,90": {
-   "requires": [
-    "HIDE_SILPH_SCOPE"
-   ],
-   "_note": "tower wilds are unidentifiable GHOSTs without the Silph Scope \u2014 balls cannot connect (38 Great Balls lost learning this)"
-  },
-  "1,91": {
-   "requires": [
-    "HIDE_SILPH_SCOPE"
-   ],
-   "_note": "tower wilds are unidentifiable GHOSTs without the Silph Scope \u2014 balls cannot connect (38 Great Balls lost learning this)"
-  },
-  "1,92": {
-   "requires": [
-    "HIDE_SILPH_SCOPE"
-   ],
-   "_note": "tower wilds are unidentifiable GHOSTs without the Silph Scope \u2014 balls cannot connect (38 Great Balls lost learning this)"
-  },
-  "1,93": {
-   "requires": [
-    "HIDE_SILPH_SCOPE"
-   ],
-   "_note": "tower wilds are unidentifiable GHOSTs without the Silph Scope \u2014 balls cannot connect (38 Great Balls lost learning this)"
-  },
-  "3,31": {
-   "requires": [
-    "HIDE_ROUTE_12_SNORLAX"
-   ],
-   "_note": "Route 13 \u2014 south of Route 12, same gate"
-  },
-  "3,34": {
-   "requires": [],
-   "_note": "Route 16 NE grass is reachable from Celadon pre-Snorlax; the Cycling Road gate is not (own Snorlax + bike)"
+  "objectives": {
+    "get_pokedex": {
+      "requires": [],
+      "notes": "Oak's parcel loop, scripted in M4"
+    },
+    "badge_1_brock": {
+      "requires": [
+        "get_pokedex"
+      ]
+    },
+    "nugget_bridge_bill": {
+      "requires": [
+        "badge_2_misty"
+      ],
+      "grants": [
+        "GOT_SS_TICKET"
+      ]
+    },
+    "badge_2_misty": {
+      "requires": [
+        "badge_1_brock"
+      ]
+    },
+    "hm01_cut": {
+      "requires": [
+        "nugget_bridge_bill"
+      ],
+      "notes": "SS Anne captain, Vermilion"
+    },
+    "badge_3_lt_surge": {
+      "requires": [
+        "hm01_cut",
+        "badge_2_misty"
+      ],
+      "notes": "gym door needs Cut"
+    },
+    "hm05_flash": {
+      "requires": [
+        "hm01_cut"
+      ],
+      "notes": "Route 2 aide, needs 10 dex owned"
+    },
+    "badge_4_erika": {
+      "requires": [
+        "hm01_cut"
+      ],
+      "notes": "Celadon; reachable via Route 7"
+    },
+    "rocket_hideout_silph_scope": {
+      "requires": [
+        "badge_4_erika"
+      ]
+    },
+    "poke_flute": {
+      "requires": [
+        "rocket_hideout_silph_scope"
+      ],
+      "notes": "Pokemon Tower, Mr. Fuji"
+    },
+    "hm02_fly": {
+      "requires": [
+        "hm01_cut"
+      ],
+      "notes": "Route 16 house behind Cut tree"
+    },
+    "badge_5_koga": {
+      "requires": [
+        "poke_flute"
+      ],
+      "notes": "wake Snorlax to reach Fuchsia"
+    },
+    "safari_gold_teeth_hm04_hm03": {
+      "requires": [
+        "badge_5_koga"
+      ],
+      "notes": "Safari Zone: HM03 Surf (secret house) + Gold Teeth -> HM04 Strength"
+    },
+    "silph_co_clear": {
+      "requires": [
+        "poke_flute",
+        "badge_5_koga"
+      ],
+      "notes": "opens Saffron gym"
+    },
+    "badge_6_sabrina": {
+      "requires": [
+        "silph_co_clear"
+      ]
+    },
+    "mansion_secret_key": {
+      "requires": [
+        "safari_gold_teeth_hm04_hm03",
+        "BADGE05_GET"
+      ],
+      "notes": "needs Surf to reach Cinnabar"
+    },
+    "badge_7_blaine": {
+      "requires": [
+        "mansion_secret_key"
+      ]
+    },
+    "sevii_islands": {
+      "requires": [
+        "badge_7_blaine"
+      ],
+      "notes": "Bill's ferry after Blaine; Moltres on Mt. Ember"
+    },
+    "badge_8_giovanni": {
+      "requires": [
+        "badge_7_blaine",
+        "badge_6_sabrina",
+        "badge_3_lt_surge",
+        "hm05_flash"
+      ]
+    },
+    "elite_four": {
+      "requires": [
+        "badge_8_giovanni"
+      ],
+      "notes": "only if a dex species requires it"
+    }
   }
- },
- "objectives": {
-  "get_pokedex": {
-   "requires": [],
-   "notes": "Oak's parcel loop, scripted in M4"
-  },
-  "badge_1_brock": {
-   "requires": [
-    "get_pokedex"
-   ]
-  },
-  "nugget_bridge_bill": {
-   "requires": [
-    "badge_2_misty"
-   ],
-   "grants": [
-    "GOT_SS_TICKET"
-   ]
-  },
-  "badge_2_misty": {
-   "requires": [
-    "badge_1_brock"
-   ]
-  },
-  "hm01_cut": {
-   "requires": [
-    "nugget_bridge_bill"
-   ],
-   "notes": "SS Anne captain, Vermilion"
-  },
-  "badge_3_lt_surge": {
-   "requires": [
-    "hm01_cut",
-    "badge_2_misty"
-   ],
-   "notes": "gym door needs Cut"
-  },
-  "hm05_flash": {
-   "requires": [
-    "hm01_cut"
-   ],
-   "notes": "Route 2 aide, needs 10 dex owned"
-  },
-  "badge_4_erika": {
-   "requires": [
-    "hm01_cut"
-   ],
-   "notes": "Celadon; reachable via Route 7"
-  },
-  "rocket_hideout_silph_scope": {
-   "requires": [
-    "badge_4_erika"
-   ]
-  },
-  "poke_flute": {
-   "requires": [
-    "rocket_hideout_silph_scope"
-   ],
-   "notes": "Pokemon Tower, Mr. Fuji"
-  },
-  "hm02_fly": {
-   "requires": [
-    "hm01_cut"
-   ],
-   "notes": "Route 16 house behind Cut tree"
-  },
-  "badge_5_koga": {
-   "requires": [
-    "poke_flute"
-   ],
-   "notes": "wake Snorlax to reach Fuchsia"
-  },
-  "safari_gold_teeth_hm04_hm03": {
-   "requires": [
-    "badge_5_koga"
-   ],
-   "notes": "Safari Zone: HM03 Surf (secret house) + Gold Teeth -> HM04 Strength"
-  },
-  "silph_co_clear": {
-   "requires": [
-    "poke_flute",
-    "badge_5_koga"
-   ],
-   "notes": "opens Saffron gym"
-  },
-  "badge_6_sabrina": {
-   "requires": [
-    "silph_co_clear"
-   ]
-  },
-  "mansion_secret_key": {
-   "requires": [
-    "safari_gold_teeth_hm04_hm03",
-    "BADGE05_GET"
-   ],
-   "notes": "needs Surf to reach Cinnabar"
-  },
-  "badge_7_blaine": {
-   "requires": [
-    "mansion_secret_key"
-   ]
-  },
-  "sevii_islands": {
-   "requires": [
-    "badge_7_blaine"
-   ],
-   "notes": "Bill's ferry after Blaine; Moltres on Mt. Ember"
-  },
-  "badge_8_giovanni": {
-   "requires": [
-    "badge_7_blaine",
-    "badge_6_sabrina",
-    "badge_3_lt_surge",
-    "hm05_flash"
-   ]
-  },
-  "elite_four": {
-   "requires": [
-    "badge_8_giovanni"
-   ],
-   "notes": "only if a dex species requires it"
-  }
- }
 }
