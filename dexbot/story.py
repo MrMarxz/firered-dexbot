@@ -463,29 +463,37 @@ def get_vs_seeker() -> Generator:
 
 
 def _go_talk(map_enum, npc_id: int) -> Generator:
-    """Navigate to a WALKABLE tile adjacent to NPC `npc_id` on `map_enum`, then
-    talk to it. Robust against blocked approach tiles (the Fan Club counter
-    below the Chairman is collision — guessing 'below' blew the route budget):
-    pick the neighbour the game marks walkable, let talk_to_npc face+press A."""
+    """Get onto `map_enum` (into the building) and talk to NPC `npc_id`.
+
+    Delegate the precise approach to talk_to_npc, which picks a REACHABLE
+    neighbour via calculate_path — not just a collision-free one. (A
+    collision-free tile can still be calc-unreachable: the Fan Club Chairman's
+    'up' tile is open but unreachable; only 'left' works. Guessing the tile
+    ourselves blew the route budget.) dexbot navigate_to lands us inside the
+    building even if its final interior leg errors, so a same-map failure is
+    fine as long as we're on the map — talk_to_npc takes it from there."""
     from modules.map import get_map_data
     from modules.modes.util.higher_level_actions import talk_to_npc
-    from modules.modes.util.walking import navigate_to as navigate_same_level
+    from modules.player import get_player_avatar
 
-    md = get_map_data(map_enum, (0, 0))
-    npc = next(o.local_coordinates for o in md.objects if o.local_id == npc_id)
-    approach = None
-    for dx, dy in ((0, 1), (0, -1), (-1, 0), (1, 0)):
-        n = (npc[0] + dx, npc[1] + dy)
+    from dexbot.runner import SkillError, SkillTimeout
+
+    if get_player_avatar().map_group_and_number != map_enum.value:
+        # Aim at any walkable NPC-adjacent tile just to route INTO the building;
+        # the interior final leg may error (unreachable pick) but we still land
+        # inside, which is all we need.
+        md = get_map_data(map_enum, (0, 0))
+        npc = next(o.local_coordinates for o in md.objects if o.local_id == npc_id)
+        approach = next(
+            ((npc[0] + dx, npc[1] + dy) for dx, dy in ((0, 1), (0, -1), (-1, 0), (1, 0))
+             if not get_map_data(map_enum, (npc[0] + dx, npc[1] + dy)).collision),
+            npc,
+        )
         try:
-            if not get_map_data(map_enum, n).collision:
-                approach = n
-                break
-        except Exception:
-            continue
-    if approach is None:
-        raise SkillError(f"No walkable tile adjacent to obj {npc_id} on {map_enum}")
-    yield from navigate_to(map_enum, approach)
-    yield from navigate_same_level(map_enum, approach)  # settle onto it same-map
+            yield from navigate_to(map_enum, approach)
+        except (SkillError, SkillTimeout):
+            if get_player_avatar().map_group_and_number != map_enum.value:
+                raise  # never made it inside
     yield from talk_to_npc(npc_id)
 
 
