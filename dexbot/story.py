@@ -505,7 +505,48 @@ def _go_talk(map_enum, npc_id: int) -> Generator:
                 break
         if get_player_avatar().map_group_and_number != map_enum.value:
             raise SkillError(f"Could not enter {map_enum} to reach obj {npc_id}")
-    yield from talk_to_npc(npc_id)
+
+    from modules.modes._interface import BotModeError
+
+    try:
+        yield from talk_to_npc(npc_id)
+    except BotModeError:
+        # Counter clerk (Bike Shop, Dept Store, prize counters): the NPC sits
+        # behind 'Counter'-behaviour tiles with no reachable adjacent tile, so
+        # talk_to_npc's adjacent search fails. Stand on the customer tile one
+        # step beyond a counter and press A across it.
+        yield from _talk_over_counter(map_enum, npc_id)
+
+
+def _talk_over_counter(map_enum, npc_id: int) -> Generator:
+    from modules.context import context
+    from modules.map import get_map_data
+    from modules.modes.util.walking import (
+        ensure_facing_direction,
+        navigate_to as navigate_same_level,
+    )
+
+    from dexbot.runner import SkillError
+
+    md = get_map_data(map_enum, (0, 0))
+    npc = next(o.local_coordinates for o in md.objects if o.local_id == npc_id)
+    face_of = {(0, 1): "Down", (0, -1): "Up", (-1, 0): "Left", (1, 0): "Right"}
+    for dx, dy in ((0, 1), (0, -1), (-1, 0), (1, 0)):
+        counter = (npc[0] + dx, npc[1] + dy)
+        customer = (npc[0] + 2 * dx, npc[1] + 2 * dy)
+        try:
+            if get_map_data(map_enum, counter).tile_type != "Counter":
+                continue
+            if get_map_data(map_enum, customer).collision:
+                continue
+        except Exception:
+            continue
+        yield from navigate_same_level(map_enum, customer)
+        yield from ensure_facing_direction(face_of[(-dx, -dy)])  # face back toward the counter/clerk
+        context.emulator.press_button("A")
+        yield
+        return
+    raise SkillError(f"No counter-front tile to talk to obj {npc_id} on {map_enum}")
 
 
 def get_bicycle() -> Generator:
