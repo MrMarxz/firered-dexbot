@@ -138,3 +138,85 @@ def enumerate_roster() -> list[RosterMon]:
             if slot is not None and not slot.pokemon.is_egg and not slot.pokemon.is_empty:
                 roster.append(_mon_to_roster(slot.pokemon, f"box:{bi}:{slot.slot_index}"))
     return roster
+
+
+def _party_ids() -> set:
+    from modules.pokemon_party import get_party
+
+    return {bytes(p.data[:4]) for p in get_party() if not p.is_egg}
+
+
+def _party_size() -> int:
+    from modules.pokemon_party import get_party
+
+    return len([p for p in get_party() if not p.is_egg])
+
+
+def _find_box_mon(id_bytes: bytes):
+    from modules.pokemon_storage import get_pokemon_storage
+
+    for box in get_pokemon_storage().boxes:
+        for slot in box.slots:
+            if slot is not None and not slot.pokemon.is_empty and bytes(slot.pokemon.data[:4]) == id_bytes:
+                return slot.pokemon
+    return None
+
+
+def assemble_party(objective: TeamObjective) -> Generator:
+    """Walk to the nearest PC and realize `select_party(objective)`: deposit
+    party mons not wanted, withdraw wanted mons from boxes. Keeps ≥1 conscious
+    mon in the party throughout and never exceeds 6."""
+    from modules.context import context
+    from modules.modes.util.pc_interaction import PCAction, interact_with_pc
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_standing_still
+    from modules.player import get_player_avatar
+    from modules.pokemon_party import get_party
+    from modules.state_cache import state_cache
+
+    from dexbot.boxes import _find_pc_tile
+    from dexbot.catching import _pick_reachable_center
+    from dexbot.navigation import navigate_to
+    from dexbot.runner import SkillError, _log_event
+
+    target = select_party(objective, enumerate_roster())
+    target_ids = {m.id_bytes for m in target}
+    if _party_ids() == target_ids:
+        return  # no-op: don't walk to a PC to do nothing
+
+    _log_event(skill="assemble_party", status="phase", phase="to_pc")
+    center = _pick_reachable_center()
+    yield from navigate_to(center.value[0], center.value[1])  # door warp → inside
+    interior = get_player_avatar().map_group_and_number
+    pc_tile = _find_pc_tile(interior)
+    yield from navigate_to(interior, (pc_tile[0], pc_tile[1] + 1))
+    yield from wait_for_player_avatar_to_be_standing_still("B")
+    yield from ensure_facing_direction("Up")
+
+    # Deposit unwanted party mons — one interact_with_pc per mon (batching
+    # stales upstream's captured indices as the party shrinks), reset the cache
+    # after each. Never drop below one conscious mon.
+    _log_event(skill="assemble_party", status="phase", phase="deposit")
+    for p in list(get_party()):
+        if p.is_egg or bytes(p.data[:4]) in target_ids:
+            continue
+        if _party_size() <= 1:
+            break
+        yield from interact_with_pc([PCAction.deposit_pokemon_to_box(p)])
+        state_cache.reset()
+
+    # Withdraw wanted mons still in boxes — one per call, re-finding the box
+    # object each time (slot objects go stale after a withdrawal).
+    _log_event(skill="assemble_party", status="phase", phase="withdraw")
+    for want in target:
+        if want.id_bytes in _party_ids() or _party_size() >= 6:
+            continue
+        boxed = _find_box_mon(want.id_bytes)
+        if boxed is not None:
+            yield from interact_with_pc([PCAction.withdraw_pokemon_from_box(boxed)])
+            state_cache.reset()
+
+    yield from wait_for_no_script_to_run("B")
+    result = _party_ids()
+    if result != target_ids:
+        raise SkillError(f"assemble_party: party {sorted(result)} != target {sorted(target_ids)}")
