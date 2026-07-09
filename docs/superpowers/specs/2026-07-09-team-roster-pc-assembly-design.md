@@ -47,9 +47,11 @@ recorded so they aren't lost):
 - **Ball economy:** switch the default restock purchase from Great Balls to
   **Ultra Balls** (×2 vs ×1.5) once affordable — a one-line change in
   `restock_pokeballs_if_low`, to land with C.
-- **No move-teaching or False-Swipe-acquisition skill is needed** — owned mons
-  already know the sleep/paralysis moves. (This removes work we might otherwise
-  have planned.)
+- **False Swipe acquisition = level our Cubone to 33** (B's leveling job): it
+  learns False Swipe by level-up (Marowak L39), no breeding/TM/trade. Scyther
+  (Safari, False Swipe @ L16) is a backup/upgrade caught for the dex anyway.
+  No move-*teaching* skill is needed — the sleep/paralysis moves are already
+  known by owned mons, and False Swipe comes from Cubone's natural level-up.
 - **Safari Zone** species use bait/rock + Safari Balls with no weakening — a
   separate M8 mechanic, untouched here.
 
@@ -104,13 +106,22 @@ Pure function (no emulator), unit-testable. Policy, in order:
    - **A non-powder status backup** — Thunder Wave (paralysis ×1.5) for targets
      immune to powder moves (Grass-types resist Sleep Powder/Stun Spore).
      Owned learners exist (Pikachu, Voltorb).
-   - **A low-level safe chipper** — a weak neutral attacker to lower HP without
-     KO. Since **False Swipe is unavailable in FRLG** (not a Gen III TM; the
-     level-up learners are Safari/trade-only), we cannot guarantee exactly
-     1 HP; C instead chips as low as the damage-range guard allows. A
-     deliberately-low-level mon is the safest chipper — another reason A keeps
-     some under-levelled mons on the bench.
-   (C consumes these; A only guarantees the roles are present.)
+   - **A False Swipe user** — the ideal safe weakener: False Swipe always
+     leaves the target at exactly 1 HP, never KOs, maximizing the HP term
+     (~×3) with zero risk. It is **not a Gen III TM**, but **Cubone learns it
+     by level-up at L33 (Marowak L39)** — and we already own a Cubone (L15,
+     boxed). A keeps that Cubone on the catch bench; B levels it to ≥33 so it
+     learns the move. (Backup/upgrade: **Scyther** learns False Swipe at L16
+     and is a Safari-Zone catch we need for the dex anyway.)
+   - **A low-level safe chipper** — fallback for before Cubone reaches L33, for
+     Ghost targets (False Swipe is Normal, no effect on Ghost), and for
+     powder-immune cases: a weak neutral attacker that chips as low as the
+     damage-range guard allows without a KO. A deliberately-low-level mon is
+     the safest chipper — another reason A keeps some under-levelled mons on
+     the bench.
+   (C consumes these; A only guarantees the roles are present. The kit
+   degrades gracefully: full power once Cubone knows False Swipe and a sleeper
+   is aboard; sleep + safe-chip until then.)
 4. Return ≤6, order irrelevant (the game auto-orders; C/B choose the active mon).
 
 ### `assemble_party(objective) -> Generator`
