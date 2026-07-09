@@ -377,6 +377,23 @@ def plan_and_catch_all() -> int:
         print(f"[planner] objective {chosen_name}: {rationale}")
         tile = tuple(annotation["safe_tile"]) if "safe_tile" in annotation else None
 
+        # Field a diverse, catch-rate-optimized team (sleep/False-Swipe/para
+        # roles + HM mules), leaving one slot for the catch. No-op when the
+        # party already matches, so this is cheap after the first assembly.
+        from dexbot.catching import fight_all_battles
+        from dexbot.team import TeamObjective, assemble_party
+
+        field_moves = tuple(annotation.get("field_moves", ("Cut",)))
+        try:
+            run_skill(
+                assemble_party(TeamObjective(kind="catch", field_moves=field_moves)),
+                "assemble_party",
+                timeout_frames=600_000,
+                on_battle_started=fight_all_battles,
+            )
+        except SkillError as e:
+            print(f"[planner] team assembly deferred: {e}")  # proceed with whatever party we have
+
         min_level = annotation.get("min_lead_level", 0)
         if get_party()[0].level < min_level:
             # Grind somewhere already safe (the forest safe tile) before
@@ -433,18 +450,10 @@ def plan_and_catch_all() -> int:
         caught += 1
         caught_since_reset += 1
         print(f"[planner] caught {species} ({rate}% on {map_key})")
-        # Keep slots open: a full party makes the next catch fail. HM mules
-        # are kept by deposit_party_fodder itself.
-        if len(get_party()) >= 5:
-            from dexbot.boxes import deposit_party_fodder
-            from dexbot.catching import fight_all_battles
-
-            run_skill(
-                deposit_party_fodder(keep=1),
-                "deposit_fodder",
-                timeout_frames=600_000,
-                on_battle_started=fight_all_battles,
-            )
+        # No post-catch deposit needed: the catch team is assembled fresh
+        # before each objective (above), which trims the previous catch (now a
+        # 6th party mon) back to a box. `deposit_party_fodder` remains in
+        # boxes.py as the primitive assemble_party builds on.
 
 
 def main() -> None:

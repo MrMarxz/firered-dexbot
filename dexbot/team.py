@@ -73,6 +73,11 @@ def select_party(objective: TeamObjective, roster: list[RosterMon], cap: int = 6
     """Deterministically pick ≤cap mons: mandatory HM mules, then catch-kit
     roles (sleep / False-Swipe / non-powder paralysis) for catch objectives,
     then viability-fill under a type-diversity cap."""
+    # Catch objectives leave one party slot free: the caught mon lands there
+    # (a full 6-party makes upstream's catch fail — M8 limitation). The next
+    # objective's assemble trims the previous catch back to a box.
+    if objective.kind == "catch":
+        cap = min(cap, 5)
     chosen: dict[bytes, RosterMon] = {}
 
     def add(m):

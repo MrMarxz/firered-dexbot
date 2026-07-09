@@ -53,8 +53,13 @@
 
 Honesty over optimism. Current as of M5.
 
-- **No party/box management yet** (M8): `catch_species` will fail once the party
-  is full (6 slots). The living-dex loop needs deposit-after-catch.
+- **Party/box management** (M8, sub-project A — `dexbot/team.py`): the planner
+  now assembles a diverse, catch-rate-optimized team (`assemble_party`) before
+  each catch objective, leaving one party slot free for the incoming catch
+  (a full 6-party still makes upstream's catch fail, so the catch team is 5).
+  Replaces the old deposit-to-one behavior. Still TODO: gym-objective team
+  assembly is wired (`kind="gym"`) but not yet driven by a planner gym loop
+  (sub-project B); leveling the assembled team is B.
 - **No weakening before catching**: upstream's CatchStrategy uses status moves +
   balls only. Rate-255 commons cost ~3 balls; low-rate species (Abra 50,
   legendaries 3) will be impractical until M7's damage calc enables safe
