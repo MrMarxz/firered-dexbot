@@ -205,7 +205,26 @@ def ensure_healthy(minimum_fraction: float = 0.5, center=None) -> Generator:
         return
 
     if center is None:
-        center = _pick_reachable_center()
+        try:
+            center = _pick_reachable_center()
+        except SkillError:
+            # The graph can see no exit. Typical case: standing ON a tile
+            # that straddles two components (a respawned cut tree under our
+            # feet) whose connecting edge is disabled (fainted Cut mule) —
+            # one physical step lands in a component that CAN reach a center.
+            # Try each direction, re-picking after every step.
+            from dexbot.story import _tap_and_settle
+
+            center = None
+            for direction in ("Down", "Left", "Right", "Up"):
+                yield from _tap_and_settle(direction)
+                try:
+                    center = _pick_reachable_center()
+                    break
+                except SkillError:
+                    continue
+            if center is None:
+                raise SkillError("No reachable Pokémon Center from here (even after stepping off)")
 
     yield from navigate_to(center.value[0], (center.value[1][0], center.value[1][1] + 1))
     yield from heal_in_pokemon_center(center)

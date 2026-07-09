@@ -181,6 +181,18 @@ def perform_cut(map_key, tree_tile: tuple[int, int], stand_tile: tuple[int, int]
         yield from wait_for_yes_no_question("Yes")
         yield from wait_for_no_script_to_run("B")
         yield from wait_for_player_avatar_to_be_controllable("B")
+    if tree_present:
+        # Verify the cut actually happened — a fainted/absent Cut user leaves
+        # the tree standing and the old code shuffled against it forever.
+        still_there = any(
+            o.current_coords == tuple(tree_tile) and "isPlayer" not in o.flags for o in get_map_objects()
+        )
+        if still_there:
+            raise SkillError(
+                f"Cut on {map_key} {tuple(tree_tile)} did not remove the tree "
+                "(Cut user fainted or unavailable?)"
+            )
+
     # Step ACROSS the (now-cleared) tree tile into the destination component.
     # Essential even when the tree was already cut: the graph still models the
     # two sides as joined ONLY by this cut edge, so without physically crossing,
@@ -216,7 +228,18 @@ def _cut_available() -> bool:
     from modules.memory import get_event_flag
     from modules.pokemon_party import get_party
 
-    return get_event_flag("BADGE02_GET") and get_party().has_pokemon_with_move("Cut")
+    if not get_event_flag("BADGE02_GET"):
+        return False
+    # The Cut user must be CONSCIOUS: a fainted mule can't cut, and plans that
+    # offer un-executable cut edges shuffle at the tree forever (Route 16
+    # pocket, mule at 0 HP — the plan kept saying "cut", the cut kept silently
+    # not happening). With cut edges off, plans route around; after a heal
+    # they come back.
+    return any(
+        p.current_hp > 0 and any(lm is not None and lm.move.name == "Cut" for lm in p.moves)
+        for p in get_party()
+        if not p.is_egg
+    )
 
 
 _nav_graphs: dict[str, dict | None] = {}  # epoch -> parsed graph | None
@@ -294,7 +317,9 @@ def _load_nav_graph() -> dict | None:
     return graph
 
 
-def _find_component(position, comp, walkable, mutual_only: bool = False, max_candidates: int = 6) -> int | None:
+def _find_component(
+    position, comp, walkable, mutual_only: bool = False, max_candidates: int = 6, exclude: frozenset = frozenset()
+) -> int | None:
     """The component CONTAINING `position` (mutual reachability with its
     representative, tested nearest-first). One-way reachability is not enough:
     the nearest rep can belong to a ledge pocket below the player — enterable
@@ -326,7 +351,10 @@ def _find_component(position, comp, walkable, mutual_only: bool = False, max_can
     # scan can miss the position's own component entirely (every plan from
     # inside a Pokémon Center failed). A position's containing component
     # always includes its map's own portal tiles.
-    ranked = sorted(nearest_rep.items(), key=lambda kv: (kv[1][0] != position[0], distance(kv[1])))
+    ranked = sorted(
+        ((cid, tile) for cid, tile in nearest_rep.items() if cid not in exclude),
+        key=lambda kv: (kv[1][0] != position[0], distance(kv[1])),
+    )
     for cid, tile in ranked[:max_candidates]:
         # Tight A* budget: the containing component's rep is nearby by
         # construction, so a probe needing >3k nodes is a "no" — full-budget
@@ -368,7 +396,6 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
             failed.add(key)
         return result
 
-    entry = _find_component(start, comp, walkable)
     gated = _story_gated_warp_dests()
     warp_adj: dict[int, list] = {}
     for elist in _get_warp_edges().values():
@@ -430,41 +457,59 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
     # A* exhausts the whole connected region (post-Snorlax level 180 = most of
     # Kanto, tens of seconds); five candidate tiles per catch objective blew
     # the 120s step budget on pure exhausts. Skip it and let the BFS route.
-    if (
-        _map_level(start[0]) == _map_level(dest[0])
-        and (entry is None or dest_cid is None or entry == dest_cid)
-        and walkable(start, dest)
-    ):
-        return []
-    if entry is None:
-        return None
-
-    # 0-1 BFS: walk edges are free, warp edges cost one leg. Cut edges (cost 1)
-    # are traversable when a party member can use Cut — the route then carries
-    # an action step ({"cut": ...}) the executor performs at that point.
+    # Entry-component fallback: the nearest mutual component can be a SHADOW
+    # (a single-tile comp minted for a cut-edge stand when a transient NPC
+    # walled the build's mutual check) whose only edge is disabled — the BFS
+    # then finds nothing even though the NEXT-nearest mutual comp routes fine.
+    # Try up to 3 distinct entry components before giving up.
     cut_ok = _cut_available()
-    queue = deque([(entry, [])])
-    seen = {entry}
-    while queue:
-        cid, route = queue.popleft()
-        if dest_cid is not None:
-            if cid == dest_cid:
+    direct_walk_tried = False
+    excluded: set = set()
+    for _entry_attempt in range(3):
+        entry = _find_component(start, comp, walkable, exclude=frozenset(excluded))
+
+        # Direct-walk short-circuit (first attempt only): if the destination is
+        # simply walkable from the start, the answer is the empty route.
+        # GUARDED by component knowledge: known-different components mean the
+        # direct A* is guaranteed to fail, and a failed A* exhausts the whole
+        # connected region (post-Snorlax Kanto — tens of seconds each).
+        if (
+            not direct_walk_tried
+            and _map_level(start[0]) == _map_level(dest[0])
+            and (entry is None or dest_cid is None or entry == dest_cid)
+            and walkable(start, dest)
+        ):
+            return []
+        direct_walk_tried = True
+        if entry is None:
+            return None
+
+        # 0-1 BFS: walk edges are free, warp edges cost one leg. Cut edges
+        # (cost 1) are traversable when a party member can use Cut — the route
+        # then carries an action step ({"cut": ...}) executed at that point.
+        queue = deque([(entry, [])])
+        seen = {entry}
+        while queue:
+            cid, route = queue.popleft()
+            if dest_cid is not None:
+                if cid == dest_cid:
+                    return route
+            elif any(walkable(rep, dest) for rep in dest_reps.get(cid, ())):
                 return route
-        elif any(walkable(rep, dest) for rep in dest_reps.get(cid, ())):
-            return route
-        for next_cid in graph["walk"].get(cid, []):
-            if next_cid not in seen:
-                seen.add(next_cid)
-                queue.appendleft((next_cid, route))
-        for next_cid, src_tile in warp_adj.get(cid, []):
-            if next_cid not in seen:
-                seen.add(next_cid)
-                queue.append((next_cid, [*route, src_tile]))
-        if cut_ok:
-            for next_cid, action in graph["cut"].get(cid, []):
+            for next_cid in graph["walk"].get(cid, []):
                 if next_cid not in seen:
                     seen.add(next_cid)
-                    queue.append((next_cid, [*route, action]))
+                    queue.appendleft((next_cid, route))
+            for next_cid, src_tile in warp_adj.get(cid, []):
+                if next_cid not in seen:
+                    seen.add(next_cid)
+                    queue.append((next_cid, [*route, src_tile]))
+            if cut_ok:
+                for next_cid, action in graph["cut"].get(cid, []):
+                    if next_cid not in seen:
+                        seen.add(next_cid)
+                        queue.append((next_cid, [*route, action]))
+        excluded.add(entry)
     return None  # no graph route (e.g. blacklisted bridge) — let live search try
 
 
