@@ -38,6 +38,21 @@ objectives — at least one status/False-Swipe holder aboard. This replaces the
 - Choosing which party member/move to use in a catch battle → **C**.
 - In-battle switching / potion use for gyms → **B**.
 
+**Outstanding follow-ups this investigation surfaced** (not A's code, but
+recorded so they aren't lost):
+- **C's per-turn policy** (its own spec): Sleep if catchable-and-unstatused
+  (re-apply on wake) → else non-powder Paralysis → chip to low HP under the
+  no-KO damage-range guard → throw. Handle powder-immune Grass targets and
+  fleers (sleep before they flee).
+- **Ball economy:** switch the default restock purchase from Great Balls to
+  **Ultra Balls** (×2 vs ×1.5) once affordable — a one-line change in
+  `restock_pokeballs_if_low`, to land with C.
+- **No move-teaching or False-Swipe-acquisition skill is needed** — owned mons
+  already know the sleep/paralysis moves. (This removes work we might otherwise
+  have planned.)
+- **Safari Zone** species use bait/rock + Safari Balls with no weakening — a
+  separate M8 mechanic, untouched here.
+
 A only decides *who is in the party* and physically realizes it at a PC. It is
 correct for A to leave the party under-levelled; C benefits from low-level
 members (safe weakeners) and B raises the core battlers.
@@ -78,10 +93,24 @@ Pure function (no emulator), unit-testable. Policy, in order:
    twice, unless nothing else remains. Viability = `level * evolution_stage`
    (stage from species data; ties broken by level then dex number for
    determinism — never by wall-clock/RNG).
-3. **Catch guarantee:** if `kind == "catch"` and no selected mon knows a status
-   move (Stun Spore, Sleep Powder, Spore, Thunder Wave, Poison Powder) or False
-   Swipe, swap the lowest-viability non-mandatory pick for the best roster mon
-   that does. (C consumes this; A only guarantees presence.)
+3. **Catch-rate-optimized kit** (the point of a catch team, per the Gen III
+   math — HP ×~3 at 1 HP, sleep ×2, Ultra Ball ×2, all multiplicative). For
+   `kind == "catch"`, guarantee these roles are aboard, adding the best roster
+   mon for each missing role (displacing the lowest-viability non-mandatory
+   fill):
+   - **A sleep user** (×2, the strongest status) — Sleep Powder / Hypnosis /
+     Sing / Spore, preferring higher accuracy (Spore 100 > Sleep Powder 75 >
+     Hypnosis 60 > Sing 55). We already own several (Gloom knows Sleep Powder).
+   - **A non-powder status backup** — Thunder Wave (paralysis ×1.5) for targets
+     immune to powder moves (Grass-types resist Sleep Powder/Stun Spore).
+     Owned learners exist (Pikachu, Voltorb).
+   - **A low-level safe chipper** — a weak neutral attacker to lower HP without
+     KO. Since **False Swipe is unavailable in FRLG** (not a Gen III TM; the
+     level-up learners are Safari/trade-only), we cannot guarantee exactly
+     1 HP; C instead chips as low as the damage-range guard allows. A
+     deliberately-low-level mon is the safest chipper — another reason A keeps
+     some under-levelled mons on the bench.
+   (C consumes these; A only guarantees the roles are present.)
 4. Return ≤6, order irrelevant (the game auto-orders; C/B choose the active mon).
 
 ### `assemble_party(objective) -> Generator`
