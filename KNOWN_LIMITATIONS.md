@@ -44,6 +44,17 @@
   it — a fresh skill start succeeds — but the in-skill resume path after
   whiteout deserves the interact()-class treatment. Also unclear why an L47
   Blastoise whited out vs L13-25 tower ghosts; replay the stall fixture.
+- **Vs Seeker rematch income is NOT producing sustained returns** (blocks the
+  Koga grind, 2026-07-09). Root-caused the first bug — the old sweep walked
+  *grass* tiles, missing the trainers' line-of-sight; `_earn_by_vs_seeker` now
+  walks each trainer's approach tile (west→east) with a recharge lap before the
+  Select, each leg its own run_skill. But every sweep still earns 0: the early
+  624/+3456 were one-shot FIRST-TIME trainer fights (now exhausted), not
+  rematches. So the Vs Seeker use itself isn't re-arming — needs frame-by-frame
+  debugging of the Select→Seeker flow (is it registered to Select? charge
+  threshold? per-trainer rematch probability? are the '!!' markers appearing?).
+  Until this works, there is no renewable income engine, which blocks buying
+  the Koga potion stack and grinding XP. Dedicated M8 task.
 - **The economy is thin**: income so far is one-off (Nugget, trainer payouts
   during story treks, junk-item liquidation when broke — FRLG cannot sell TMs,
   the TM Case is unreachable from the mart sell menu). Ball/potion budgets can

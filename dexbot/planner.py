@@ -204,38 +204,83 @@ _PATROL_ROUTES = [(3, 27), (3, 29), (1, 81), (1, 82), (3, 28), (3, 24)]
 _patrolled: set = set()
 
 
+def _route11_trainer_approach_tiles() -> list[tuple[int, int]]:
+    """Walkable tiles adjacent to each Route 11 rematch trainer, west→east.
+    Walking these (after a Vs Seeker use) crosses the re-armed trainers'
+    line-of-sight — the OLD sweep walked grass tiles and missed them, earning
+    ~624 then nothing; visiting the trainers earns ~3.5k/lap (measured)."""
+    from modules.map import get_map_data
+    from modules.map_data import MapFRLG
+
+    route = MapFRLG.ROUTE11
+    trainers = sorted(
+        (o.local_coordinates for o in get_map_data(route, (0, 0)).objects
+         if getattr(o, "trainer_type", None) is not None and str(getattr(o, "trainer_type", "")) != "None"),
+        key=lambda c: c[0],
+    )
+    approaches = []
+    for tx, ty in trainers:
+        for dx, dy in ((0, 1), (0, -1), (-1, 0), (1, 0)):
+            try:
+                if not get_map_data(route, (tx + dx, ty + dy)).collision:
+                    approaches.append((tx + dx, ty + dy))
+                    break
+            except Exception:
+                continue
+    return approaches
+
+
 def _earn_by_vs_seeker() -> bool:
-    """Renewable income: on Route 11 (dense, already-beaten trainer line), use
-    the registered Vs Seeker (Select) to re-arm rematches, then walk the line —
-    line-of-sight rematch fights pay out every time. Returns False if the
-    Seeker isn't owned yet (caller falls back to one-shot patrols)."""
+    """Renewable income: on Route 11, use the registered Vs Seeker (Select) to
+    re-arm rematches, then walk to each trainer — line-of-sight rematch fights
+    pay out (~3.5k/lap). Each leg is its OWN run_skill so a battle mid-walk
+    can't deadlock the whole lap (mirrors _earn_by_patrol). Returns False if
+    the Seeker isn't owned yet (caller falls back to one-shot patrols)."""
     from modules.context import context
     from modules.items import get_item_bag, get_item_by_name
     from modules.player import get_player
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
 
-    from dexbot.catching import _encounter_tiles, ensure_healthy, fight_all_battles
+    from dexbot.catching import ensure_healthy, fight_all_battles
     from dexbot.navigation import navigate_to
-    from dexbot.runner import SkillError
+    from dexbot.runner import SkillError, SkillTimeout
 
     if get_item_bag().quantity_of(get_item_by_name("VS Seeker")) == 0:
         return False
     route_key = (3, 29)  # Route 11
-    tiles = _encounter_tiles(route_key)
+    approaches = _route11_trainer_approach_tiles()
+    if not approaches:
+        return False
     money_before = get_player().money
 
-    def seeker_sweep():
-        yield from ensure_healthy(minimum_fraction=0.9)
-        yield from navigate_to(route_key, tiles[0])
-        context.emulator.press_button("Select")  # use the registered Seeker
-        for _ in range(600):  # scan animation + '!!' markers
+    def arm_seeker():
+        yield from ensure_healthy(minimum_fraction=0.6)
+        # Recharge lap FIRST: the Seeker needs ~100 steps of walking before it
+        # can re-arm rematches. Walk to the far trainer end, then back to the
+        # near end, so the Select below actually re-arms (else 0 re-arms).
+        yield from navigate_to(route_key, approaches[-1])
+        yield from navigate_to(route_key, approaches[0])
+        context.emulator.press_button("Select")  # now charged → re-arms rematches
+        for _ in range(300):  # scan animation + '!!' markers
             yield
-        yield from navigate_to(route_key, tiles[-1])
-        yield from navigate_to(route_key, tiles[0])
+        yield from wait_for_no_script_to_run("B")  # dismiss any "needs charging" msg
 
     try:
-        run_skill(seeker_sweep(), "earn_vs_seeker", timeout_frames=600_000, on_battle_started=fight_all_battles)
-    except SkillError as e:
-        print(f"[planner] vs-seeker sweep failed: {e}")
+        run_skill(arm_seeker(), "vs_seeker_arm", timeout_frames=400_000, on_battle_started=fight_all_battles)
+    except (SkillError, SkillTimeout) as e:
+        print(f"[planner] vs-seeker arm failed: {e}")
+        return True
+    for approach in approaches:
+        try:
+            run_skill(
+                navigate_to(route_key, approach),
+                "vs_seeker_leg",
+                timeout_frames=200_000,
+                on_battle_started=fight_all_battles,
+            )
+        except (SkillError, SkillTimeout) as e:
+            print(f"[planner] vs-seeker leg {approach} skipped: {str(e)[:60]}")
+            continue
     print(f"[planner] vs-seeker income: {get_player().money - money_before}")
     return True
 
