@@ -208,8 +208,25 @@ def _cut_available() -> bool:
     return get_event_flag("BADGE02_GET") and get_party().has_pokemon_with_move("Cut")
 
 
-_nav_graphs: dict[int, dict | None] = {}  # epoch -> parsed graph | None
-_rebuild_attempted: set[int] = set()
+_nav_graphs: dict[str, dict | None] = {}  # epoch -> parsed graph | None
+_rebuild_attempted: set[str] = set()
+
+
+def story_epoch() -> str:
+    """Graph section key: badge count plus the story flags that permanently
+    change walkable geometry within a badge epoch (a cleared Snorlax opens a
+    road no badge marks). Extend the flag list when a new permanent-roadblock
+    class appears (Silph Co doors, ...) — an unlisted one leaves the graph
+    stale until the next badge."""
+    from modules.memory import get_event_flag
+
+    badges = sum(1 for n in range(1, 9) if get_event_flag(f"BADGE{n:02d}_GET"))
+    suffix = "".join(
+        tag
+        for tag, flag in (("+snx12", "HIDE_ROUTE_12_SNORLAX"), ("+snx16", "HIDE_ROUTE_16_SNORLAX"))
+        if get_event_flag(flag)
+    )
+    return f"{badges}{suffix}"
 
 
 def _load_nav_graph() -> dict | None:
@@ -218,13 +235,12 @@ def _load_nav_graph() -> dict | None:
     same-level one-way edges: ledges, guard-gated gaps).
 
     Connectivity depends on story gates, so sections are keyed by an epoch
-    (= badge count). A missing epoch section is built in-process — pure
-    calculate_path computation, no frames advanced. None means graph planning
-    is unavailable (build failed); callers fall back to live search.
+    (story_epoch(): badge count + geometry-changing flags). A missing epoch
+    section is built in-process — pure calculate_path computation, no frames
+    advanced. None means graph planning is unavailable (build failed);
+    callers fall back to live search.
     """
-    from modules.memory import get_event_flag
-
-    epoch = sum(1 for n in range(1, 9) if get_event_flag(f"BADGE{n:02d}_GET"))
+    epoch = story_epoch()
     if epoch in _nav_graphs:
         return _nav_graphs[epoch]
 
@@ -236,7 +252,7 @@ def _load_nav_graph() -> dict | None:
 
     def read_section() -> dict | None:
         try:
-            raw = json.loads(path.read_text())["epochs"][str(epoch)]
+            raw = json.loads(path.read_text())["epochs"][epoch]
             comp = {}
             for key, cid in raw["components"].items():
                 mg, mn, x, y = (int(v) for v in key.split(","))

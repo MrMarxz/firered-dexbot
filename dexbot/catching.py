@@ -30,7 +30,10 @@ def _encounter_tiles(map_group_and_number: tuple[int, int]) -> list[tuple[int, i
 
     path_map = _get_all_maps_metadata()[map_group_and_number]
     all_tiles = [t for t in path_map.tiles if t.has_encounters]
-    land = [t for t in all_tiles if t.elevation != 1]
+    # Water is elevation 1 (ponds) or 0 (ocean — Route 12's surf tiles read 0,
+    # slipping past an `!= 1` check and feeding the reachability probe nothing
+    # but water); land stands at 3+.
+    land = [t for t in all_tiles if t.elevation not in (0, 1)]
     tiles = [t.local_coordinates for t in (land or all_tiles)]
     if not tiles:
         raise SkillError(f"Map {map_group_and_number} has no encounter tiles")

@@ -57,7 +57,9 @@ def build(context, save_every_level: bool = True) -> dict:
 
     # Resume this epoch's prior partial run; other epochs' sections are
     # untouched. Sections from before the cut-edge format are rebuilt.
-    epoch = sum(1 for n in range(1, 9) if get_event_flag(f"BADGE{n:02d}_GET"))
+    from dexbot.navigation import story_epoch
+
+    epoch = story_epoch()
     section = {"components": {}, "walk_edges": [], "cut_edges": [], "levels_done": []}
     if GRAPH_PATH.exists():
         prior = json.loads(GRAPH_PATH.read_text()).get("epochs", {}).get(str(epoch))
@@ -100,7 +102,7 @@ def build(context, save_every_level: bool = True) -> dict:
             for rep_b, cb in reps:
                 if ca != cb and _walkable(rep_a, rep_b):
                     walk_edges.add((ca, cb))
-        cut_edges.extend(_cut_edges_for_level(level, reps, _distance, _walkable))
+        cut_edges.extend(_cut_edges_for_level(level, reps, components, _distance, _walkable))
         levels_done.add(level)
         if save_every_level:
             _write(components, walk_edges, cut_edges, levels_done, epoch)
@@ -113,15 +115,21 @@ def build(context, save_every_level: bool = True) -> dict:
 _FACING = {(0, -1): "Up", (0, 1): "Down", (-1, 0): "Left", (1, 0): "Right"}
 
 
-def _cut_edges_for_level(level, reps, _distance, _walkable) -> list:
+def _cut_edges_for_level(level, reps, components, _distance, _walkable) -> list:
     """Conditional edges across this level's cuttable trees: for each pair of
     tree-adjacent tiles in DIFFERENT components, an edge traversable by cutting
     (trees respawn on map reload, so the cut is an action per traversal, not
-    state). Edge: [from_comp, to_comp, tree_map, tree_xy, stand_xy, facing]."""
+    state). Edge: [from_comp, to_comp, tree_map, tree_xy, stand_xy, facing].
+
+    A tree side matching NO existing component gets a fresh one minted for it:
+    a warpless pocket (Route 12's grass — no warp inside, only the tree gate)
+    has no portal tiles, so without this it stays invisible to the graph and
+    the planner vetoes every species in it."""
     from modules.map import get_map_data
     from modules.map_path import _get_all_maps_metadata
 
     result = []
+    next_id = max(components.values(), default=-1) + 1
     for map_key, pm in _get_all_maps_metadata().items():
         if pm.level != level:
             continue
@@ -140,14 +148,23 @@ def _cut_edges_for_level(level, reps, _distance, _walkable) -> list:
                 stand = (tree[0] + dx * -1, tree[1] + dy * -1)  # tile the delta points FROM
                 if stand[0] < 0 or stand[1] < 0:
                     continue
+                try:
+                    if get_map_data(map_key, stand).collision:
+                        continue  # walled side — never mint a component for a wall
+                except Exception:
+                    continue
                 pos = (map_key, stand)
                 comp = None
                 for rep_tile, cid in sorted(reps, key=lambda r: _distance(pos, r[0])):
                     if _walkable(pos, rep_tile) and _walkable(rep_tile, pos):
                         comp = cid
                         break
-                if comp is not None:
-                    sides.append((stand, facing, comp))
+                if comp is None:
+                    comp = next_id
+                    next_id += 1
+                    reps.append((pos, comp))
+                    components[_tile_key(*pos)] = comp
+                sides.append((stand, facing, comp))
             for stand_a, facing_a, ca in sides:
                 for _stand_b, _facing_b, cb in sides:
                     if ca != cb:
