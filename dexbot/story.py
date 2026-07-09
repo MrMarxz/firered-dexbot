@@ -462,6 +462,37 @@ def get_vs_seeker() -> Generator:
     yield from register_key_item(seeker)
 
 
+def get_amulet_coin() -> Generator:
+    """Collect the Amulet Coin from Oak's aide (Route 16 North gate 2F, obj 3).
+    Available once the dex has ≥40 owned; it DOUBLES a battle's prize money when
+    the holder participates — the biggest single income multiplier available,
+    and it works with one-shot first-time trainer fights (no Vs Seeker needed).
+    Give it to the battle lead afterward so gym/patrol payouts double."""
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import (
+        navigate_to as navigate_same_level,
+        wait_for_player_avatar_to_be_controllable,
+    )
+    from modules.pokedex import get_pokedex
+
+    coin = get_item_by_name("Amulet Coin")
+    if get_item_bag().quantity_of(coin) > 0:
+        return
+    if len(get_pokedex().owned_species) < 40:
+        raise SkillError("Amulet Coin needs 40+ owned species")
+
+    yield from navigate_to(MapFRLG.ROUTE16_NORTH_ENTRANCE_2F, (10, 7))  # below the aide (obj 3 @ 10,6)
+    yield from navigate_same_level(MapFRLG.ROUTE16_NORTH_ENTRANCE_2F, (10, 7))
+    yield from talk_to_npc(3)
+    yield from wait_for_no_script_to_run("B")
+    yield from wait_for_player_avatar_to_be_controllable("B")
+    if get_item_bag().quantity_of(coin) == 0:
+        raise SkillError("Aide did not hand over the Amulet Coin")
+
+
 def _descend_hidden_stairs() -> Generator:
     """Game Corner (11,2) → the opened hidden stairs at (15,2). The stairs are
     a metatile swap so cached collision blocks pathing — walk right blind
@@ -1003,6 +1034,7 @@ STORY_SKILLS = {
     "get_hm_cut": get_hm_cut,
     "get_tea": get_tea,
     "get_vs_seeker": get_vs_seeker,
+    "get_amulet_coin": get_amulet_coin,
     "clear_rocket_hideout": clear_rocket_hideout,
     "rescue_mr_fuji": rescue_mr_fuji,
     "catch_snorlax": catch_snorlax,
