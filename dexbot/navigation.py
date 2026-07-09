@@ -214,14 +214,22 @@ def perform_cut(map_key, tree_tile: tuple[int, int], stand_tile: tuple[int, int]
 
 def _story_gated_warp_dests() -> frozenset:
     """Destination maps the graph can walk into geometrically but the game
-    blocks with a SCRIPT (not collision, so calculate_path can't see it).
-    Saffron City's four gate guards refuse entry until you hand over tea —
-    a gate keyed on an item flag, not a badge, so the epoch key misses it."""
+    blocks with a SCRIPT (not collision, so calculate_path can't see it):
+    - Saffron's four gate guards refuse entry until you hand over tea.
+    - The Cycling Road (Route 17 + its gates) has a `NeedBikeTrigger` that
+      refuses entry without a Bicycle — the graph otherwise routes UP the
+      Cycling Road (fewer warps) to reach Route 16, hitting the bike wall.
+    Both are item/flag gates the badge-count epoch key misses."""
+    from modules.items import get_item_bag, get_item_by_name
     from modules.memory import get_event_flag
 
+    gated = set()
     if not get_event_flag("GOT_TEA"):
-        return frozenset({(3, 10)})  # SAFFRON_CITY
-    return frozenset()
+        gated.add((3, 10))  # SAFFRON_CITY
+    bike = get_item_by_name("Bicycle")
+    if bike is None or get_item_bag().quantity_of(bike) == 0:
+        gated |= {(3, 35), (26, 0), (26, 1)}  # ROUTE17 (Cycling Road) + Route 18 East gate 1F/2F
+    return frozenset(gated)
 
 
 def _cut_available() -> bool:
