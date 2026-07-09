@@ -110,7 +110,10 @@ def _walkable(source: tuple[tuple[int, int], tuple[int, int]], dest: tuple[tuple
             return False
         del _walkable_neg[key]
     try:
-        calculate_path(source, dest)
+        # max_nodes: a reachability probe only needs yes/no. An unbudgeted
+        # failure exhausts the whole connected region (post-Snorlax Kanto,
+        # tens of seconds); real paths expand a few thousand nodes at most.
+        calculate_path(source, dest, max_nodes=20_000)
         _walkable_cache.add(key)
         return True
     except Exception:
@@ -754,6 +757,9 @@ def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generato
             interruptions += 1
             if interruptions > 30:
                 raise
+            yield  # one frame: keep each (possibly slow) re-plan in its own
+            # controller step — 30 back-to-back re-plans in one step blew the
+            # 120s watchdog with the avatar frozen.
             continue
         except BotModeError as e:
             # One-time overworld triggers (tutorial NPCs, etc.) interrupt walking.
@@ -770,6 +776,7 @@ def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generato
                 # supervisor.
                 blacklist.add(current_target)
                 target_failures = 0
+                yield  # own step per re-plan (see the SkillError path)
                 continue
             if "Could not find a path" in str(e):
                 # Either a wandering NPC (current + previous tile both count as
@@ -780,6 +787,7 @@ def navigate_to(map, coordinates: tuple[int, int], run: bool = True) -> Generato
                 if target_failures >= 3 and current_target is not None:
                     blacklist.add(current_target)
                     target_failures = 0
+                    yield  # own step per re-plan (see the SkillError path)
                     continue
                 for _ in range(120):
                     yield
