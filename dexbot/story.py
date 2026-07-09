@@ -603,6 +603,7 @@ def get_amulet_coin() -> Generator:
     Give it to the battle lead afterward so gym/patrol payouts double."""
     from modules.items import get_item_bag, get_item_by_name
     from modules.map_data import MapFRLG
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_for_yes_no_question
     from modules.pokedex import get_pokedex
 
     coin = get_item_by_name("Amulet Coin")
@@ -611,9 +612,12 @@ def get_amulet_coin() -> Generator:
     if len(get_pokedex().owned_species) < 40:
         raise SkillError("Amulet Coin needs 40+ owned species")
 
-    # The aide asks a yes/no ('caught 40?') before giving the coin — _talk_until
-    # mashes A (answers YES); draining with B answers NO and gets nothing.
-    yield from _talk_until(MapFRLG.ROUTE16_NORTH_ENTRANCE_2F, 3, coin)  # Oak's aide (obj 3)
+    # The aide asks a yes/no ('caught 40?') whose cursor DEFAULTS TO NO — blind
+    # A-mashing selects NO and gets nothing. Reach the aide, then explicitly
+    # move the cursor to YES (wait_for_yes_no_question) to claim the coin.
+    yield from _go_talk(MapFRLG.ROUTE16_NORTH_ENTRANCE_2F, 3)  # Oak's aide (obj 3), presses A
+    yield from wait_for_yes_no_question("Yes")
+    yield from wait_for_no_script_to_run("B")
     if get_item_bag().quantity_of(coin) == 0:
         raise SkillError("Aide did not hand over the Amulet Coin")
 
