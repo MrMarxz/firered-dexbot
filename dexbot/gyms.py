@@ -466,8 +466,16 @@ def beat_blaine(min_level: int = 47) -> Generator:
 
     # Quiz panels (bg events, from ROM), one pair per door, roughly in room
     # order from the entrance. Stand below the panel, face Up, A, answer.
-    quizzes = [(23, 10), (16, 2), (13, 10), (13, 17), (1, 18), (1, 10)]
-    answered: set = set()
+    # Answered panels are tracked by their FLAG, not per-session — a resumed
+    # run re-pressing an answered panel gets no Yes/No prompt and hangs.
+    quizzes = [
+        ((23, 10), "CINNABAR_GYM_QUIZ_1"),
+        ((16, 2), "CINNABAR_GYM_QUIZ_2"),
+        ((13, 10), "CINNABAR_GYM_QUIZ_3"),
+        ((13, 17), "CINNABAR_GYM_QUIZ_4"),
+        ((1, 18), "CINNABAR_GYM_QUIZ_5"),
+        ((1, 10), "CINNABAR_GYM_QUIZ_6"),
+    ]
     for _ in range(len(quizzes) + 4):
         pos = tuple(get_player_avatar().local_coordinates)
         if _walkable((gym.value, pos), (gym.value, (5, 5)), max_nodes=3_000):
@@ -475,8 +483,8 @@ def beat_blaine(min_level: int = 47) -> Generator:
         panel = next(
             (
                 q
-                for q in quizzes
-                if q not in answered
+                for q, flag in quizzes
+                if not get_event_flag(flag)
                 and _walkable((gym.value, pos), (gym.value, (q[0], q[1] + 1)), max_nodes=3_000)
             ),
             None,
@@ -491,7 +499,6 @@ def beat_blaine(min_level: int = 47) -> Generator:
         yield from wait_for_yes_no_question("Yes")
         yield from wait_for_no_script_to_run("B")  # wrong answer → trainer battle fires here
         yield from wait_for_player_avatar_to_be_controllable("B")
-        answered.add(panel)
         # A door just opened — drop stale negative A* verdicts.
         from dexbot.navigation import _walkable_neg
 
