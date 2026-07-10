@@ -245,6 +245,7 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
     faint_menu_frames = 0
     faint_menu_gap = 0
     faint_injected = False
+    battle_rescued = False
     try:
         while len(context.controller_stack) > 0:
             context.frame += 1
@@ -346,6 +347,37 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
                     last_sample = sample
                     frames_at_last_progress = frames
                 elif frames - frames_at_last_progress >= _PROGRESS_BUDGET_FRAMES:
+                    # Battle rescue (once per skill): a stalled BATTLE usually
+                    # means nothing is driving it — a skill that STARTED
+                    # mid-battle (mid-battle checkpoint resume) or a stale
+                    # BattleListener generator waiting for an intro that
+                    # already passed. One unresolvable Diglett fight poisoned
+                    # a whole catch queue this way. Drop everything above the
+                    # skill and inject the universal battle handler, mashing B
+                    # first (a pending message inside turn selection is a state
+                    # upstream's selection handler yields on forever).
+                    from modules.battle_state import battle_is_active
+
+                    if not battle_rescued and battle_is_active():
+                        from modules.battle_handler import handle_battle
+
+                        from dexbot.catching import make_healing_battle_strategy
+
+                        def _battle_rescue():
+                            for i in range(180):
+                                if i % 8 == 0:
+                                    context.emulator.press_button("B")
+                                yield
+                            yield from handle_battle(make_healing_battle_strategy())
+
+                        while len(context.controller_stack) > 1:
+                            context.controller_stack.pop()
+                        context.bot_listeners = get_bot_listeners(context.rom)
+                        context.controller_stack.append(_battle_rescue())
+                        battle_rescued = True
+                        frames_at_last_progress = frames
+                        _log_event(skill=name, status="battle_rescued")
+                        continue
                     state_path = _dump_stall(name, sample)
                     raise SkillError(
                         f"Skill {name!r} made no observable progress for "

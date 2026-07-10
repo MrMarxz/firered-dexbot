@@ -285,7 +285,7 @@ def make_healing_battle_strategy(flee_below: float = 0.5):
     - low HP, no potion, TRAINER battle → fight on (can't flee) and let a
       faint trigger whiteout recovery rather than a hard "cannot battle" error.
     """
-    from modules.battle_strategies import DefaultBattleStrategy, TurnAction
+    from modules.battle_strategies import BattleStrategyUtil, DefaultBattleStrategy, TurnAction
     from modules.items import get_item_bag, get_item_by_name
 
     class HealingBattleStrategy(DefaultBattleStrategy):
@@ -298,7 +298,12 @@ def make_healing_battle_strategy(flee_below: float = 0.5):
                     if item is not None and bag.quantity_of(item) > 0:
                         return TurnAction.use_item_on(item, own.party_index)
                 if not battle_state.is_trainer_battle:
-                    return TurnAction.run_away()
+                    # Escape-aware: a blind run_away() against Arena Trap
+                    # (wild Diglett) fails every turn forever — the Diglett
+                    # Cave 30k-frame stall. When trapped, fight through.
+                    escape = BattleStrategyUtil(battle_state).get_best_escape_method()
+                    if escape is not None:
+                        return escape
             return super().decide_turn(battle_state)
 
     return HealingBattleStrategy()

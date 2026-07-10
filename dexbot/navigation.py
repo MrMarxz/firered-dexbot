@@ -764,7 +764,13 @@ def _has_spinners(map_key) -> bool:
         from modules.map_path import _get_all_maps_metadata
 
         pm = _get_all_maps_metadata().get(key)
-        _spinner_maps[key] = bool(pm) and any(t.forced_movement_to for t in pm.tiles)
+        # Ledge hops are ALSO forced movement now (jump waypoints are
+        # landings), but the held-direction walker handles those fine —
+        # only omnidirectional forced tiles (spin arrows, ice, currents:
+        # all four directions set) defeat it.
+        _spinner_maps[key] = bool(pm) and any(
+            t.forced_movement_to and len(t.forced_movement_to) >= 4 for t in pm.tiles
+        )
     return _spinner_maps[key]
 
 
