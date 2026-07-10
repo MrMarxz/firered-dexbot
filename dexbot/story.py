@@ -1527,6 +1527,118 @@ def rescue_mr_fuji() -> Generator:
         raise SkillError("Poké Flute not obtained from Mr. Fuji")
 
 
+# Pokémon Mansion statue switches (bg events, from ROM): pressing A toggles
+# the global switch flag; the fork's _FLAG_DOORS table makes A* track the
+# resulting door state.
+_MANSION_STATUES = {
+    (1, 59): [(5, 5)],
+    (1, 60): [(2, 16)],
+    (1, 61): [(12, 5)],
+    (1, 62): [(24, 29), (27, 5)],
+}
+_MANSION_MAPS = {(1, 59), (1, 60), (1, 61), (1, 62)}
+
+
+def _mansion_toggle_statue(map_enum, statue) -> Generator:
+    from modules.context import context
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_for_yes_no_question
+    from modules.modes.util.walking import (
+        ensure_facing_direction,
+        navigate_to as navigate_same_level,
+        wait_for_player_avatar_to_be_controllable,
+    )
+
+    yield from navigate_same_level(map_enum, (statue[0], statue[1] + 1))  # below it
+    yield from ensure_facing_direction("Up")
+    context.emulator.press_button("A")
+    yield
+    yield from wait_for_yes_no_question("Yes")  # "A secret switch! Press it?"
+    yield from wait_for_no_script_to_run("B")
+    yield from wait_for_player_avatar_to_be_controllable("B")
+    # The toggle flips door passability BOTH ways — cached A* verdicts
+    # (positive and negative) are stale now.
+    from dexbot.navigation import _walkable_cache, _walkable_neg
+
+    _walkable_cache.clear()
+    _walkable_neg.clear()
+
+
+def leave_mansion() -> Generator:
+    """From anywhere inside the Mansion, reach Cinnabar outdoors.
+    Headless-verified exit truth: B1F's west/key side only reaches the
+    stairs landing with the switch CLEAR, but the 1F drop pocket only
+    reaches the BACK door (34,33) with it SET — so B1F exits by toggling
+    whatever statue is reachable until the landing opens, taking the
+    stairs, ensuring SET, and walking out the back door."""
+    from modules.map_data import MapFRLG
+    from modules.memory import get_event_flag
+    from modules.modes.util.walking import (
+        navigate_to as navigate_same_level,
+        wait_for_player_avatar_to_be_controllable,
+    )
+    from modules.player import get_player_avatar
+
+    from dexbot.navigation import _walkable
+    from dexbot.runner import _log_event
+
+    def _here():
+        av = get_player_avatar()
+        return tuple(av.map_group_and_number), tuple(av.local_coordinates)
+
+    def _open_path_to(map_key, tile) -> Generator:
+        """Toggle reachable statues (nearest-first is irrelevant — ≤2 per
+        floor) until `tile` is walkable; raises if no toggle helps."""
+        here, pos = _here()
+        if _walkable((here, pos), (here, tile), max_nodes=3_000):
+            return
+        for statue in _MANSION_STATUES.get(here, []):
+            stand = (statue[0], statue[1] + 1)
+            if not _walkable((here, pos), (here, stand), max_nodes=3_000):
+                continue
+            yield from _mansion_toggle_statue(MapFRLG(here), statue)
+            here, pos = _here()
+            if _walkable((here, pos), (here, tile), max_nodes=3_000):
+                return
+        raise SkillError(f"leave_mansion: cannot open a path to {tile} on {here}")
+
+    yield from wait_for_player_avatar_to_be_controllable("B")  # drain any open dialog
+    for _ in range(10):
+        here, pos = _here()
+        if here not in _MANSION_MAPS:
+            return  # outside
+        _log_event(skill="leave_mansion", status="phase", phase=f"floor_{here[1]}")
+        if here == MapFRLG.POKEMON_MANSION_B1F.value:
+            yield from _open_path_to(here, (34, 29))
+            # The 1F pocket upstairs only exits via the back door with the
+            # switch SET, and the pocket has no statue — set it before going
+            # up. (24,29) is beside the landing and reachable in CLEAR; the
+            # landing stays reachable after the flip (verified).
+            if not get_event_flag("POKEMON_MANSION_SWITCH_STATE"):
+                for statue in _MANSION_STATUES[here]:
+                    stand = (statue[0], statue[1] + 1)
+                    _, pos = _here()
+                    if _walkable((here, pos), (here, stand), max_nodes=3_000):
+                        yield from _mansion_toggle_statue(MapFRLG.POKEMON_MANSION_B1F, statue)
+                        break
+                yield from _open_path_to(here, (34, 29))
+            yield from navigate_same_level(MapFRLG.POKEMON_MANSION_B1F, (34, 29))  # stairs up
+        elif here == MapFRLG.POKEMON_MANSION_1F.value:
+            if _walkable((here, pos), (here, (8, 33)), max_nodes=3_000):
+                exit_tile = (8, 33)  # front door
+            else:
+                yield from _open_path_to(here, (34, 33))  # pocket: back door, needs SET
+                exit_tile = (34, 33)
+            yield from navigate_same_level(MapFRLG.POKEMON_MANSION_1F, exit_tile)
+        elif here == MapFRLG.POKEMON_MANSION_2F.value:
+            yield from _open_path_to(here, (6, 14))
+            yield from navigate_same_level(MapFRLG.POKEMON_MANSION_2F, (6, 14))  # stairs to 1F
+        elif here == MapFRLG.POKEMON_MANSION_3F.value:
+            yield from _open_path_to(here, (8, 3))
+            yield from navigate_same_level(MapFRLG.POKEMON_MANSION_3F, (8, 3))  # stairs to 2F
+        yield from wait_for_player_avatar_to_be_controllable("B")
+    raise SkillError("leave_mansion: still inside after 10 legs")
+
+
 def get_secret_key() -> Generator:
     """Pokémon Mansion → B1F Secret Key (unlocks Cinnabar gym for Blaine).
     Route needs NO switches (probed): 1F stairs (10,13) → 2F (9,3) → 3F
@@ -1546,39 +1658,15 @@ def get_secret_key() -> Generator:
     from dexbot.runner import _log_event
 
     if get_event_flag("HIDE_POKEMON_MANSION_B1F_SECRET_KEY"):  # item ball taken
+        if tuple(get_player_avatar().map_group_and_number) in _MANSION_MAPS:
+            yield from leave_mansion()
         return
 
     def _phase(name: str) -> None:
         _log_event(skill="get_secret_key", status="phase", phase=name)
 
-    # Statue switches (bg events, from ROM): pressing A toggles the floor's
-    # switch doors. When a target is unreachable, flip the floor's statue(s)
-    # until the path opens.
-    statues = {
-        MapFRLG.POKEMON_MANSION_1F.value: [(5, 5)],
-        MapFRLG.POKEMON_MANSION_2F.value: [(2, 16)],
-        MapFRLG.POKEMON_MANSION_3F.value: [(12, 5)],
-        MapFRLG.POKEMON_MANSION_B1F.value: [(24, 29), (27, 5)],
-    }
-
-    def _toggle_statue(map_enum, statue) -> Generator:
-        from modules.context import context
-        from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_for_yes_no_question
-        from modules.modes.util.walking import ensure_facing_direction
-
-        yield from navigate_same_level(map_enum, (statue[0], statue[1] + 1))  # below it
-        yield from ensure_facing_direction("Up")
-        context.emulator.press_button("A")
-        yield
-        yield from wait_for_yes_no_question("Yes")  # "A secret switch! Press it?"
-        yield from wait_for_no_script_to_run("B")
-        yield from wait_for_player_avatar_to_be_controllable("B")
-        # The toggle flips door passability BOTH ways — cached A* verdicts
-        # (positive and negative) are stale now.
-        from dexbot.navigation import _walkable_cache, _walkable_neg
-
-        _walkable_cache.clear()
-        _walkable_neg.clear()
+    statues = _MANSION_STATUES
+    _toggle_statue = _mansion_toggle_statue
 
     def _stair(map_enum, tile) -> Generator:
         here = map_enum.value
@@ -1650,6 +1738,8 @@ def get_secret_key() -> Generator:
     if not get_event_flag("HIDE_POKEMON_MANSION_B1F_SECRET_KEY"):
         raise SkillError("Secret Key ball not collected despite open room")
     yield from collect_item_balls(b1f, limit=4)  # best-effort: whatever loot is open
+    _phase("leave")
+    yield from leave_mansion()
 
 
 STORY_SKILLS = {
@@ -1666,6 +1756,7 @@ STORY_SKILLS = {
     "get_hm_strength": get_hm_strength,
     "clear_silph_co": clear_silph_co,
     "get_secret_key": get_secret_key,
+    "leave_mansion": leave_mansion,
     "clear_rocket_hideout": clear_rocket_hideout,
     "rescue_mr_fuji": rescue_mr_fuji,
     "catch_snorlax": catch_snorlax,

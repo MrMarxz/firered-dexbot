@@ -443,6 +443,18 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
                 for b in cids:
                     if a != b:
                         extra_walk.setdefault(a, []).append(b)
+    # Pokémon Mansion switch doors (fork map_path._FLAG_DOORS): with the
+    # switch SET, the 1F drop-pocket's doors stand open — stitch pocket and
+    # hall so post-key exits plan (the static build saw them closed; the
+    # size cap above excludes a map this big).
+    from modules.memory import get_event_flag
+
+    if get_event_flag("POKEMON_MANSION_SWITCH_STATE"):
+        pocket = comp.get(((1, 59), (19, 22)))  # 3F-hole drop landing
+        hall = comp.get(((1, 59), (10, 13)))  # 2F stairs / entrance region
+        if pocket is not None and hall is not None and pocket != hall:
+            extra_walk.setdefault(pocket, []).append(hall)
+            extra_walk.setdefault(hall, []).append(pocket)
     # Lazily test "can this component walk to dest" only for components with a
     # tile on dest's level, using the component tile nearest to dest.
     dest_level = _map_level(dest[0])

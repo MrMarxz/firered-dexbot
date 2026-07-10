@@ -436,6 +436,14 @@ def beat_blaine(min_level: int = 47) -> Generator:
     if get_event_flag("BADGE07_GET"):
         return
 
+    # A fresh Secret Key run ends inside the Mansion, whose switch-door maze
+    # general navigation cannot plan out of — walk out explicitly first.
+    from dexbot.story import _MANSION_MAPS, leave_mansion
+
+    if tuple(get_player_avatar().map_group_and_number) in _MANSION_MAPS:
+        _log_event(skill="beat_blaine", status="phase", phase="leave_mansion")
+        yield from leave_mansion()
+
     from dexbot.team import TeamObjective, assemble_party
 
     yield from assemble_party(
