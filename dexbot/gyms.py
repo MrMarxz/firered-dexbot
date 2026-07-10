@@ -464,17 +464,18 @@ def beat_blaine(min_level: int = 47) -> Generator:
     gym = MapFRLG.CINNABAR_ISLAND_GYM
     yield from navigate_to(gym, (25, 21))
 
-    # Quiz panels (bg events, from ROM), one pair per door, roughly in room
-    # order from the entrance. Stand below the panel, face Up, A, answer.
-    # Answered panels are tracked by their FLAG, not per-session — a resumed
-    # run re-pressing an answered panel gets no Yes/No prompt and hangs.
+    # Quiz panels (bg events, from ROM), one pair per door, in room order
+    # from the entrance, each with its CORRECT answer (from the decomp's
+    # goto_if_eq branches — a wrong answer battles the room trainer and the
+    # door STAYS CLOSED; only the right answer sets the flag and opens it).
+    # Answered panels are tracked by their FLAG, not per-session.
     quizzes = [
-        ((23, 10), "CINNABAR_GYM_QUIZ_1"),
-        ((16, 2), "CINNABAR_GYM_QUIZ_2"),
-        ((13, 10), "CINNABAR_GYM_QUIZ_3"),
-        ((13, 17), "CINNABAR_GYM_QUIZ_4"),
-        ((1, 18), "CINNABAR_GYM_QUIZ_5"),
-        ((1, 10), "CINNABAR_GYM_QUIZ_6"),
+        ((23, 10), "CINNABAR_GYM_QUIZ_1", "Yes"),
+        ((16, 2), "CINNABAR_GYM_QUIZ_2", "No"),
+        ((13, 10), "CINNABAR_GYM_QUIZ_3", "No"),
+        ((13, 17), "CINNABAR_GYM_QUIZ_4", "No"),
+        ((1, 18), "CINNABAR_GYM_QUIZ_5", "Yes"),
+        ((1, 10), "CINNABAR_GYM_QUIZ_6", "No"),
     ]
     for _ in range(len(quizzes) + 4):
         pos = tuple(get_player_avatar().local_coordinates)
@@ -482,8 +483,8 @@ def beat_blaine(min_level: int = 47) -> Generator:
             break  # Blaine's room is open
         panel = next(
             (
-                q
-                for q, flag in quizzes
+                (q, answer)
+                for q, flag, answer in quizzes
                 if not get_event_flag(flag)
                 and _walkable((gym.value, pos), (gym.value, (q[0], q[1] + 1)), max_nodes=3_000)
             ),
@@ -491,13 +492,14 @@ def beat_blaine(min_level: int = 47) -> Generator:
         )
         if panel is None:
             raise SkillError("beat_blaine: no reachable unanswered quiz panel, Blaine still sealed")
-        _log_event(skill="beat_blaine", status="phase", phase=f"quiz_{panel[0]}_{panel[1]}")
-        yield from navigate_same_level(gym, (panel[0], panel[1] + 1))
+        (px, py), answer = panel
+        _log_event(skill="beat_blaine", status="phase", phase=f"quiz_{px}_{py}")
+        yield from navigate_same_level(gym, (px, py + 1))
         yield from ensure_facing_direction("Up")
         context.emulator.press_button("A")
         yield
-        yield from wait_for_yes_no_question("Yes")
-        yield from wait_for_no_script_to_run("B")  # wrong answer → trainer battle fires here
+        yield from wait_for_yes_no_question(answer)
+        yield from wait_for_no_script_to_run("B")
         yield from wait_for_player_avatar_to_be_controllable("B")
         # A door just opened — drop stale negative A* verdicts.
         from dexbot.navigation import _walkable_neg
@@ -506,9 +508,16 @@ def beat_blaine(min_level: int = 47) -> Generator:
     else:
         raise SkillError("beat_blaine: quiz loop exhausted without opening Blaine's room")
 
+    # The gauntlet may have cost HP/faints (room trainers on wrong answers,
+    # earlier runs) — Blaine at full strength is not the fight to wing.
+    if any(p.current_hp < p.total_hp * 0.5 for p in get_party() if not p.is_egg):
+        _log_event(skill="beat_blaine", status="phase", phase="pre_blaine_heal")
+        yield from ensure_healthy(minimum_fraction=0.99, center=PokemonCenter.CinnabarIsland)
+        yield from navigate_to(gym, (5, 6))  # doors stay open (flags)
+
     _log_event(skill="beat_blaine", status="phase", phase="fight")
-    yield from navigate_same_level(gym, (5, 5))  # below Blaine (obj 7 @ 5,4)
-    yield from talk_to_npc(7)
+    yield from navigate_same_level(gym, (5, 5))  # below Blaine (local_id 8 @ 5,4)
+    yield from talk_to_npc(8)  # NOT 7 — that's Zac; local_ids are 1-based
     yield from wait_for_no_script_to_run("B")
     yield from wait_for_player_avatar_to_be_controllable("B")
 
