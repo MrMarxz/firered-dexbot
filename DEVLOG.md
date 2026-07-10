@@ -1,5 +1,36 @@
 # DEVLOG
 
+## 2026-07-10 — Cycling Road pinned the avatar in a state no walker could see
+
+**Symptom:** beat_koga stalled twice at Route 17 (11,18), 30k frames of nothing,
+`script: []`, player idle on the road (fixtures/_stalls/beat_koga_2214*.ss1).
+
+**Root cause (two layers, both empirically pinned from the stall savestate):**
+1. Route 17 is one continuous "Cycling Road Pull Down" slope (ROM-scanned: the
+   only map with those tiles). Parked against an obstacle, the engine keeps the
+   avatar in a perpetual forced-slide grind: `running_state == MOVING` forever,
+   `heldMovementActive` never set, `player_avatar_is_controllable()` False —
+   while held direction buttons work fine from frame 1. Upstream's walker
+   (`ensure_facing_direction`, standing-still waits) yields forever with zero
+   input. Fix: Route 17 counts as a forced-movement map → legs there use
+   `walk_carefully`; its tap now releases on the first coord change (a fixed
+   12-frame tap = 2 tiles on the 8-frames/tile bike → derailed every step and
+   exhausted max_repaths). Coasting downhill is just a big derail it re-paths
+   from the landing of.
+2. Coasting past a biker triggered a script trainer battle; Blastoise fainted;
+   the wedged battle handler's button mashing made the choose-next-mon task
+   flicker off ~every 90 frames, so the runner's faint-injection counter
+   (reset-on-absence, threshold 240) never fired — measured max streak 87.
+   Fix: reset only after a sustained 120-frame absence.
+
+**Verified:** headless from the stall state, one run: unpin → coast down Route
+17 → biker fight (faint → injected send-next → won) → gates → Routes 15/14/13
+→ Vermilion Center interior. Suite: 45 passed. beat_koga then reached and
+FOUGHT Koga for real — and whited out (₽4,588 → 3 Hyper Potions; team filler
+L15–41). That's economy/strength, the planner's defer-retry territory, not a
+stall. Northbound Cycling Road climbs remain unsupported (documented in
+KNOWN_LIMITATIONS.md; the eastern corridor covers Celadon↔Fuchsia).
+
 ## 2026-07-09 (morning) — the "planning wedge" was a fainted Paras in slot 0 (plus real planning debt paid)
 
 **Symptom:** every catch objective (Gloom/Pidgeotto/Raticate) "wedged" — the 120s step
