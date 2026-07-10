@@ -190,12 +190,22 @@ def _fish_until(rod_name: str, facing: str | None, stop_condition) -> Generator:
                 context.emulator.press_button("B")
             yield
 
+    from modules.player import get_player_avatar
+
+    refusals = 0
     while not stop_condition():
         if get_game_state() != GameState.OVERWORLD or not player_avatar_is_controllable():
             yield  # battle (listeners drive it) or transition — wait it out
             continue
         if facing is not None:
             yield from ensure_facing_direction(facing)
+        # Pre-cast gate (upstream FishingMode's own test): if the tile in
+        # front isn't fishable water, DON'T cast — the game refuses with
+        # "OAK: this isn't the time to use that!" and a blind retry loop
+        # burned 8 minutes per bad spot before the skill timeout.
+        front = get_player_avatar().map_location_in_front
+        if front is None or not front.is_surfable:
+            raise SkillError(f"Not facing fishable water with the {rod_name}")
         yield from StartMenuNavigator("BAG").step()
         yield from scroll_to_item_in_bag(get_item_by_name(rod_name))
         context.emulator.press_button("A")  # open the item context menu
@@ -209,15 +219,19 @@ def _fish_until(rod_name: str, facing: str | None, stop_condition) -> Generator:
             if get_task("Task_Fishing") is not None:
                 break
         else:
-            # Cast never started ("can't use here"?) — back out and retry;
-            # mash B to close whatever is open.
-            for _ in range(120):
+            # Cast refused despite the pre-check — back out; two strikes and
+            # this spot is bad, tell the caller to pick another.
+            refusals += 1
+            for frame in range(120):
                 if get_game_state() == GameState.OVERWORLD and player_avatar_is_controllable():
                     break
-                if _ % 8 == 0:
+                if frame % 8 == 0:
                     context.emulator.press_button("B")
                 yield
+            if refusals >= 2:
+                raise SkillError(f"{rod_name} casts refused twice at this spot")
             continue
+        refusals = 0
         yield from drive_fishing_task()
         for _ in range(60):  # battle intro / message settle
             yield
@@ -586,7 +600,16 @@ def catch_species(
 
         stop = lambda: _species_is_owned(species_name) or needs_heal()  # noqa: E731
         if rod_name is not None:
-            yield from _fish_until(rod_name, facing_by_tile.get(tuple(arrived)), stop)
+            try:
+                yield from _fish_until(rod_name, facing_by_tile.get(tuple(arrived)), stop)
+            except SkillError:
+                # Bad spot (casts refused / not actually facing water): drop
+                # this candidate and fish the next one — a single bad tile
+                # must cost seconds, not the whole objective.
+                candidates = [c for c in candidates if tuple(c) != tuple(arrived)]
+                if not candidates:
+                    raise
+                continue
         else:
             # Spin until caught — or break out to heal when the starter is
             # chipped down (fled encounters and catch battles chip over time).
