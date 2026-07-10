@@ -36,6 +36,11 @@ class CatchView:
     safe_chip_move_index: int | None
     status_move_index: int | None
     false_swipe_move_index: int | None
+    # Per-species playbook flags (dexbot.playbook.catch_plan) — default to the
+    # generic policy for hand-built test views.
+    is_ghost: bool = False  # False Swipe / Normal chip can't connect
+    sleep_first: bool = False  # boomer: never chip while awake
+    status_urgent: bool = False  # teleporter: act on the first turn
 
 
 def choose_catch_action(v: CatchView) -> tuple[str, int | None]:
@@ -45,18 +50,34 @@ def choose_catch_action(v: CatchView) -> tuple[str, int | None]:
     Precedence: good-enough odds → throw; else rotate to the weakener; else
     Sleep (status) first; else False Swipe to 1 HP; else safe non-KO chip;
     else throw. See the sub-project C spec for the rationale (Gen III catch
-    math: HP ×~3 at 1 HP, sleep ×2, Ultra Ball ×2, all multiplicative)."""
+    math: HP ×~3 at 1 HP, sleep ×2, Ultra Ball ×2, all multiplicative).
+    Playbook overrides: ghosts skip the False Swipe plan entirely; boomers are
+    never chipped while awake; teleporters get status-or-ball immediately."""
     if v.one_turn_catch_chance >= 0.5:
         return ("ball", None)
+    if v.status_urgent:
+        # One free turn before it Teleports: status if we can, else throw.
+        if not v.opponent_is_statused and v.status_move_index is not None:
+            return ("move", v.status_move_index)
+        return ("ball", None)
+    can_false_swipe = v.active_knows_false_swipe and not v.is_ghost
     # Rotate to the designated weakener if the active mon isn't it.
-    active_is_weakener = v.active_knows_false_swipe
-    if not active_is_weakener and v.party_weakener_index is not None and v.party_weakener_index != v.active_index:
+    if (
+        not can_false_swipe
+        and not v.is_ghost
+        and v.party_weakener_index is not None
+        and v.party_weakener_index != v.active_index
+    ):
         return ("rotate", v.party_weakener_index)
     # Sleep (or best status) before anything else — ×2 and it doesn't spend HP.
     if not v.opponent_is_statused and v.status_move_index is not None:
         return ("move", v.status_move_index)
+    if v.sleep_first and not v.opponent_is_statused:
+        # Boomer still awake and we can't put it to sleep: chipping invites a
+        # Selfdestruct — just throw.
+        return ("ball", None)
     # False Swipe drives to exactly 1 HP without a KO.
-    if v.active_knows_false_swipe and v.false_swipe_move_index is not None and v.opponent_hp_fraction > _ONE_HP_FLOOR:
+    if can_false_swipe and v.false_swipe_move_index is not None and v.opponent_hp_fraction > _ONE_HP_FLOOR:
         return ("move", v.false_swipe_move_index)
     # No False Swipe: chip with the strongest move that can't KO, while HP high.
     if v.opponent_hp_fraction > 0.5 and v.safe_chip_move_index is not None:
@@ -219,7 +240,9 @@ class WeakeningCatchStrategy:
                         continue
                     crit_max = util.calculate_move_damage_range(learned.move, own, opponent, True).max
                     dmg = util.calculate_move_damage_range(learned.move, own, opponent).max
-                    if crit_max < opponent.current_hp and dmg > best_dmg:
+                    # dmg > 0: an immune matchup (Normal vs Ghost) is not a
+                    # chip — it would be chosen forever and never chip anything.
+                    if 0 < dmg and crit_max < opponent.current_hp and dmg > best_dmg:
                         safe_chip, best_dmg = index, dmg
 
                 knows_fs, fs_index = _knows_false_swipe(own)
@@ -253,6 +276,9 @@ class WeakeningCatchStrategy:
 
                 from modules.pokemon import StatusCondition
 
+                from dexbot.playbook import catch_plan
+
+                plan = catch_plan(opponent.species.name)
                 view = CatchView(
                     active_index=active_index,
                     active_knows_false_swipe=knows_fs and fs_index is not None,
@@ -263,6 +289,9 @@ class WeakeningCatchStrategy:
                     safe_chip_move_index=safe_chip,
                     status_move_index=self._get_best_status_changing_move(battle_state),
                     false_swipe_move_index=fs_index,
+                    is_ghost=plan.is_ghost,
+                    sleep_first=plan.sleep_first,
+                    status_urgent=plan.status_urgent,
                 )
                 kind, arg = choose_catch_action(view)
                 if kind == "rotate" and arg is not None and arg != view.active_index:
