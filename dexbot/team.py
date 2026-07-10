@@ -229,12 +229,24 @@ def make_false_swipe_trainer(species: str = "Cubone", move: str = "False Swipe")
             return super().should_allow_evolution(pokemon, party_index)
 
         def which_move_should_be_replaced(self, pokemon, new_move) -> int:
+            from dexbot.runner import _log_event
+
             if new_move.name == move:
-                for junk in ("Growl", "Tail Whip", "Leer", "Focus Energy"):
-                    for i, lm in enumerate(pokemon.moves):
-                        if lm is not None and lm.move.name == junk:
-                            return i
-            return super().which_move_should_be_replaced(pokemon, new_move)
+                # ALWAYS learn it — the whole grind exists for this one offer,
+                # and it never repeats. By L33 learn_best has reshuffled the
+                # moveset (a junk-name list matched nothing and the default
+                # scorer refused False Swipe — burned one 40-minute grind).
+                # Replace the lowest-base-power move.
+                idx = min(
+                    range(len(pokemon.moves)),
+                    key=lambda i: pokemon.moves[i].move.base_power if pokemon.moves[i] is not None else 999,
+                )
+                _log_event(skill="train_false_swipe", status="move_offer",
+                           move=new_move.name, replaced=idx)
+                return idx
+            choice = super().which_move_should_be_replaced(pokemon, new_move)
+            _log_event(skill="train_false_swipe", status="move_offer", move=new_move.name, replaced=choice)
+            return choice
 
     return FalseSwipeTrainer()
 
@@ -282,9 +294,16 @@ def train_false_swipe(species: str = "Cubone", move: str = "False Swipe") -> Gen
         )
 
     map_key, tile = GRIND_SPOT_BADGE2
+    last_level = 0
     while not knows_move():
         p = trainee()
-        _log_event(skill="train_false_swipe", status="progress", trainee_level=p.level if p else None)
+        level = p.level if p else None
+        if level is not None and level != last_level:
+            # phase events checkpoint a savestate (fixtures/_phases) — a bug at
+            # the L33 move offer must not cost the whole grind again.
+            _log_event(skill="train_false_swipe", status="phase", phase=f"L{level}")
+            last_level = level
+        _log_event(skill="train_false_swipe", status="progress", trainee_level=level)
         yield from ensure_healthy(minimum_fraction=0.95)
         yield from navigate_to(map_key, tile)
         yield from spin(stop_condition=lambda: knows_move() or needs_heal())
