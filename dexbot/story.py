@@ -1431,6 +1431,98 @@ def catch_snorlax() -> Generator:
         raise SkillError("Snorlax not caught (fled or fainted?) — Route 16 holds the backup")
 
 
+def _engage_static(map_enum, target: tuple[int, int], skill: str) -> Generator:
+    """Stand next to the static overworld Pokémon at `target`, face it, A —
+    the run's battle handler (a catch decider) owns the battle. A-mash covers
+    any pre-battle prompt (Snorlax's flute question, legendary cries)."""
+    from modules.context import context
+    from modules.modes._interface import BotModeError
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_controllable
+
+    for (dx, dy), facing in (((0, 1), "Up"), ((0, -1), "Down"), ((1, 0), "Left"), ((-1, 0), "Right")):
+        stand = (target[0] + dx, target[1] + dy)
+        if stand[0] < 0 or stand[1] < 0:
+            continue
+        try:
+            yield from navigate_to(map_enum, stand)
+        except (SkillError, BotModeError):
+            continue
+        yield from ensure_facing_direction(facing)
+        context.emulator.press_button("A")
+        yield
+        for _ in range(120):
+            yield
+        context.emulator.press_button("A")
+        yield
+        yield from wait_for_no_script_to_run("A")
+        yield from wait_for_player_avatar_to_be_controllable("B")
+        return
+    raise SkillError(f"{skill}: no reachable stand tile beside {target}")
+
+
+def catch_zapdos() -> Generator:
+    """Zapdos guards the Power Plant back hall (static, L50, catch rate 3 —
+    a fled/fainted legendary is gone forever in FRLG, so the catch decider's
+    no-KO discipline matters). Ground-type Marowak is immune to its Electric
+    STAB. Stocks Ultra Balls hard and sweeps the Plant's item balls
+    (Thunder Stone, TM25) on the way in."""
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG
+    from modules.player import get_player
+    from modules.pokedex import get_pokedex
+
+    from dexbot.catching import ensure_healthy
+    from dexbot.items_ground import collect_item_balls
+    from dexbot.runner import _log_event
+
+    def _owned() -> bool:
+        return "Zapdos" in {s.name for s in get_pokedex().owned_species}
+
+    if _owned():
+        return
+    ultra = get_item_by_name("Ultra Ball")
+    have = get_item_bag().quantity_of(ultra)
+    if have < 20:
+        n = min(30 - have, get_player().money // 1200)
+        if n > 0:
+            _log_event(skill="catch_zapdos", status="phase", phase="restock")
+            from dexbot.openings import buy_items
+            from dexbot.planner import _nearest_mart
+
+            yield from buy_items([("Ultra Ball", n)], _nearest_mart())
+    _log_event(skill="catch_zapdos", status="phase", phase="approach")
+    yield from ensure_healthy(minimum_fraction=0.95)
+    yield from collect_item_balls(MapFRLG.POWER_PLANT, limit=5)  # Thunder Stone, TM25, ...
+    _log_event(skill="catch_zapdos", status="phase", phase="engage")
+    yield from _engage_static(MapFRLG.POWER_PLANT, (5, 11), "catch_zapdos")
+    if not _owned():
+        raise SkillError("Zapdos not caught — restore fixtures/_phases/catch_zapdos_engage.ss1 before retrying")
+
+
+def catch_electrode() -> Generator:
+    """The Power Plant's two 'item ball' Electrodes (static battles at
+    (30,38) and (36,5), catch rate 60 — easy)."""
+    from modules.map_data import MapFRLG
+    from modules.pokedex import get_pokedex
+
+    from dexbot.catching import ensure_healthy
+    from dexbot.runner import _log_event
+
+    def _owned() -> bool:
+        return "Electrode" in {s.name for s in get_pokedex().owned_species}
+
+    if _owned():
+        return
+    yield from ensure_healthy(minimum_fraction=0.8)
+    for target in ((30, 38), (36, 5)):
+        _log_event(skill="catch_electrode", status="phase", phase=f"engage_{target[0]}_{target[1]}")
+        yield from _engage_static(MapFRLG.POWER_PLANT, target, "catch_electrode")
+        if _owned():
+            return
+    raise SkillError("Electrode not caught (both Plant Electrodes engaged)")
+
+
 def rescue_mr_fuji() -> Generator:
     """Pokémon Tower (Scope in hand) → ghost Marowak → 7F grunts → Mr. Fuji →
     the POKE FLUTE at the Volunteer Pokémon House. Unblocks Snorlax (Routes
@@ -1760,6 +1852,8 @@ STORY_SKILLS = {
     "clear_rocket_hideout": clear_rocket_hideout,
     "rescue_mr_fuji": rescue_mr_fuji,
     "catch_snorlax": catch_snorlax,
+    "catch_zapdos": catch_zapdos,
+    "catch_electrode": catch_electrode,
 }
 
 
