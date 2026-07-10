@@ -69,6 +69,7 @@ def _graph_reachable(map_key: tuple[int, int], annotation: dict) -> bool:
 # (encounter table key, catch_species method, required bag item)
 _ENCOUNTER_METHODS = (
     ("land_encounters", "spin", None),
+    ("surf_encounters", "surf", None),  # spin while surfing (badge 5 era+)
     ("old_rod_encounters", "old_rod", "Old Rod"),
     ("good_rod_encounters", "good_rod", "Good Rod"),
     ("super_rod_encounters", "super_rod", "Super Rod"),

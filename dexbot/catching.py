@@ -91,10 +91,10 @@ def _species_is_owned(species_name: str) -> bool:
     return any(s.name == species_name for s in get_pokedex().owned_species)
 
 
-def _encounter_tiles(map_group_and_number: tuple[int, int]) -> list[tuple[int, int]]:
+def _encounter_tiles(map_group_and_number: tuple[int, int], water: bool = False) -> list[tuple[int, int]]:
     """Tiles on the map that can spawn encounters, inner tiles first (nicer to
-    spin on). Land (grass/cave) only — surf tiles are unreachable without Surf;
-    water maps fall back to their water tiles (for when Surf exists)."""
+    spin on). Land (grass/cave) by default; `water=True` selects surf tiles
+    instead (spinning while surfing triggers surf_encounters)."""
     from modules.map_path import _get_all_maps_metadata
 
     path_map = _get_all_maps_metadata()[map_group_and_number]
@@ -103,7 +103,11 @@ def _encounter_tiles(map_group_and_number: tuple[int, int]) -> list[tuple[int, i
     # slipping past an `!= 1` check and feeding the reachability probe nothing
     # but water); land stands at 3+.
     land = [t for t in all_tiles if t.elevation not in (0, 1)]
-    tiles = [t.local_coordinates for t in (land or all_tiles)]
+    if water:
+        pool = [t for t in all_tiles if t.elevation in (0, 1)]
+    else:
+        pool = land or all_tiles
+    tiles = [t.local_coordinates for t in (pool or all_tiles)]
     if not tiles:
         raise SkillError(f"Map {map_group_and_number} has no encounter tiles")
     center_x = sum(t[0] for t in tiles) / len(tiles)
@@ -556,7 +560,7 @@ def catch_species(
         # unreachable pocket (Route 24's east grass is water-locked). Keep only
         # graph-plannable ones — a bad candidate otherwise costs a 30s live
         # search before we try the next.
-        tiles = _encounter_tiles(map_key)
+        tiles = _encounter_tiles(map_key, water=(method == "surf"))
         candidates = tiles[:: max(1, len(tiles) // 5)][:5]
     from modules.player import get_player_avatar
 
