@@ -265,7 +265,13 @@ def story_epoch() -> str:
     badges = sum(1 for n in range(1, 9) if get_event_flag(f"BADGE{n:02d}_GET"))
     suffix = "".join(
         tag
-        for tag, flag in (("+snx12", "HIDE_ROUTE_12_SNORLAX"), ("+snx16", "HIDE_ROUTE_16_SNORLAX"))
+        for tag, flag in (
+            ("+snx12", "HIDE_ROUTE_12_SNORLAX"),
+            ("+snx16", "HIDE_ROUTE_16_SNORLAX"),
+            # Silph cleared: the Rocket guarding the Saffron gym door is gone
+            # — the gym's whole interior was orphaned in pre-clear graphs.
+            ("+silph", "HIDE_SAFFRON_ROCKETS"),
+        )
         if get_event_flag(flag)
     )
     return f"{badges}{suffix}"
