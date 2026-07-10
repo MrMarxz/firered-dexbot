@@ -56,6 +56,13 @@ def main() -> None:
         nonlocal last_checkpoint
         frame = context.emulator.get_frame_count()
         if frame - last_checkpoint >= checkpoint_interval_frames:
+            # NEVER checkpoint outside a calm overworld: a wedged battle saved
+            # as current_state.ss1 poisons every future resume (the run boots
+            # straight back into the unresolvable fight — Diglett Cave incident).
+            from modules.memory import GameState, get_game_state
+
+            if get_game_state() != GameState.OVERWORLD:
+                return  # retry next frame tick
             context.emulator.create_save_state(suffix="auto")
             last_checkpoint = frame
 
@@ -89,7 +96,15 @@ def main() -> None:
     caught = plan_and_catch_all()
     print(f"[run] planner idle — caught {caught} species in {time.time() - start:.0f}s")
     print("[run] no further objectives available (story progression beyond current milestone)")
-    context.emulator.create_save_state(suffix="final")
+    from modules.memory import GameState, get_game_state
+
+    if get_game_state() == GameState.OVERWORLD:
+        context.emulator.create_save_state(suffix="final")
+    else:
+        # Exiting mid-battle/menu (e.g. every objective deferred out of a
+        # wedged fight): saving now would poison current_state.ss1 — leave
+        # the last healthy auto-checkpoint as the resume point.
+        print("[run] not in overworld at exit — skipping final savestate")
 
 
 if __name__ == "__main__":
