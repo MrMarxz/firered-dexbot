@@ -96,19 +96,22 @@ frame_hooks: list = []
 
 
 def attach_video_window(context, title: str = "dexbot") -> None:
-    """Optional live view for any headless run: set DEXBOT_VIDEO=1 (needs a
-    display). Fed from the frame buffer every 30 frames; closing it is safe."""
+    """Live game window, ON BY DEFAULT for every run (owner directive: they
+    watch the window). Set DEXBOT_VIDEO=0 for true headless (the test suite
+    does); no display/tkinter degrades to headless silently. Fed from the
+    frame buffer every 30 frames; closing the window is safe."""
     import os
 
-    if os.environ.get("DEXBOT_VIDEO") != "1":
+    if os.environ.get("DEXBOT_VIDEO", "1") == "0":
         return
     try:
         import tkinter as tk
 
         from PIL import ImageTk
+
+        window = tk.Tk()
     except Exception:
-        return
-    window = tk.Tk()
+        return  # no tkinter or no DISPLAY — run headless
     window.title(title)
     label = tk.Label(window)
     label.pack()

@@ -59,4 +59,10 @@ def setup_headless_emulator(profile=None, is_test_run: bool = False):
     from modules.stats import StatsDatabase
 
     context.stats = StatsDatabase(profile)
+
+    # Live window by default for every run — campaigns, gym CLIs, diagnostics.
+    # DEXBOT_VIDEO=0 (tests/conftest.py) or a missing display keeps it headless.
+    from dexbot.runner import attach_video_window
+
+    attach_video_window(context)
     return context

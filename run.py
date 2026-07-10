@@ -28,8 +28,14 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--goal", default="living-dex", choices=["living-dex"])
     parser.add_argument("--profile", default="livingdex")
-    parser.add_argument("--video", action="store_true", help="show a live game window (needs a display)")
+    parser.add_argument("--video", action="store_true", help="(deprecated: the live window is on by default)")
+    parser.add_argument("--no-video", action="store_true", help="run without the live game window")
     args = parser.parse_args()
+
+    if args.no_video:
+        import os
+
+        os.environ["DEXBOT_VIDEO"] = "0"
 
     verify_rom()
 
@@ -55,39 +61,8 @@ def main() -> None:
 
     runner.frame_hooks.extend([telemetry.tick, checkpoint_hook])
 
-    if args.video:
-        # Live view: a plain Tk window fed from the emulator's frame buffer
-        # every 30 frames (~0.5-2 fps of wall time at unthrottled speed — a
-        # fast-forward view, not gameplay speed). Closing the window is safe;
-        # the run continues headless.
-        import tkinter as tk
-
-        from PIL import ImageTk
-
-        window = tk.Tk()
-        window.title(f"dexbot — {args.profile}")
-        video_label = tk.Label(window)
-        video_label.pack()
-        video_state = {"frame": 0, "alive": True}
-
-        def video_hook() -> None:
-            if not video_state["alive"]:
-                return
-            video_state["frame"] += 1
-            if video_state["frame"] % 30:
-                return
-            try:
-                image = ImageTk.PhotoImage(context.emulator.get_screenshot().resize((480, 320)))
-                video_label.configure(image=image)
-                video_label.image = image
-                window.update()
-            except Exception:  # noqa: BLE001 — window closed / Tk teardown mid-
-                # frame raises more than TclError (PhotoImage AttributeError,
-                # RuntimeError); the view is decoration and must NEVER kill the
-                # run — it did once, rolling back to the last checkpoint.
-                video_state["alive"] = False
-
-        runner.frame_hooks.append(video_hook)
+    # Live window: attached by default inside setup_headless_emulator
+    # (runner.attach_video_window); --no-video / DEXBOT_VIDEO=0 disables.
 
     from modules.memory import game_has_started
     from dexbot.runner import run_skill
