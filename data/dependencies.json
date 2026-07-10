@@ -182,6 +182,48 @@
       ],
       "safari": true,
       "note": "Safari Zone West \u2014 script-gated entry (500 fee), caught via safari_run"
+    },
+    "1,95": {
+      "requires": [
+        "BADGE05_GET"
+      ],
+      "note": "Power Plant \u2014 surf the Route 10 water strip (Electabuzz/Magnemite/Electrode)"
+    },
+    "1,59": {
+      "requires": [
+        "BADGE05_GET"
+      ],
+      "note": "Pokemon Mansion 1F \u2014 Cinnabar via Surf (Koffing/Grimer/Ponyta)"
+    },
+    "1,62": {
+      "requires": [
+        "BADGE05_GET"
+      ],
+      "note": "Pokemon Mansion B1F"
+    },
+    "3,37": {
+      "requires": [
+        "BADGE05_GET"
+      ],
+      "note": "Route 19 \u2014 surf + fishing south of Fuchsia"
+    },
+    "3,38": {
+      "requires": [
+        "BADGE05_GET"
+      ],
+      "note": "Route 20 \u2014 surf corridor past Seafoam"
+    },
+    "3,39": {
+      "requires": [
+        "BADGE05_GET"
+      ],
+      "note": "Route 21 north \u2014 surf/fishing, Pallet\u2194Cinnabar"
+    },
+    "3,40": {
+      "requires": [
+        "BADGE05_GET"
+      ],
+      "note": "Route 21 south"
     }
   },
   "objectives": {

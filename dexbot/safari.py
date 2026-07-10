@@ -27,61 +27,76 @@ def _inside_safari() -> bool:
     return is_safari_map()
 
 
+def enter_safari() -> Generator:
+    """Pay the fee at the Fuchsia entrance counter and step into the Center."""
+    from modules.context import context
+    from modules.modes.util.tasks_scripts import wait_for_script_to_start_and_finish
+    from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_controllable
+    from modules.player import get_player
+    from modules.safari_strategy import get_safari_zone_config
+
+    from dexbot.navigation import navigate_to
+
+    config = get_safari_zone_config(context.rom)
+    if get_player().money < 500:
+        raise SkillError("Not enough money for the Safari Zone entry fee")
+    yield from navigate_to(config["map"], config["entrance_tile"])
+    yield from ensure_facing_direction(config["facing_direction"])
+    context.emulator.hold_button(config["facing_direction"])
+    for _ in range(10):
+        yield
+    context.emulator.release_button(config["facing_direction"])
+    yield
+    yield from wait_for_script_to_start_and_finish(config["ask_script"], "A")
+    yield from wait_for_script_to_start_and_finish(config["enter_script"], "A")
+    yield from wait_for_player_avatar_to_be_controllable()
+
+
+def retire_safari() -> Generator:
+    """Leave via the pause menu's RETIRE option (works from anywhere inside)."""
+    from modules.context import context
+    from modules.menuing import StartMenuNavigator
+    from modules.modes.util.tasks_scripts import wait_for_script_to_start_and_finish
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_standing_still
+    from modules.safari_strategy import get_safari_zone_config
+
+    config = get_safari_zone_config(context.rom)
+    yield from StartMenuNavigator("RETIRE").step()
+    yield from wait_for_script_to_start_and_finish(config["exit_script"], "A")
+    yield from wait_for_player_avatar_to_be_standing_still()
+
+
+def walk_safari_path(target_map, tile) -> Generator:
+    """Walk upstream's documented internal legs to a safari-area tile (surf-
+    aware). Returns early if the PA warps us out mid-walk."""
+    from modules.modes.util.walking import navigate_to as navigate_same_level
+    from modules.safari_strategy import get_navigation_path
+
+    for leg_map, leg_coords in get_navigation_path(target_map, tile):
+        yield from navigate_same_level(leg_map, leg_coords)
+        if not _inside_safari():
+            return
+
+
 def safari_run(species_name: str) -> Generator:
     """Catch `species_name` in the Safari Zone: pay, walk to its documented
     hunting spot, spin (or fish) until caught — re-entering when the PA calls
     time or the balls run out. Drive with on_battle_started=make_catch_decider.
     """
-    from modules.context import context
-    from modules.items import get_item_by_name
-    from modules.map_data import MapFRLG
-    from modules.memory import GameState, get_game_state
-    from modules.menuing import StartMenuNavigator
     from modules.modes.util.higher_level_actions import spin
-    from modules.modes.util.tasks_scripts import wait_for_script_to_start_and_finish
-    from modules.modes.util.walking import (
-        ensure_facing_direction,
-        navigate_to as navigate_same_level,
-        wait_for_player_avatar_to_be_controllable,
-        wait_for_player_avatar_to_be_standing_still,
-    )
-    from modules.player import get_player, get_player_avatar
     from modules.safari_strategy import (
         SafariHuntingMode,
-        get_navigation_path,
         get_safari_balls_left,
         get_safari_pokemon,
-        get_safari_zone_config,
     )
 
     from dexbot.catching import _species_is_owned
-    from dexbot.navigation import navigate_to
 
     if _species_is_owned(species_name):
         return
     target = get_safari_pokemon(species_name)
     if target is None or not target.value.availability():
         raise SkillError(f"{species_name} has no FireRed safari spot")
-    config = get_safari_zone_config(context.rom)
-
-    def enter() -> Generator:
-        if get_player().money < 500:
-            raise SkillError("Not enough money for the Safari Zone entry fee")
-        yield from navigate_to(config["map"], config["entrance_tile"])
-        yield from ensure_facing_direction(config["facing_direction"])
-        context.emulator.hold_button(config["facing_direction"])
-        for _ in range(10):
-            yield
-        context.emulator.release_button(config["facing_direction"])
-        yield
-        yield from wait_for_script_to_start_and_finish(config["ask_script"], "A")
-        yield from wait_for_script_to_start_and_finish(config["enter_script"], "A")
-        yield from wait_for_player_avatar_to_be_controllable()
-
-    def retire() -> Generator:
-        yield from StartMenuNavigator("RETIRE").step()
-        yield from wait_for_script_to_start_and_finish(config["exit_script"], "A")
-        yield from wait_for_player_avatar_to_be_standing_still()
 
     hunt_map = target.value.map_location
     hunt_tile = target.value.tile_location
@@ -91,14 +106,10 @@ def safari_run(species_name: str) -> Generator:
             break
         _log_event(skill="safari_run", status="phase", phase=f"entry_{attempt}")
         if not _inside_safari():
-            yield from enter()
-        # Internal legs: safari areas are plain connected maps once inside.
-        for leg_map, leg_coords in get_navigation_path(hunt_map, hunt_tile):
-            yield from navigate_same_level(leg_map, leg_coords)
-            if not _inside_safari():
-                break  # PA called time mid-walk — re-enter
+            yield from enter_safari()
+        yield from walk_safari_path(hunt_map, hunt_tile)
         if not _inside_safari():
-            continue
+            continue  # PA called time mid-walk — re-enter
 
         def done() -> bool:
             return (
@@ -119,12 +130,12 @@ def safari_run(species_name: str) -> Generator:
         if _species_is_owned(species_name):
             break
         if _inside_safari() and get_safari_balls_left() == 0:
-            yield from retire()  # fresh 30 balls next entry
+            yield from retire_safari()  # fresh 30 balls next entry
 
     if not _species_is_owned(species_name):
         raise SkillError(f"Safari: {species_name} not caught in {_MAX_ENTRIES} entries")
     if _inside_safari():
-        yield from retire()
+        yield from retire_safari()
     _log_event(skill="safari_run", status="caught", species=species_name)
 
 

@@ -335,6 +335,14 @@ def make_healing_battle_strategy(flee_below: float = 0.5):
                         return escape
             return super().decide_turn(battle_state)
 
+        def decide_turn_in_safari_zone(self, battle_state):
+            # Non-catch context inside the Safari (loot walks, transit):
+            # fleeing is free — the Default base has no safari logic and
+            # drops to Manual mode.
+            from modules.battle_strategies import SafariTurnAction
+
+            return SafariTurnAction.run_away()
+
     return HealingBattleStrategy()
 
 

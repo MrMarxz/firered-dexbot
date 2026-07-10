@@ -651,6 +651,66 @@ def get_exp_share() -> Generator:
         raise SkillError("Aide did not hand over the Exp. Share")
 
 
+def get_hm_strength() -> Generator:
+    """Gold Teeth (Safari West item ball at (28,14), plus the area's other
+    free loot: TM32 / Max Potion / Max Revive) → the Warden trades them for
+    HM04 → teach Strength to the strongest capable party member. Strength
+    opens the boulder dungeons (Seafoam Islands, Victory Road)."""
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG
+    from modules.memory import get_event_flag
+    from modules.pokemon_party import get_party
+
+    from dexbot.items_ground import collect_item_balls
+    from dexbot.runner import _log_event
+    from dexbot.safari import enter_safari, retire_safari, walk_safari_path, _inside_safari
+
+    teeth = get_item_by_name("Gold Teeth")
+    hm04 = get_item_by_name("HM04")
+
+    if not get_event_flag("GOT_HM04") and get_item_bag().quantity_of(hm04) == 0:
+        if get_item_bag().quantity_of(teeth) == 0:
+            _log_event(skill="get_hm_strength", status="phase", phase="safari_loot")
+            for _attempt in range(3):  # PA timeout mid-walk → re-enter
+                if not _inside_safari():
+                    yield from enter_safari()
+                yield from walk_safari_path(MapFRLG.SAFARI_ZONE_WEST, (27, 15))
+                if not _inside_safari():
+                    continue
+                yield from collect_item_balls(MapFRLG.SAFARI_ZONE_WEST, limit=6)
+                break
+            if _inside_safari():
+                yield from retire_safari()
+            if get_item_bag().quantity_of(teeth) == 0:
+                raise SkillError("Gold Teeth not collected in Safari West")
+
+        _log_event(skill="get_hm_strength", status="phase", phase="warden")
+        yield from _talk_until(MapFRLG.FUCHSIA_CITY_WARDENS_HOUSE, 1, hm04)
+        if get_item_bag().quantity_of(hm04) == 0:
+            raise SkillError("Warden did not hand over HM04")
+
+    if not get_party().has_pokemon_with_move("Strength"):
+        from modules.modes.util.items import teach_hm_or_tm
+
+        learners = [p for p in get_party() if not p.is_egg and p.species.can_learn_tm_hm(hm04)]
+        if not learners:
+            _log_event(skill="get_hm_strength", status="phase", phase="withdraw_learner")
+            yield from _withdraw_learner_of(hm04)
+            learners = [p for p in get_party() if not p.is_egg and p.species.can_learn_tm_hm(hm04)]
+        if not learners:
+            raise SkillError("No Strength-capable Pokémon in party or PC")
+        mon = max(learners, key=lambda p: p.level)
+        party_index = get_party().get_index_for_pokemon(mon)
+        replace_index = min(
+            range(len(mon.moves)),
+            key=lambda i: mon.moves[i].move.base_power if mon.moves[i] else 999,
+        )
+        _log_event(skill="get_hm_strength", status="phase", phase="teach_strength")
+        yield from teach_hm_or_tm(hm04, party_index, replace_index)
+        if not get_party().has_pokemon_with_move("Strength"):
+            raise SkillError("Failed to teach Strength")
+
+
 def get_rods() -> Generator:
     """Collect all three fishing rods (pret-verified givers, each behind a
     'do you like to fish?' YES prompt):
@@ -1220,6 +1280,7 @@ STORY_SKILLS = {
     "get_amulet_coin": get_amulet_coin,
     "get_rods": get_rods,
     "get_exp_share": get_exp_share,
+    "get_hm_strength": get_hm_strength,
     "clear_rocket_hideout": clear_rocket_hideout,
     "rescue_mr_fuji": rescue_mr_fuji,
     "catch_snorlax": catch_snorlax,
