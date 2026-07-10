@@ -1624,16 +1624,32 @@ def get_secret_key() -> Generator:
     else:
         raise SkillError("get_secret_key: never reached Mansion B1F")
 
+    # B1F choreography (headless-verified): land at (34,29) with the switch
+    # SET (the 3F hole needed it) — the landing pocket is sealed in that
+    # state. Toggle (24,29) → CLEAR opens the corridor west; from (27,6)
+    # toggle (27,5) → SET opens the key room. Only THEN is the ball
+    # collectible; running collect_item_balls earlier grinds through failed
+    # plans until the standstill watchdog kills the skill.
     _phase("key")
     b1f = MapFRLG.POKEMON_MANSION_B1F
+    key_stands = ((5, 8), (4, 7), (5, 6), (6, 7))
+
+    def _key_reachable() -> bool:
+        pos = tuple(get_player_avatar().local_coordinates)
+        return any(_walkable((b1f.value, pos), (b1f.value, s), max_nodes=3_000) for s in key_stands)
+
     for statue in [None, *statues[b1f.value]]:
         if statue is not None:
             _phase(f"statue_b1f_{statue[0]}_{statue[1]}")
             yield from _toggle_statue(b1f, statue)
-        yield from collect_item_balls(b1f, limit=6)  # key + TM14/TM22/Full Restore
-        if get_event_flag("HIDE_POKEMON_MANSION_B1F_SECRET_KEY"):
-            return
-    raise SkillError("Secret Key ball not reachable (switch doors stayed closed)")
+        if _key_reachable():
+            break
+    else:
+        raise SkillError("Secret Key room never opened (B1F statue sequence failed)")
+    yield from collect_item_balls(b1f, only=[(5, 7)])  # the key, nothing else
+    if not get_event_flag("HIDE_POKEMON_MANSION_B1F_SECRET_KEY"):
+        raise SkillError("Secret Key ball not collected despite open room")
+    yield from collect_item_balls(b1f, limit=4)  # best-effort: whatever loot is open
 
 
 STORY_SKILLS = {

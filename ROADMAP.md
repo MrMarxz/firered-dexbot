@@ -39,6 +39,11 @@ Next, in dependency order:
 2. **Silph Co** (open now): clears Saffron gym access → Sabrina (badge 6).
 3. **Cinnabar** via Surf from Pallet/Route 21: Mansion Secret Key → Blaine
    (badge 7). Surfable water routes also open big dex chunks — annotate them.
+   (In progress 2026-07-10: nav graph fixed — Viridian gym-pocket ledge drop
+   edge was invisible, orphaning Pallet/Cinnabar; fork now models the
+   Mansion/Cinnabar-gym setmetatile doors at path time via
+   FLAG_POKEMON_MANSION_SWITCH_STATE / CINNABAR_GYM_QUIZ_* — static layout
+   reads never see setmetatile.)
 4. **Sevii Islands** (after Blaine): island dex species, Moltres.
 5. **Viridian gym** (Giovanni, badge 8) → Elite Four only if a species needs it.
 

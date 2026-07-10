@@ -33,13 +33,15 @@ def uncollected_item_balls(map_key) -> list[tuple[int, tuple[int, int]]]:
     return result
 
 
-def collect_item_balls(map_key, limit: int = 10) -> Generator:
+def collect_item_balls(map_key, limit: int = 10, only: list | None = None) -> Generator:
     """Pick up reachable item balls on `map_key`: stand adjacent, face, A.
-    Unreachable ones (behind puzzles) are skipped, not fatal."""
+    Unreachable ones (behind puzzles) are skipped, not fatal. `only` limits
+    collection to balls at those coords (e.g. just the Secret Key)."""
     from modules.context import context
     from modules.map_data import MapFRLG
     from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
     from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_controllable
+    from modules.player import get_player_avatar
 
     from dexbot.navigation import _plan_via_graph, _walkable
 
@@ -49,10 +51,20 @@ def collect_item_balls(map_key, limit: int = 10) -> Generator:
     for local_id, coords in uncollected_item_balls(map_key):
         if collected >= limit:
             return
+        if only is not None and coords not in only:
+            continue
         # Try the four adjacent stand tiles, nearest-plan first.
         for (dx, dy), facing in (((0, 1), "Up"), ((0, -1), "Down"), ((1, 0), "Left"), ((-1, 0), "Right")):
             stand = (coords[0] + dx, coords[1] + dy)
             if stand[0] < 0 or stand[1] < 0:
+                continue
+            # Cheap same-map reachability probe before the full planner: an
+            # unreachable stand (switch door closed) otherwise burns minutes
+            # of graph scans + live fallback A* — the B1F key-phase wedge.
+            av = get_player_avatar()
+            if tuple(av.map_group_and_number) == tuple(map_key) and not _walkable(
+                (tuple(map_key), tuple(av.local_coordinates)), (tuple(map_key), stand), max_nodes=3_000
+            ):
                 continue
             try:
                 yield from navigate_to(map_key, stand)
