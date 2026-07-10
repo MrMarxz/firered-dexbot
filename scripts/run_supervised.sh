@@ -4,6 +4,15 @@
 # losing at most 5 game-minutes. Restart on crash; stop on clean exit
 # (planner idle) or after too many rapid failures.
 cd "$(dirname "$0")/.."
+
+# ONE emulator rule: a second run.py silently corrupts current_state.ss1
+# (two processes checkpoint interleaved — a stale world overwrote a fresh
+# catch). Refuse to start while another instance is alive.
+if pgrep -f "run.py --goal" >/dev/null 2>&1; then
+    echo "[supervisor] another run.py is already alive — refusing to double-launch." >&2
+    exit 2
+fi
+
 FAILS=0
 while true; do
     START=$(date +%s)
