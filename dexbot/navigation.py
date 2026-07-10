@@ -667,6 +667,33 @@ def _plan_warp_route_live(
     raise SkillError(f"No warp route from {start} to {dest}")
 
 
+def enter_center(center) -> Generator:
+    """Navigate to a Pokémon Center's door coordinate and GUARANTEE we end up
+    inside. Standing on the door coordinate already (Silph Co's exit lands
+    exactly on Saffron's) makes navigate_to a no-op with no warp — step up
+    into the door explicitly and wait for the map change."""
+    from modules.context import context
+    from modules.player import get_player_avatar
+
+    outdoor_map = center.value[0].value if hasattr(center.value[0], "value") else tuple(center.value[0])
+    yield from navigate_to(center.value[0], center.value[1])
+    if tuple(get_player_avatar().map_group_and_number) == tuple(outdoor_map):
+        context.emulator.reset_held_buttons()
+        context.emulator.hold_button("Up")
+        for _ in range(24):
+            yield
+        context.emulator.reset_held_buttons()
+        for _ in range(180):
+            if tuple(get_player_avatar().map_group_and_number) != tuple(outdoor_map):
+                break
+            yield
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+
+    yield from wait_for_player_avatar_to_be_controllable("B")
+    if tuple(get_player_avatar().map_group_and_number) == tuple(outdoor_map):
+        raise SkillError(f"Could not enter the {center.name} Pokémon Center")
+
+
 def walk_carefully(map_key, dest: tuple[int, int], max_repaths: int = 8) -> Generator:
     """Walk to `dest` on the current level with TAP-AND-SETTLE inputs — for
     forced-movement areas (spin-tile mazes). Upstream's walker holds the

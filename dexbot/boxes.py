@@ -49,8 +49,10 @@ def deposit_party_fodder(keep: int = 1) -> Generator:
     from modules.modes.util.walking import wait_for_player_avatar_to_be_standing_still
     from modules.player import get_player_avatar
 
+    from dexbot.navigation import enter_center
+
     center = _pick_reachable_center()
-    yield from navigate_to(center.value[0], center.value[1])  # door warp → inside
+    yield from enter_center(center)  # guarantees the door warp fired
     interior = get_player_avatar().map_group_and_number
 
     yield from navigate_to(interior, (7, 4))  # in front of the nurse

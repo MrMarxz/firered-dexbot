@@ -339,8 +339,10 @@ def assemble_party(objective: TeamObjective) -> Generator:
         return  # no-op: don't walk to a PC to do nothing
 
     _log_event(skill="assemble_party", status="phase", phase="to_pc")
+    from dexbot.navigation import enter_center
+
     center = _pick_reachable_center()
-    yield from navigate_to(center.value[0], center.value[1])  # door warp → inside
+    yield from enter_center(center)  # guarantees the door warp fired
     interior = get_player_avatar().map_group_and_number
     pc_tile = _find_pc_tile(interior)
     yield from navigate_to(interior, (pc_tile[0], pc_tile[1] + 1))
