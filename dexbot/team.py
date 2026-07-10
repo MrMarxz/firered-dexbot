@@ -167,6 +167,130 @@ def _find_box_mon(id_bytes: bytes):
     return None
 
 
+def give_item_to_party_mon(item_name: str, party_index: int = 0) -> Generator:
+    """Give a bag item to a party mon (start menu → POKéMON → mon → ITEM →
+    GIVE — upstream's PokemonPartyMenuNavigator drives the menus). No-op if
+    the mon already holds it; raises if it holds something else."""
+    from modules.context import context
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.memory import GameState, get_game_state
+    from modules.menuing import PokemonPartyMenuNavigator, StartMenuNavigator
+    from modules.player import player_avatar_is_controllable
+    from modules.pokemon_party import get_party
+
+    from dexbot.runner import SkillError
+
+    item = get_item_by_name(item_name)
+    holder = get_party()[party_index]
+    if holder.held_item is not None:
+        if holder.held_item.name == item_name:
+            return
+        raise SkillError(
+            f"Party slot {party_index} already holds {holder.held_item.name}; won't overwrite with {item_name}"
+        )
+    if get_item_bag().quantity_of(item) == 0:
+        raise SkillError(f"No {item_name} in the bag to give")
+
+    yield from StartMenuNavigator("POKEMON").step()
+    yield from PokemonPartyMenuNavigator(party_index, "give_item", item_to_give=item).step()
+
+    for frame in range(600):  # back out to a controllable overworld
+        if get_game_state() == GameState.OVERWORLD and player_avatar_is_controllable():
+            break
+        if frame % 8 == 0:
+            context.emulator.press_button("B")
+        yield
+    held = get_party()[party_index].held_item
+    if held is None or held.name != item_name:
+        raise SkillError(f"Failed to give {item_name} to party slot {party_index}")
+
+
+def make_false_swipe_trainer(species: str = "Cubone", move: str = "False Swipe"):
+    """Battle strategy for training the catch-kit weakener: upstream's
+    LevelBalancingBattleStrategy keeps the lowest-level mon as lead (switching
+    in the strongest when it runs low, so the runt still gets shared XP), plus:
+    - evolution VETO while the trainee hasn't learned the move yet (Cubone gets
+      False Swipe at 33; evolved Marowak not until 39);
+    - the move is always accepted when offered, replacing a junk status move."""
+    from modules.battle_strategies.level_balancing import LevelBalancingBattleStrategy
+
+    class FalseSwipeTrainer(LevelBalancingBattleStrategy):
+        def party_can_battle(self) -> bool:
+            # LevelBalancing refuses to battle when the trainee is fainted —
+            # fatal mid-rematch (trainers can't be declined). Any conscious
+            # mon can battle; the trainee just misses that fight's XP.
+            return super(LevelBalancingBattleStrategy, self).party_can_battle()
+
+        def should_allow_evolution(self, pokemon, party_index: int) -> bool:
+            if pokemon.species.name == species and not any(
+                lm is not None and lm.move.name == move for lm in pokemon.moves
+            ):
+                return False
+            return super().should_allow_evolution(pokemon, party_index)
+
+        def which_move_should_be_replaced(self, pokemon, new_move) -> int:
+            if new_move.name == move:
+                for junk in ("Growl", "Tail Whip", "Leer", "Focus Energy"):
+                    for i, lm in enumerate(pokemon.moves):
+                        if lm is not None and lm.move.name == junk:
+                            return i
+            return super().which_move_should_be_replaced(pokemon, new_move)
+
+    return FalseSwipeTrainer()
+
+
+def train_false_swipe(species: str = "Cubone", move: str = "False Swipe") -> Generator:
+    """Level the catch-kit weakener until it knows `move` (Cubone → False Swipe
+    at L33): assemble a party that includes it (select_party's False-Swipe role
+    picks it by species), then grind wilds with heal stints. Drive via
+    run_skill(..., on_battle_started=lambda e: make_false_swipe_trainer())."""
+    from modules.pokemon_party import get_party
+
+    from dexbot.runner import SkillError, _log_event
+
+    def trainee():
+        for p in get_party():
+            if not p.is_egg and p.species.name == species:
+                return p
+        return None
+
+    def knows_move() -> bool:
+        p = trainee()
+        return p is not None and any(lm is not None and lm.move.name == move for lm in p.moves)
+
+    if knows_move():
+        return
+    yield from assemble_party(TeamObjective(kind="catch", field_moves=("Cut",)))
+    if trainee() is None:
+        raise SkillError(f"train_false_swipe: no {species} in party after assembly")
+
+    from modules.modes.util.higher_level_actions import spin
+    from modules.pokemon import StatusCondition
+
+    from dexbot.catching import ensure_healthy
+    from dexbot.navigation import navigate_to
+    from dexbot.planner import GRIND_SPOT_BADGE2
+
+    def needs_heal() -> bool:
+        p = trainee()
+        lead = get_party()[0]
+        return (
+            p is None
+            or p.current_hp == 0
+            or lead.current_hp / lead.total_hp < 0.4
+            or lead.status_condition != StatusCondition.Healthy
+        )
+
+    map_key, tile = GRIND_SPOT_BADGE2
+    while not knows_move():
+        p = trainee()
+        _log_event(skill="train_false_swipe", status="progress", trainee_level=p.level if p else None)
+        yield from ensure_healthy(minimum_fraction=0.95)
+        yield from navigate_to(map_key, tile)
+        yield from spin(stop_condition=lambda: knows_move() or needs_heal())
+    _log_event(skill="train_false_swipe", status="learned", trainee_level=trainee().level)
+
+
 def assemble_party(objective: TeamObjective) -> Generator:
     """Walk to the nearest PC and realize `select_party(objective)`: deposit
     party mons not wanted, withdraw wanted mons from boxes. Keeps ≥1 conscious

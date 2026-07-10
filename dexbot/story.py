@@ -621,6 +621,12 @@ def get_amulet_coin() -> Generator:
     if get_item_bag().quantity_of(coin) == 0:
         raise SkillError("Aide did not hand over the Amulet Coin")
 
+    # Follow through immediately: a bagged coin doubles nothing. Give it to the
+    # battle lead so every trainer payout from here on is doubled.
+    from dexbot.team import give_item_to_party_mon
+
+    yield from give_item_to_party_mon("Amulet Coin", 0)
+
 
 def _descend_hidden_stairs() -> Generator:
     """Game Corner (11,2) → the opened hidden stairs at (15,2). The stairs are

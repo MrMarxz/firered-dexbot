@@ -230,12 +230,17 @@ def _route11_trainer_approach_tiles() -> list[tuple[int, int]]:
     return approaches
 
 
-def _earn_by_vs_seeker() -> bool:
+def _earn_by_vs_seeker(on_battle_started=None) -> bool:
     """Renewable income: on Route 11, use the registered Vs Seeker (Select) to
     re-arm rematches, then walk to each trainer — line-of-sight rematch fights
-    pay out (~3.5k/lap). Each leg is its OWN run_skill so a battle mid-walk
-    can't deadlock the whole lap (mirrors _earn_by_patrol). Returns False if
-    the Seeker isn't owned yet (caller falls back to one-shot patrols)."""
+    pay out (~3.5k/lap, doubled while the lead holds the Amulet Coin). Each leg
+    is its OWN run_skill so a battle mid-walk can't deadlock the whole lap
+    (mirrors _earn_by_patrol). Returns False if the Seeker isn't owned yet
+    (caller falls back to one-shot patrols).
+
+    `on_battle_started` overrides the battle policy — pass a level-balancing
+    strategy to double the laps as XP training for a low-level party member
+    (rematch trainers pay 5-10x wild XP)."""
     from modules.context import context
     from modules.items import get_item_bag, get_item_by_name
     from modules.player import get_player
@@ -245,6 +250,8 @@ def _earn_by_vs_seeker() -> bool:
     from dexbot.navigation import navigate_to
     from dexbot.runner import SkillError, SkillTimeout
 
+    if on_battle_started is None:
+        on_battle_started = fight_all_battles
     if get_item_bag().quantity_of(get_item_by_name("VS Seeker")) == 0:
         return False
     route_key = (3, 29)  # Route 11
@@ -253,20 +260,48 @@ def _earn_by_vs_seeker() -> bool:
         return False
     money_before = get_player().money
 
+    # The Seeker recharges on STEPS (100). The approach list is in object
+    # order, so approaches[0]/[-1] can be near-neighbours — shuttling between
+    # them walked ~40 steps and every post-first lap re-armed 0 trainers and
+    # earned nothing. Shuttle between the true x-extremes for ≥120 steps, then
+    # fire it from the BAG at a mid-route tile: the registered-item Select
+    # shortcut silently no-ops in this harness, and the Seeker only re-arms
+    # trainers VISIBLE ON SCREEN when used (both diagnosed 2026-07-10 —
+    # Task_VsSeeker_2/3 fire from the bag flow, nothing fires from Select).
+    by_x = sorted(approaches, key=lambda t: t[0])
+    near, far = by_x[0], by_x[-1]
+    # ponytail: (42,9) is the one Route 11 approach empirically confirmed to
+    # arm a rematch (Task_VsSeeker_3 + trainer walk-up); the mid-route tile's
+    # neighbour has no rematch table and the scan fizzles at Task_VsSeeker_1.
+    # Scan per-tile if this trainer ever dries up.
+    fire_tile = (42, 9) if (42, 9) in approaches else by_x[len(by_x) // 2]
+    span = abs(far[0] - near[0]) + abs(far[1] - near[1])
+    trips = max(2, -(-120 // max(2 * span, 2)))
+
     def arm_seeker():
+        # Manual bag drive: upstream's use_item_from_bag A-mashes through the
+        # context menu and the USE never registers for the Seeker (verified:
+        # zero VsSeeker tasks via the helper, Task_VsSeeker_2/3 fire with
+        # spaced A presses).
+        from modules.menuing import StartMenuNavigator, scroll_to_item_in_bag
+
         yield from ensure_healthy(minimum_fraction=0.6)
-        # Recharge lap FIRST: the Seeker needs ~100 steps of walking before it
-        # can re-arm rematches. Walk to the far trainer end, then back to the
-        # near end, so the Select below actually re-arms (else 0 re-arms).
-        yield from navigate_to(route_key, approaches[-1])
-        yield from navigate_to(route_key, approaches[0])
-        context.emulator.press_button("Select")  # now charged → re-arms rematches
-        for _ in range(300):  # scan animation + '!!' markers
+        for _ in range(trips):
+            yield from navigate_to(route_key, far)
+            yield from navigate_to(route_key, near)
+        yield from navigate_to(route_key, fire_tile)  # a rematchable trainer is on screen here
+        yield from StartMenuNavigator("BAG").step()
+        yield from scroll_to_item_in_bag(get_item_by_name("VS Seeker"))
+        for _ in range(2):  # A: open context menu; A: USE
+            context.emulator.press_button("A")
+            for _ in range(45):
+                yield
+        for _ in range(300):  # scan animation + '!!'; an armed trainer may walk up and fight
             yield
-        yield from wait_for_no_script_to_run("B")  # dismiss any "needs charging" msg
+        yield from wait_for_no_script_to_run("B")
 
     try:
-        run_skill(arm_seeker(), "vs_seeker_arm", timeout_frames=400_000, on_battle_started=fight_all_battles)
+        run_skill(arm_seeker(), "vs_seeker_arm", timeout_frames=400_000, on_battle_started=on_battle_started)
     except (SkillError, SkillTimeout) as e:
         print(f"[planner] vs-seeker arm failed: {e}")
         return True
@@ -276,7 +311,7 @@ def _earn_by_vs_seeker() -> bool:
                 navigate_to(route_key, approach),
                 "vs_seeker_leg",
                 timeout_frames=200_000,
-                on_battle_started=fight_all_battles,
+                on_battle_started=on_battle_started,
             )
         except (SkillError, SkillTimeout) as e:
             print(f"[planner] vs-seeker leg {approach} skipped: {str(e)[:60]}")
@@ -285,15 +320,21 @@ def _earn_by_vs_seeker() -> bool:
     return True
 
 
-def _earn_by_patrol() -> None:
+def _earn_by_patrol(on_battle_started=None) -> bool:
     """Fight an unfought trainer route for money when selling can't fund a
     restock. ponytail: Vs Seeker rematches are the renewable M8 income engine;
-    unfought route gauntlets are the pre-Seeker bridge."""
+    unfought route gauntlets are the pre-Seeker bridge (and first-time fights
+    are what CREATES rematch inventory — an unbeaten trainer can't be re-armed).
+    Returns False when every patrol route has been visited this process.
+    `on_battle_started` overrides the battle policy (e.g. level-balancing XP
+    training)."""
     from dexbot.catching import _encounter_tiles, ensure_healthy, fight_all_battles
     from dexbot.navigation import _plan_via_graph, _walkable, navigate_to
     from dexbot.runner import SkillError
     from modules.player import get_player_avatar
 
+    if on_battle_started is None:
+        on_battle_started = fight_all_battles
     for route_key in _PATROL_ROUTES:
         if route_key in _patrolled:
             continue
@@ -311,11 +352,12 @@ def _earn_by_patrol() -> None:
                     navigate_to(route_key, tile),
                     f"patrol_{route_key[0]}_{route_key[1]}",
                     timeout_frames=600_000,
-                    on_battle_started=fight_all_battles,
+                    on_battle_started=on_battle_started,
                 )
         except SkillError as e:
             print(f"[planner] patrol {route_key} failed: {e}")
-        return  # one route per call — usually enough for a restock
+        return True  # one route per call — usually enough for a restock
+    return False
 
 
 # Sold when broke, in order: collectibles, then Super Potions above a reserve

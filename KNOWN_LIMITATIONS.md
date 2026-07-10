@@ -88,11 +88,20 @@ Honesty over optimism. Current as of M5.
 - **navigate_to script interruptions**: handled generically (A-mash + periodic
   START + B), verified on the Pallet sign lady. Other one-time triggers across
   Kanto may need the same treatment — watch logs/skills.jsonl for timeouts.
-- **Vs Seeker re-arm yields zero after the first charged lap**: `arm_seeker`'s
-  recharge walk (one Route 11 length) appears to be under the ~100-step charge
-  requirement, so consecutive laps earn nothing (observed: lap 0 +₽4.7k, laps
-  1–9 +0). Double the recharge walk when the economy next needs sustained
-  income; today's Koga loadout fit within one charged lap.
+- **Vs Seeker rematches never fire — income laps earn ₽0**: extensively
+  probed 2026-07-10. What IS known: the registered-item Select shortcut
+  silently no-ops in this harness (fire it from the BAG — `Task_VsSeeker_*`
+  tasks confirm); after firing, a message box ("The other TRAINERS don't
+  appear…") waits on a button press that `wait_for_no_script_to_run` does not
+  deliver (no script is active — mash B on `Task_ContinueTaskAfterMessagePrints`);
+  the ≥100-step recharge is satisfied by a two-round-trip shuttle between the
+  approach x-extremes. Even with all three fixed, every Route 11 fire reports
+  no interested trainers and no rematch battle happens. Next probe: read the
+  per-trainer defeated flags (`TRAINER_FLAGS_START + id`) — an unbeaten
+  trainer is rematch-ineligible, and the original "+₽4.7k lap" was probably
+  first-time ambushes, not rematches. The lap-0 +4.7k was never reproduced.
+  Meanwhile the economy runs on one-shot patrols, item liquidation, and
+  Amulet-Coin-doubled story/gym fights.
 - **Cycling Road is downhill-only**: Route 17's slope tiles keep the avatar in
   a perpetual forced-slide state, so legs there use walk_carefully
   (tap-and-settle; a released coast is re-pathed from the landing). Southbound
