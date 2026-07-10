@@ -96,13 +96,34 @@ def build(context, save_every_level: bool = True) -> dict:
                 next_id += 1
                 reps.append((tile, assigned))
             components[_tile_key(*tile)] = assigned
-        # One-way passages (ledges, guard-gated gaps) between this level's
-        # components become directed walk edges.
-        for rep_a, ca in reps:
-            for rep_b, cb in reps:
-                if ca != cb and _walkable(rep_a, rep_b):
-                    walk_edges.add((ca, cb))
+        # Cut-tree edges FIRST: they mint components for warpless pockets
+        # (Viridian's gym pocket has no ungated warp — only a tree side), and
+        # the walk-edge discovery below must see those components too.
         cut_edges.extend(_cut_edges_for_level(level, reps, components, _distance, _walkable))
+        # One-way passages (ledges, guard-gated gaps) between this level's
+        # components become directed walk edges. Check the NEAREST tile pair
+        # per component pair, not the minting reps: a multi-map component's
+        # rep can sit an ocean away (Pallet+Cinnabar comp), blowing the A*
+        # node budget and silently dropping REAL edges (the Viridian
+        # gym-pocket ledge drop was missing, orphaning Cinnabar from the
+        # mainland). One-way passages are always local — distance-gate the
+        # pairs to keep the build cheap.
+        comp_tiles: dict[int, list] = {}
+        for tile in list(tiles) + [rt for rt, _ in reps]:
+            comp_tiles.setdefault(components[_tile_key(*tile)], []).append(tile)
+        ids = sorted(comp_tiles)
+        for ca in ids:
+            for cb in ids:
+                if ca == cb:
+                    continue
+                a_t, b_t = min(
+                    ((a, b) for a in comp_tiles[ca] for b in comp_tiles[cb]),
+                    key=lambda ab: _distance(ab[0], ab[1]),
+                )
+                if _distance(a_t, b_t) > 60:
+                    continue
+                if _walkable(a_t, b_t):
+                    walk_edges.add((ca, cb))
         # _cut_edges_for_level mints component ids for warpless pocket sides;
         # resync the portal counter or the next level's portals reuse those
         # ids (a Saffron portal collided with Route 14's pocket — one "component"
