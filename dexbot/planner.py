@@ -587,6 +587,13 @@ def plan_and_catch_all() -> int:
         caught += 1
         caught_since_reset += 1
         print(f"[planner] caught {species} ({rate}% on {map_key})")
+        # Checkpoint every catch: the 5-minute interval alone can lose several
+        # catches to a kill/crash (three re-fished after one mid-wedge kill).
+        from modules.context import context as _ctx
+        from modules.memory import GameState as _GS, get_game_state as _ggs
+
+        if _ggs() == _GS.OVERWORLD:
+            _ctx.emulator.create_save_state(suffix="caught")
         # No post-catch deposit needed: the catch team is assembled fresh
         # before each objective (above), which trims the previous catch (now a
         # 6th party mon) back to a box. `deposit_party_fodder` remains in
