@@ -9,7 +9,7 @@ Acquisition skills must follow through themselves where possible
 
 ## Where we are (2026-07-10, late night)
 
-Badges 1–5 (Koga ✓). **Dex: 71 owned** — fishing chunk (8 species) AND the
+Badges 1–6 (Koga ✓, Sabrina ✓). **Dex: 72 owned** (gift Lapras!) — fishing chunk (8 species) AND the
 Safari Zone sweep (11 species: Scyther, Seaking, Exeggcute, Rhyhorn, Dratini,
 Nidorino, Nidorina, Venomoth, Chansey, Kangaskhan, Tauros, Dragonair 1%!)
 done autonomously via `safari_run` + upstream's documented bait/rock policies.
@@ -23,14 +23,14 @@ Plant), Seadra. Queue idle — next frontier below.
 
 1. **Remaining land/water chunks**: Cerulean Cave (post-E4), Sevii Islands
    (post-Blaine), evolution/stone dex entries (M8 evolution pass).
-2. **Silph Co → Sabrina (badge 6)** — story spine.
-3. **Seafoam Islands** (Strength ✓) — Articuno + Seel/Dewgong/Slowbro; boulder
+2. **Seafoam Islands** (Strength ✓) — Articuno + Seel/Dewgong/Slowbro; boulder
    puzzles are new navigation territory.
 
 ## Story spine (mirrors data/dependencies.json `objectives`)
 
 Done: pokedex → Brock → Misty → Bill/SS Ticket → Cut → Surge → Erika →
-Rocket Hideout/Silph Scope → Poké Flute → **Koga**.
+Rocket Hideout/Silph Scope → Poké Flute → **Koga** → **Silph Co** (Lapras,
+Master Ball) → **Sabrina**.
 
 Next, in dependency order:
 1. **Safari Zone** (open now): Gold Teeth → HM04 Strength; Warden's house;
