@@ -10,9 +10,10 @@ Acquisition skills must follow through themselves where possible
 ## Where we are (2026-07-10)
 
 Badges 1–5 (Koga ✓). Dex: 41 owned. Bicycle ✓, Vs Seeker ✓, HM01 Cut ✓,
-HM03 Surf ✓ (taught to Blastoise), Poké Flute ✓, Amulet Coin ✓ (held by lead),
-False-Swipe Cubone trained (see DEVLOG). Catch queue idle: every species on
-annotated maps is owned — the frontier is story-gated.
+HM03 Surf ✓ (taught to Blastoise), Poké Flute ✓, Amulet Coin ✓ (held by
+Blastoise), catch kit complete: Marowak L33 with **False Swipe** + Parasect
+L33 with **Spore** (100% sleep) + Gloom Sleep Powder backup. Catch queue
+idle: every species on annotated maps is owned — the frontier is story-gated.
 
 ## Story spine (mirrors data/dependencies.json `objectives`)
 

@@ -1,5 +1,42 @@
 # DEVLOG
 
+## 2026-07-10 (evening) — catch kit complete: Amulet Coin held, Marowak learns False Swipe
+
+Owner feedback drove this session: unlocks must fire when they become possible
+(the coin sat inert in the bag; the False-Swipe Cubone sat at L15 in a box).
+Now encoded in ROADMAP.md (opportunity-trigger table + re-scan rule).
+
+**Shipped**
+- `team.give_item_to_party_mon` (upstream PokemonPartyMenuNavigator GIVE flow);
+  `get_amulet_coin` now hands the coin to the lead itself. Coin verified on
+  Blastoise.
+- `team.train_false_swipe` + `make_false_swipe_trainer` (upstream
+  LevelBalancingBattleStrategy + evolution veto until the move is known +
+  forced acceptance replacing the lowest-power move + per-level phase
+  savestates). Cubone L15→33 in ~35 min headless wild-grind on Route 11,
+  learned False Swipe, evolved to Marowak; Parasect learned Spore (100% sleep)
+  en route — the catch kit's two biggest multipliers (guaranteed 1 HP × sleep
+  ×2) are now real. Applied to the live profile.
+- Live game window now DEFAULT-ON for every run (owner directive); tests pin
+  DEXBOT_VIDEO=0.
+
+**Paid for in blood (each bug cost a grind restart until phase checkpoints)**
+1. First grind: the L33 False Swipe offer was REFUSED — learn_best had
+   reshuffled the moveset so the junk-name replacement list matched nothing.
+   Fix: False Swipe always replaces the lowest-base-power move; offers logged.
+2. Second grind: learning False Swipe at 33 lifts the evolution veto IN THE
+   SAME level-up → Marowak; the species-matched trainee lookup returned None
+   and the loop spun forever. Fix: trainee matches species OR any mon knowing
+   the move. Resume from the L32 phase checkpoint took 3 minutes — the
+   checkpoint insurance paid off immediately.
+
+**Rabbit hole, documented and parked**: Vs Seeker rematch income never fires
+("no interested trainers" even adjacent to trainers) despite fixing three real
+bugs on the way (Select shortcut no-ops in-harness → fire from the bag; a
+message box nothing dismissed; recharge shuttle too short). All patrol routes
+are already cleared, so first-time income is exhausted too. Full notes in
+KNOWN_LIMITATIONS; next probe is per-trainer defeated flags.
+
 ## 2026-07-10 (later) — badge 5: Koga beaten headless; frontier is now the Safari Zone
 
 With the Cycling Road stall fixed (entry below), the remaining Koga blocker was
