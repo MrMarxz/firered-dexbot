@@ -113,6 +113,7 @@ def missing_catchable() -> list[tuple[str, tuple[int, int], int, dict, str]]:
         table = encounters().get(f"{map_key[0]},{map_key[1]}")
         if table is None:
             continue
+        is_safari = bool(annotation.get("safari"))
         land_ok = None  # lazy: only computed when the map has missing land species
         for kind, method, rod_item in _ENCOUNTER_METHODS:
             entries = table.get(kind) or []
@@ -125,7 +126,11 @@ def missing_catchable() -> list[tuple[str, tuple[int, int], int, dict, str]]:
                 rates[entry["species_name"]] = rates.get(entry["species_name"], 0) + entry["encounter_rate"]
             if all(s in owned for s in rates):
                 continue
-            if rod_item is None:
+            if is_safari:
+                # Script-gated entry: the nav graph can't see inside, and
+                # safari_run owns the walking (upstream hunting spots).
+                method = "safari"
+            elif rod_item is None:
                 if land_ok is None:
                     land_ok = _graph_reachable(map_key, annotation)
                 if not land_ok:
@@ -547,12 +552,22 @@ def plan_and_catch_all() -> int:
         failed = False
         for attempt in range(2):
             try:
-                run_skill(
-                    catch_species(species, map_key, tile, method=method),
-                    f"catch_{species}",
-                    timeout_frames=600_000,
-                    on_battle_started=make_catch_decider(species),
-                )
+                if method == "safari":
+                    from dexbot.safari import safari_run
+
+                    run_skill(
+                        safari_run(species),
+                        f"catch_{species}",
+                        timeout_frames=1_500_000,
+                        on_battle_started=make_catch_decider(species),
+                    )
+                else:
+                    run_skill(
+                        catch_species(species, map_key, tile, method=method),
+                        f"catch_{species}",
+                        timeout_frames=600_000,
+                        on_battle_started=make_catch_decider(species),
+                    )
                 break
             except SkillError as e:
                 # Failure boundary: the LLM may pick a recovery action;
