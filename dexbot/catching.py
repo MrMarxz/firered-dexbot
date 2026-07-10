@@ -120,21 +120,35 @@ def _shore_tiles(map_group_and_number: tuple[int, int]) -> list[tuple[tuple[int,
     from modules.map_path import _get_all_maps_metadata
 
     path_map = _get_all_maps_metadata()[map_group_and_number]
+    width, height = path_map.size
     surfable_cache: dict[tuple[int, int], bool] = {}
 
     def is_water(c: tuple[int, int]) -> bool:
+        # In-bounds only: negative/overflow coords resolve into CONNECTED maps
+        # (Route 19's (12,-1) reads as Fuchsia's edge water — surfable but
+        # collision-blocked, and every cast at it is refused forever).
+        if not (0 <= c[0] < width and 0 <= c[1] < height):
+            return False
         if c not in surfable_cache:
             try:
-                surfable_cache[c] = bool(get_map_data(map_group_and_number, c).is_surfable)
+                tile = get_map_data(map_group_and_number, c)
+                surfable_cache[c] = bool(tile.is_surfable) and not tile.collision
             except Exception:
                 surfable_cache[c] = False
         return surfable_cache[c]
 
+    def is_dry_land(c: tuple[int, int]) -> bool:
+        try:
+            tile = get_map_data(map_group_and_number, c)
+            return not tile.is_surfable and not tile.collision
+        except Exception:
+            return False
+
     shore: list[tuple[tuple[int, int], str]] = []
     for t in path_map.tiles:
         c = t.local_coordinates
-        if is_water(c):
-            continue
+        if not is_dry_land(c):
+            continue  # blocked water at map borders masqueraded as "shore"
         x, y = c
         for neighbour, facing in (((x, y - 1), "Up"), ((x, y + 1), "Down"),
                                   ((x - 1, y), "Left"), ((x + 1, y), "Right")):
