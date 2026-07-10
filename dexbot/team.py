@@ -261,8 +261,14 @@ def train_false_swipe(species: str = "Cubone", move: str = "False Swipe") -> Gen
     from dexbot.runner import SkillError, _log_event
 
     def trainee():
+        # Match the species OR any mon already knowing the move: the L33
+        # level-up that teaches False Swipe ALSO evolves Cubone→Marowak (the
+        # veto lifts the moment the move is known), and a species-only match
+        # then loses the trainee and spins forever.
         for p in get_party():
-            if not p.is_egg and p.species.name == species:
+            if not p.is_egg and (
+                p.species.name == species or any(lm is not None and lm.move.name == move for lm in p.moves)
+            ):
                 return p
         return None
 
