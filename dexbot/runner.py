@@ -352,15 +352,23 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
                         f"{frames - frames_at_last_progress} frames at {sample[:2] if sample else '?'} "
                         f"(stall state: {state_path})"
                     )
-                # Pacing detector: oscillating between a couple of tiles resets
-                # the standstill check above (position "changes"), so a walk
-                # loop bouncing off an obstacle looked alive for hours. A full
-                # window pinned to ≤4 tiles with money/balls/HP/game-state
-                # frozen is a stall — report it within ~20k frames (seconds of
-                # wall time unthrottled), not never.
+                # Pacing detector: oscillating between a few tiles resets the
+                # standstill check above (position "changes"), so a walk loop
+                # bouncing off an obstacle looked alive for hours. A full
+                # window confined to a tiny bounding box on one map with
+                # money/balls/HP/game-state frozen is a stall — report it
+                # within ~20k frames, not never. (A ≤4-unique-tiles test
+                # missed the Route 2 ledge-hop loop, which paces a 3x3 box of
+                # 5-6 tiles.)
                 if (
                     len(recent_positions) == recent_positions.maxlen
-                    and 1 < len(set(recent_positions)) <= 4
+                    and len(set(recent_positions)) > 1
+                    and len({p[0] for p in recent_positions}) == 1
+                    and (
+                        max(p[1][0] for p in recent_positions) - min(p[1][0] for p in recent_positions)
+                        + max(p[1][1] for p in recent_positions) - min(p[1][1] for p in recent_positions)
+                        <= 6
+                    )
                     and len(set(recent_rest)) == 1
                 ):
                     pacing_tiles = sorted(set(recent_positions))
