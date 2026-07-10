@@ -88,6 +88,14 @@ Honesty over optimism. Current as of M5.
 - **navigate_to script interruptions**: handled generically (A-mash + periodic
   START + B), verified on the Pallet sign lady. Other one-time triggers across
   Kanto may need the same treatment — watch logs/skills.jsonl for timeouts.
+- **Cycling Road is downhill-only**: Route 17's slope tiles keep the avatar in
+  a perpetual forced-slide state, so legs there use walk_carefully
+  (tap-and-settle; a released coast is re-pathed from the landing). Southbound
+  (downhill) is verified end-to-end. Northbound climbs need a continuously held
+  Up the tap walker can't produce — a northbound leg fails loudly after
+  max_repaths and re-plans/defers (the eastern Routes 12–15 corridor covers
+  Celadon↔Fuchsia). Add a hold-Up climb special case only if a route ever
+  genuinely needs to ascend.
 - **`ensure_healthy` heals only at Viridian** — fine while all catch targets are
   in the starting area; switch to `find_closest_pokemon_center` in M6.
 - **Deterministic RNG assumption in fixtures**: acceptance runs replay

@@ -686,10 +686,19 @@ def walk_carefully(map_key, dest: tuple[int, int], max_repaths: int = 8) -> Gene
             raise SkillError(f"walk_carefully: no path {pos} -> {dest}: {e}")
         derailed = False
         for wp in waypoints:
+            avatar = get_player_avatar()
+            tap_from = (avatar.map_group_and_number, avatar.local_coordinates)
             context.emulator.reset_held_buttons()
             context.emulator.hold_button(wp.walking_direction)
-            for _ in range(12):  # one tile-step tap
+            # Release on the FIRST coord change (probe_maze's technique), cap 40
+            # frames (turn + on-foot step ≈ 24). A fixed 12-frame tap overshoots
+            # on the bike (8 frames/tile → 2 tiles/tap), derailing every step
+            # and exhausting max_repaths.
+            for _ in range(40):
                 yield
+                avatar = get_player_avatar()
+                if (avatar.map_group_and_number, avatar.local_coordinates) != tap_from:
+                    break
             context.emulator.reset_held_buttons()
             yield from settle()
             avatar = get_player_avatar()
@@ -707,11 +716,24 @@ def walk_carefully(map_key, dest: tuple[int, int], max_repaths: int = 8) -> Gene
 
 _spinner_maps: dict = {}
 
+# Route 17's Cycling Road is one continuous forced-movement slope ("Cycling
+# Road Pull Down" tiles — ROM-scanned: the only map that has them). Parked
+# against an obstacle there, the engine keeps the avatar in a perpetual
+# sliding state (running_state MOVING, heldMovementActive never set), so every
+# upstream held-direction wait — ensure_facing_direction, standing-still,
+# controllable — yields forever with zero input (the beat_koga 30k-frame
+# stall at (11,18)). Held taps DO register, and a released coast downhill is
+# just a big derail walk_carefully re-paths from.
+_FORCED_SLOPE_MAPS = frozenset({(3, 35)})  # ROUTE17
+
 
 def _has_spinners(map_key) -> bool:
-    """Whether a map contains forced-movement (spin) tiles — those defeat the
-    held-direction walker, so legs there use walk_carefully instead."""
+    """Whether a map contains forced-movement tiles (spin tiles, the Cycling
+    Road slope) — those defeat the held-direction walker, so legs there use
+    walk_carefully instead."""
     key = tuple(map_key)
+    if key in _FORCED_SLOPE_MAPS:
+        return True
     if key not in _spinner_maps:
         from modules.map_path import _get_all_maps_metadata
 
