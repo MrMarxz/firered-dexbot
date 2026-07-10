@@ -628,6 +628,264 @@ def get_amulet_coin() -> Generator:
     yield from give_item_to_party_mon("Amulet Coin", 0)
 
 
+# Silph Co stair spine (from ROM warp data): up/down stair tile per floor.
+_SILPH_FLOORS = {
+    (1, 47): 1, (1, 48): 2, (1, 49): 3, (1, 50): 4, (1, 51): 5, (1, 52): 6,
+    (1, 53): 7, (1, 54): 8, (1, 55): 9, (1, 56): 10, (1, 57): 11,
+}
+_SILPH_MAP_OF = {v: k for k, v in _SILPH_FLOORS.items()}
+_SILPH_UP_STAIR = {1: (31, 2), 2: (28, 2), 3: (30, 2), 4: (28, 2), 5: (30, 2),
+                   6: (14, 2), 7: (27, 2), 8: (16, 2), 9: (18, 2), 10: (6, 2)}
+_SILPH_DOWN_STAIR = {2: (30, 2), 3: (28, 2), 4: (30, 2), 5: (28, 2), 6: (26, 2),
+                     7: (19, 2), 8: (28, 2), 9: (16, 2), 10: (8, 2), 11: (7, 2)}
+
+
+def _silph_stairs_to(target_floor: int) -> Generator:
+    """Position-agnostic Silph transport: walk the open stairwell spine
+    (every floor's stairs sit in its ungated north strip)."""
+    from modules.modes.util.walking import navigate_to as navigate_same_level, wait_for_player_avatar_to_be_controllable
+    from modules.player import get_player_avatar
+
+    for _ in range(12):
+        here = get_player_avatar().map_group_and_number
+        floor = _SILPH_FLOORS.get(tuple(here))
+        if floor is None:
+            raise SkillError(f"_silph_stairs_to: not inside Silph Co ({here})")
+        if floor == target_floor:
+            return
+        stair = _SILPH_UP_STAIR[floor] if floor < target_floor else _SILPH_DOWN_STAIR[floor]
+        yield from navigate_same_level(here, stair)  # stepping on it warps
+        yield from wait_for_player_avatar_to_be_controllable("B")
+    raise SkillError(f"_silph_stairs_to: did not reach floor {target_floor}")
+
+
+# probe_maze tape (WITH Card Key): Silph 3F stairs landing (28,2) → beside
+# the (13,14) pad to 7F. A+Down at (24,9) handles the corridor trainer;
+# A+Left at (21,13) unlocks card Door2 (the probe pressed A with the key and
+# walked through). Final step onto the pad is the caller's (warp breaks the
+# tape's landing assert).
+_SILPH_3F_KEY_TO_PAD = [
+    ("Down", (28, 3)), ("Down", (28, 4)), ("Down", (28, 5)), ("Down", (28, 6)),
+    ("Down", (28, 7)), ("Left", (27, 7)), ("Left", (26, 7)), ("Left", (25, 7)),
+    ("Down", (25, 8)), ("Left", (24, 8)), ("A+Down", (24, 9)), ("Down", (24, 10)),
+    ("Down", (24, 11)), ("Down", (24, 12)), ("Down", (24, 13)), ("Left", (23, 13)),
+    ("Left", (22, 13)), ("A+Left", (21, 13)), ("Left", (20, 13)), ("Left", (19, 13)),
+    ("Down", (19, 14)), ("Left", (18, 14)), ("Left", (17, 14)), ("Left", (16, 14)),
+    ("Left", (15, 14)), ("Left", (14, 14)),
+]
+
+
+def clear_silph_co() -> Generator:
+    """Silph Co: Card Key (5F, key-free via the stairwell), 3F card door →
+    warp pad → 7F west pocket (rival fight + GIFT LAPRAS + pad to 11F) →
+    Giovanni. Opens the Saffron gym. pret-sourced coordinates; card doors are
+    script metatiles the path model can't see, so door crossings are blind
+    steps (same trick as the Game Corner hidden stairs)."""
+    from modules.context import context
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG
+    from modules.memory import get_event_flag
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import (
+        ensure_facing_direction,
+        navigate_to as navigate_same_level,
+        wait_for_player_avatar_to_be_controllable,
+    )
+    from modules.player import get_player_avatar
+    from modules.pokemon_party import get_party
+
+    from dexbot.items_ground import collect_item_balls
+    from dexbot.runner import _log_event
+
+    card_key = get_item_by_name("Card Key")
+
+    def unlock_door(stand: tuple[int, int], facing: str) -> Generator:
+        """Face a card door tile and press A — with the Card Key it opens."""
+        yield from navigate_same_level(get_player_avatar().map_group_and_number, stand)
+        yield from ensure_facing_direction(facing)
+        context.emulator.press_button("A")
+        yield
+        yield from wait_for_no_script_to_run("B")
+        yield from wait_for_player_avatar_to_be_controllable("B")
+        # Blind-step through: the opened metatile is invisible to cached
+        # collision (hidden-stairs precedent).
+        for _ in range(3):
+            before = get_player_avatar().local_coordinates
+            context.emulator.reset_held_buttons()
+            context.emulator.hold_button(facing)
+            for _ in range(24):
+                yield
+            context.emulator.reset_held_buttons()
+            for _ in range(8):
+                yield
+            if get_player_avatar().local_coordinates == before:
+                break
+
+    def step_on_pad(map_enum, pad: tuple[int, int], dest_map) -> Generator:
+        yield from navigate_same_level(map_enum, pad)
+        for _ in range(120):  # warp animation
+            if get_player_avatar().map_group_and_number == dest_map.value:
+                break
+            yield
+        yield from wait_for_player_avatar_to_be_controllable("B")
+
+    if len([p for p in get_party() if not p.is_egg]) >= 6:
+        # Free a slot for the gift Lapras: the catch-kit assembly caps at 5.
+        from dexbot.team import TeamObjective, assemble_party
+
+        _log_event(skill="clear_silph_co", status="phase", phase="free_slot")
+        yield from assemble_party(TeamObjective(kind="catch", field_moves=("Cut",)))
+        if len([p for p in get_party() if not p.is_egg]) >= 6:
+            raise SkillError("Could not free a party slot for the gift Lapras")
+
+    def pad_round_trip(back_to_map) -> Generator:
+        """Step off the current pad and back on — the classic Silph re-land
+        trick that bypasses the grunt walling the 5F key hallway. Retries
+        every direction until the warp actually fires (a wandering NPC can
+        block the first choice)."""
+        for d in ("Up", "Left", "Right", "Down"):
+            before = get_player_avatar().local_coordinates
+            yield from _tap_and_settle(d)
+            if get_player_avatar().local_coordinates == before:
+                continue
+            yield from _tap_and_settle({"Up": "Down", "Down": "Up", "Left": "Right", "Right": "Left"}[d])
+            for _ in range(180):
+                if get_player_avatar().map_group_and_number == back_to_map.value:
+                    break
+                yield
+            if get_player_avatar().map_group_and_number == back_to_map.value:
+                break
+        yield from wait_for_player_avatar_to_be_controllable("B")
+        if get_player_avatar().map_group_and_number != back_to_map.value:
+            raise SkillError("Silph pad round-trip did not warp back")
+
+    if get_item_bag().quantity_of(card_key) == 0:
+        _log_event(skill="clear_silph_co", status="phase", phase="card_key")
+        # Stairs to 5F, then the guide-documented pad trick: the west-corridor
+        # pad (10,20) → 9F, immediately ride it back — the re-landing puts us
+        # past the grunt walling the key hallway; drop to row 21 and walk east
+        # to the ball (empirically verified tape).
+        yield from navigate_to(MapFRLG.SILPH_CO_1F, (31, 2))  # stair → 2F
+        yield from navigate_same_level(MapFRLG.SILPH_CO_2F, (28, 2))  # → 3F
+        yield from navigate_same_level(MapFRLG.SILPH_CO_3F, (30, 2))  # → 4F
+        yield from navigate_same_level(MapFRLG.SILPH_CO_4F, (28, 2))  # → 5F
+        yield from navigate_same_level(MapFRLG.SILPH_CO_5F, (10, 20))  # pad → 9F
+        for _ in range(180):
+            if get_player_avatar().map_group_and_number == MapFRLG.SILPH_CO_9F.value:
+                break
+            yield
+        yield from wait_for_player_avatar_to_be_controllable("B")
+        yield from pad_round_trip(MapFRLG.SILPH_CO_5F)
+        yield from _tap_and_settle("Right")
+        yield from _tap_and_settle("Right")
+        yield from _tap_and_settle("Down")  # row 21, past the grunt
+        for _ in range(12):
+            yield from _tap_and_settle("Right")
+        yield from ensure_facing_direction("Right")
+        context.emulator.press_button("A")  # the Card Key ball at (22,21)
+        yield
+        yield from wait_for_no_script_to_run("B")
+        if get_item_bag().quantity_of(card_key) == 0:
+            raise SkillError("Card Key not collected on 5F")
+        # Exit the sealed pocket the way we came: pad → 9F.
+        for _ in range(12):
+            yield from _tap_and_settle("Left")
+        yield from _tap_and_settle("Up")  # (11,20)
+        yield from _tap_and_settle("Left")  # onto the (10,20) pad → 9F
+        for _ in range(180):
+            if get_player_avatar().map_group_and_number == MapFRLG.SILPH_CO_9F.value:
+                break
+            yield
+        yield from wait_for_player_avatar_to_be_controllable("B")
+
+    # Recovery + transit: re-enter if outside (a whiteout/heal walked us out);
+    # if stranded on 9F (the pad landing pocket), ride the pad back to 5F's
+    # corridor; then the open stairwell spine to 3F.
+    _log_event(skill="clear_silph_co", status="phase", phase="door_3f")
+    if tuple(get_player_avatar().map_group_and_number) not in _SILPH_FLOORS:
+        yield from navigate_to(MapFRLG.SILPH_CO_1F, (31, 2))  # entry + stair → 2F
+        yield from wait_for_player_avatar_to_be_controllable("B")
+    if get_player_avatar().map_group_and_number == MapFRLG.SILPH_CO_9F.value:
+        if tuple(get_player_avatar().local_coordinates) == (22, 18):
+            yield from pad_round_trip(MapFRLG.SILPH_CO_5F)  # standing on the pad
+        else:
+            yield from navigate_same_level(MapFRLG.SILPH_CO_9F, (22, 18))  # enter pad
+            for _ in range(180):
+                if get_player_avatar().map_group_and_number == MapFRLG.SILPH_CO_5F.value:
+                    break
+                yield
+            yield from wait_for_player_avatar_to_be_controllable("B")
+        yield from navigate_same_level(MapFRLG.SILPH_CO_5F, (9, 4))  # corridor north
+    yield from _silph_stairs_to(3)
+    yield from navigate_same_level(MapFRLG.SILPH_CO_3F, (28, 2))  # tape start
+    yield from _walk_route(_SILPH_3F_KEY_TO_PAD)
+
+    _log_event(skill="clear_silph_co", status="phase", phase="pad_to_7f")
+    yield from step_on_pad(MapFRLG.SILPH_CO_3F, (13, 14), MapFRLG.SILPH_CO_7F)
+
+    # 7F west pocket: approaching the Lapras corner triggers the rival fight
+    # (script battle — the caller's battle policy takes it), then the gift.
+    _log_event(skill="clear_silph_co", status="phase", phase="rival_and_lapras")
+    yield from navigate_same_level(MapFRLG.SILPH_CO_7F, (2, 7))
+    yield from wait_for_no_script_to_run("B")
+    yield from wait_for_player_avatar_to_be_controllable("B")
+    if not any(p.species.name == "Lapras" for p in get_party() if not p.is_egg):
+        yield from _go_talk(MapFRLG.SILPH_CO_7F, _lapras_guy_id())
+        yield from wait_for_no_script_to_run("A")
+        yield from wait_for_player_avatar_to_be_controllable("B")
+    if not any(p.species.name == "Lapras" for p in get_party() if not p.is_egg):
+        raise SkillError("Lapras was not received on 7F")
+
+    _log_event(skill="clear_silph_co", status="phase", phase="giovanni")
+    yield from step_on_pad(MapFRLG.SILPH_CO_7F, (5, 8), MapFRLG.SILPH_CO_11F)
+
+    def step_toward(direction: str, tries: int = 3) -> Generator:
+        """One tile with A-clear retries (grunts/items block the corridor)."""
+        for _ in range(tries):
+            before = tuple(get_player_avatar().local_coordinates)
+            yield from _tap_and_settle(direction)
+            if tuple(get_player_avatar().local_coordinates) != before:
+                return
+            yield from ensure_facing_direction(direction)
+            context.emulator.press_button("A")
+            yield
+            yield from wait_for_no_script_to_run("B")
+            yield from wait_for_player_avatar_to_be_controllable("B")
+
+    # North up the corridor to (6,12), just below Giovanni (object 3, no
+    # script symbol — a boss-trainer object), A-clearing grunts on the way.
+    for _ in range(10):
+        if get_player_avatar().local_coordinates[1] <= 12:
+            break
+        yield from step_toward("Up")
+    yield from step_toward("Right")
+    yield from ensure_facing_direction("Up")
+    context.emulator.press_button("A")  # Giovanni — dialogue → battle
+    yield
+    yield from wait_for_no_script_to_run("B")
+    yield from wait_for_player_avatar_to_be_controllable("B")
+
+    # Post-fight scene hides every Rocket in Saffron — THE cleared signal
+    # (HIDE_SILPH_CO_11F_GIOVANNI never flips; empirically verified).
+    if not get_event_flag("HIDE_SAFFRON_ROCKETS"):
+        raise SkillError("Giovanni was not defeated (Silph not cleared)")
+
+    # The grateful President hands over the Master Ball.
+    yield from _go_talk(MapFRLG.SILPH_CO_11F, 1)
+    yield from wait_for_no_script_to_run("B")
+    yield from wait_for_player_avatar_to_be_controllable("B")
+
+
+def _lapras_guy_id() -> int:
+    from modules.map import get_map_data
+    from modules.map_data import MapFRLG
+
+    for o in get_map_data(MapFRLG.SILPH_CO_7F.value, (0, 0)).objects:
+        if "LaprasGuy" in str(getattr(o, "script_symbol", "")):
+            return o.local_id
+    return 4  # pret order fallback
+
+
 def get_exp_share() -> Generator:
     """Collect the Exp. Share from Oak's aide (Route 15 gate 2F, needs 50+
     owned). Same yes/no gift pattern as the Amulet Coin aide. Give it to
@@ -1281,6 +1539,7 @@ STORY_SKILLS = {
     "get_rods": get_rods,
     "get_exp_share": get_exp_share,
     "get_hm_strength": get_hm_strength,
+    "clear_silph_co": clear_silph_co,
     "clear_rocket_hideout": clear_rocket_hideout,
     "rescue_mr_fuji": rescue_mr_fuji,
     "catch_snorlax": catch_snorlax,
