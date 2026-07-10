@@ -628,6 +628,29 @@ def get_amulet_coin() -> Generator:
     yield from give_item_to_party_mon("Amulet Coin", 0)
 
 
+def get_exp_share() -> Generator:
+    """Collect the Exp. Share from Oak's aide (Route 15 gate 2F, needs 50+
+    owned). Same yes/no gift pattern as the Amulet Coin aide. Give it to
+    whatever mon is being trained at the time — it makes every future
+    level-grind (evolution dex entries) roughly twice as fast."""
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_for_yes_no_question
+    from modules.pokedex import get_pokedex
+
+    share = get_item_by_name("Exp. Share")
+    if get_item_bag().quantity_of(share) > 0:
+        return
+    if len(get_pokedex().owned_species) < 50:
+        raise SkillError("Exp. Share needs 50+ owned species")
+
+    yield from _go_talk(MapFRLG.ROUTE15_WEST_ENTRANCE_2F, 1)  # Oak's aide
+    yield from wait_for_yes_no_question("Yes")
+    yield from wait_for_no_script_to_run("B")
+    if get_item_bag().quantity_of(share) == 0:
+        raise SkillError("Aide did not hand over the Exp. Share")
+
+
 def get_rods() -> Generator:
     """Collect all three fishing rods (pret-verified givers, each behind a
     'do you like to fish?' YES prompt):
@@ -1196,6 +1219,7 @@ STORY_SKILLS = {
     "get_bicycle": get_bicycle,
     "get_amulet_coin": get_amulet_coin,
     "get_rods": get_rods,
+    "get_exp_share": get_exp_share,
     "clear_rocket_hideout": clear_rocket_hideout,
     "rescue_mr_fuji": rescue_mr_fuji,
     "catch_snorlax": catch_snorlax,

@@ -1,5 +1,34 @@
 # DEVLOG
 
+## 2026-07-10 (night) — fishing chunk complete: dex 41 → 51, autonomously
+
+The rods opened 8 species and the planner caught them all unattended
+(Magikarp, Horsea, Poliwag, Poliwhirl, Goldeen, Krabby, Gyarados, Psyduck).
+Exp. Share collected the hour dex crossed 50 (ROADMAP trigger discipline).
+What it took beyond the fishing code itself — four production wedges, each
+root-caused live:
+
+1. **Route 2 ledge loop**: the path model treated "Jump" tiles as standable
+   corridor; the follower paced a 3x3 box forever. Fixed in the fork's
+   map_path — ledge entry is forced movement, waypoints are landings. Also
+   widened the runner's pacing detector to a bounding-box test (the
+   ≤4-unique-tiles version missed 5-7 tile boxes) after the owner had to
+   point at a frozen window — detection gap AND nav bug both fixed.
+2. **Arena Trap flee-loop**: blind run_away() against wild Diglett failed
+   every turn forever. The healing strategy is now escape-aware (fight when
+   trapped); a stalled active battle gets one runner-level rescue
+   (clear stale controllers + inject upstream handle_battle).
+3. **Poisoned checkpoints**: current_state.ss1 saved mid-wedged-battle made
+   every resume boot into an unresolvable fight. Checkpoints (interval,
+   final, and now per-catch) are only taken in a calm overworld.
+4. **Intermittent undriven battles in Diglett Cave**: a wild battle
+   occasionally starts with no handler attached (listener gap, in-process
+   only — a fresh process handles the same trek fine); leaked navigation
+   inputs then choose RUN and the failed-escape message deadlocks the battle
+   beyond any recovery (even manual A/B). Mitigated by all of the above
+   (rescue + no poisoned checkpoints + defer machinery); root cause of the
+   listener gap still open — see KNOWN_LIMITATIONS.
+
 ## 2026-07-10 (evening) — catch kit complete: Amulet Coin held, Marowak learns False Swipe
 
 Owner feedback drove this session: unlocks must fire when they become possible

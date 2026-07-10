@@ -7,13 +7,15 @@ inert in the bag for a day; the False-Swipe Cubone sat at L15 in a box).
 Acquisition skills must follow through themselves where possible
 (get_amulet_coin now gives the coin to the lead as part of the skill).
 
-## Where we are (2026-07-10)
+## Where we are (2026-07-10, evening)
 
-Badges 1–5 (Koga ✓). Dex: 41 owned. Bicycle ✓, Vs Seeker ✓, HM01 Cut ✓,
-HM03 Surf ✓ (taught to Blastoise), Poké Flute ✓, Amulet Coin ✓ (held by
-Blastoise), catch kit complete: Marowak L33 with **False Swipe** + Parasect
-L33 with **Spore** (100% sleep) + Gloom Sleep Powder backup. Catch queue
-idle: every species on annotated maps is owned — the frontier is story-gated.
+Badges 1–5 (Koga ✓). **Dex: 51 owned** (fishing chunk complete: Magikarp,
+Horsea, Poliwag, Poliwhirl, Goldeen, Krabby, Gyarados, Psyduck). Bicycle ✓,
+Vs Seeker ✓, all three rods ✓, HM01 Cut ✓, HM03 Surf ✓ (taught to Blastoise),
+Poké Flute ✓, Amulet Coin ✓ (held by Blastoise), **Exp. Share ✓** (collected
+the hour dex hit 50), catch kit complete: Marowak L33 **False Swipe** +
+Parasect L33 **Spore** + Gloom Sleep Powder backup. Catch queue idle again —
+the frontier is the Safari Zone / Surf-water annotations.
 
 ## Story spine (mirrors data/dependencies.json `objectives`)
 
@@ -36,9 +38,9 @@ Next, in dependency order:
 |---|---|---|
 | Dex ≥ 40 | Amulet Coin (Route 16 gate aide) → GIVE to battle lead | ✅ done |
 | Own a FALSE_SWIPE_LEARNER | Park it in the party so it levels passively; train to the learn level (Cubone L33) before it evolves | ✅ done |
-| Dex ≥ 50 | **Exp Share** from Route 15 gate 2F aide → give to current trainee | ⏳ fires soon |
-| Fuchsia reachable | **Good Rod** (Fuchsia fishing guru) → fishing encounters annotations | 🔜 open NOW |
-| Snorlax cleared (Route 12) | **Super Rod** (Route 12 fisherman's house) | 🔜 open NOW |
+| Dex ≥ 50 | **Exp Share** from Route 15 gate 2F aide → give to current trainee | ✅ done |
+| Fuchsia reachable | **Good Rod** (Fuchsia fishing guru) → fishing encounters annotations | ✅ done (all 3 rods) |
+| Snorlax cleared (Route 12) | **Super Rod** (Route 12 fisherman's house) | ✅ done |
 | Badge 5 + Surf | Annotate surfable water routes (19/20/21, Routes 4/24 pools) for water dex | 🔜 open NOW |
 | Safari Zone entered | HM03 was here (✓ have it); **Gold Teeth → HM04 Strength** | with Safari milestone |
 | Own Pikachu + Power Plant annotated | Electabuzz/Zapdos area (needs Surf ✓) | after annotation |

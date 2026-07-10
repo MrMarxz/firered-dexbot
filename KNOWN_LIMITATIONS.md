@@ -85,11 +85,19 @@ Honesty over optimism. Current as of M5.
   map "level" is internally connected (wrong for e.g. Route 2 — mitigated by
   blacklist-and-replan on persistent path failure). Dynamic warps (elevators)
   are not edges.
-- **Route 2 ledge-hop loop**: a leg whose target sits above a ledge line can
-  pace a 3x3 box forever (hop down → loop around → hop down). The pacing
-  detector now converts it to a defer within ~20k frames (bounding-box test —
-  the old ≤4-unique-tiles test missed the 5-7 tile box). Nav-level fix still
-  owed; ready repro: `fixtures/_stalls/catch_Magikarp_114906.ss1`.
+- **Route 2 ledge-hop loop**: FIXED at the model level (fork map_path: ledge
+  entry is forced movement, waypoints are landings) — the pacing detector
+  (bounding-box test) remains as the tripwire for any similar geometry.
+- **Intermittent undriven wild battles (Diglett Cave)**: rarely, a wild
+  battle starts and the BattleListener attaches no handler (in-process only —
+  a fresh process handles the identical trek fine). Leaked navigation inputs
+  then pick RUN; against Arena Trap the failed-escape message deadlocks the
+  battle beyond recovery (even manual A/B cannot advance it — verified).
+  Mitigations in place: battle rescue at the stall detector, no checkpoints
+  outside a calm overworld, per-catch savestates, planner defer/retry. Root
+  cause of the listener gap unfound — next probe: log BattleListener's
+  transition test on the frames around an undriven battle start
+  (repro class: fixtures/_stalls/catch_Krabby_130244.ss1 and siblings).
 - **navigate_to script interruptions**: handled generically (A-mash + periodic
   START + B), verified on the Pallet sign lady. Other one-time triggers across
   Kanto may need the same treatment — watch logs/skills.jsonl for timeouts.
