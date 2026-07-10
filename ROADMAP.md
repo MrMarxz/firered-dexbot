@@ -9,23 +9,23 @@ Acquisition skills must follow through themselves where possible
 
 ## Where we are (2026-07-10, late night)
 
-Badges 1–5 (Koga ✓). **Dex: 63 owned** — fishing chunk (8 species) AND the
+Badges 1–5 (Koga ✓). **Dex: 71 owned** — fishing chunk (8 species) AND the
 Safari Zone sweep (11 species: Scyther, Seaking, Exeggcute, Rhyhorn, Dratini,
 Nidorino, Nidorina, Venomoth, Chansey, Kangaskhan, Tauros, Dragonair 1%!)
 done autonomously via `safari_run` + upstream's documented bait/rock policies.
 Bicycle ✓, Vs Seeker ✓, all rods ✓, HM01 Cut ✓, HM03 Surf ✓, Poké Flute ✓,
 Amulet Coin ✓ (held), Exp. Share ✓, catch kit complete (False Swipe Marowak,
-Spore Parasect). Money low (~1.1k — safari entries) — patrols/coin fights
-refill it. Queue idle — next frontier below.
+Spore Parasect). HM04 Strength taught (Blastoise). Surf-era maps swept: Tangela,
+Koffing/Grimer/Weezing (Mansion), Magnemite/Magneton/Electabuzz (Power
+Plant), Seadra. Queue idle — next frontier below.
 
 ## Next frontier
 
-1. **Gold Teeth → Warden → HM04 Strength** (Safari West item ball — walk it
-   with safari_run's machinery, no catching).
-2. **Surf-water + Power Plant + Pokémon Mansion annotations** — Surf is
-   usable; Electabuzz/Magnemite/Grimer/Koffing/etc. await map annotations
-   (and Strength for Seafoam).
-3. **Silph Co → Sabrina (badge 6)** — story spine.
+1. **Remaining land/water chunks**: Cerulean Cave (post-E4), Sevii Islands
+   (post-Blaine), evolution/stone dex entries (M8 evolution pass).
+2. **Silph Co → Sabrina (badge 6)** — story spine.
+3. **Seafoam Islands** (Strength ✓) — Articuno + Seel/Dewgong/Slowbro; boulder
+   puzzles are new navigation territory.
 
 ## Story spine (mirrors data/dependencies.json `objectives`)
 
