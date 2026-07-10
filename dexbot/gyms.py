@@ -409,8 +409,100 @@ def beat_sabrina(min_level: int = 45) -> Generator:
         raise SkillError("Sabrina was not defeated (badge flag unset)")
 
 
+def beat_blaine(min_level: int = 47) -> Generator:
+    """Beat Blaine (badge 7, Cinnabar). Entry needs the Mansion Secret Key.
+    Six Yes/No quiz panels gate the room doors: a right answer opens the
+    door, a wrong one makes the room's trainer battle you and the door opens
+    after the win — so answering "Yes" everywhere always progresses. His
+    Fire team (Arcanine L47) melts under Water: Blastoise/Lapras/Gyarados."""
+    from modules.context import context
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG, PokemonCenter
+    from modules.memory import get_event_flag
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_for_yes_no_question
+    from modules.modes.util.walking import (
+        ensure_facing_direction,
+        navigate_to as navigate_same_level,
+        wait_for_player_avatar_to_be_controllable,
+    )
+    from modules.player import get_player, get_player_avatar
+    from modules.pokemon_party import get_party
+
+    from dexbot.navigation import _walkable
+    from dexbot.planner import _nearest_mart
+    from dexbot.runner import _log_event
+
+    if get_event_flag("BADGE07_GET"):
+        return
+
+    from dexbot.team import TeamObjective, assemble_party
+
+    yield from assemble_party(
+        TeamObjective(kind="gym", field_moves=("Cut",), avoid_defense_types=("Fire",))
+    )
+    if max(p.level for p in get_party() if not p.is_egg) < min_level:
+        yield from grind_levels(min_level)
+    yield from ensure_healthy(minimum_fraction=0.99, center=PokemonCenter.CinnabarIsland)
+
+    from dexbot.openings import buy_items
+
+    if get_item_bag().quantity_of(get_item_by_name("Hyper Potion")) < 10:
+        hyper = min(10, get_player().money // 1200)
+        if hyper > 0:
+            yield from buy_items([("Hyper Potion", hyper)], _nearest_mart())
+
+    _log_event(skill="beat_blaine", status="phase", phase="enter_gym")
+    gym = MapFRLG.CINNABAR_ISLAND_GYM
+    yield from navigate_to(gym, (25, 21))
+
+    # Quiz panels (bg events, from ROM), one pair per door, roughly in room
+    # order from the entrance. Stand below the panel, face Up, A, answer.
+    quizzes = [(23, 10), (16, 2), (13, 10), (13, 17), (1, 18), (1, 10)]
+    answered: set = set()
+    for _ in range(len(quizzes) + 4):
+        pos = tuple(get_player_avatar().local_coordinates)
+        if _walkable((gym.value, pos), (gym.value, (5, 5)), max_nodes=3_000):
+            break  # Blaine's room is open
+        panel = next(
+            (
+                q
+                for q in quizzes
+                if q not in answered
+                and _walkable((gym.value, pos), (gym.value, (q[0], q[1] + 1)), max_nodes=3_000)
+            ),
+            None,
+        )
+        if panel is None:
+            raise SkillError("beat_blaine: no reachable unanswered quiz panel, Blaine still sealed")
+        _log_event(skill="beat_blaine", status="phase", phase=f"quiz_{panel[0]}_{panel[1]}")
+        yield from navigate_same_level(gym, (panel[0], panel[1] + 1))
+        yield from ensure_facing_direction("Up")
+        context.emulator.press_button("A")
+        yield
+        yield from wait_for_yes_no_question("Yes")
+        yield from wait_for_no_script_to_run("B")  # wrong answer → trainer battle fires here
+        yield from wait_for_player_avatar_to_be_controllable("B")
+        answered.add(panel)
+        # A door just opened — drop stale negative A* verdicts.
+        from dexbot.navigation import _walkable_neg
+
+        _walkable_neg.clear()
+    else:
+        raise SkillError("beat_blaine: quiz loop exhausted without opening Blaine's room")
+
+    _log_event(skill="beat_blaine", status="phase", phase="fight")
+    yield from navigate_same_level(gym, (5, 5))  # below Blaine (obj 7 @ 5,4)
+    yield from talk_to_npc(7)
+    yield from wait_for_no_script_to_run("B")
+    yield from wait_for_player_avatar_to_be_controllable("B")
+
+    if not get_event_flag("BADGE07_GET"):
+        raise SkillError("Blaine was not defeated (badge flag unset)")
+
+
 GYMS = {"brock": beat_brock, "misty": beat_misty, "surge": beat_surge, "erika": beat_erika, "koga": beat_koga,
-        "sabrina": beat_sabrina}
+        "sabrina": beat_sabrina, "blaine": beat_blaine}
 _DEFAULT_FIXTURE = {
     "brock": "m6_pre_brock_dex.ss1",
     "misty": "m7_ss_ticket.ss1",
@@ -418,6 +510,7 @@ _DEFAULT_FIXTURE = {
     "erika": "m7_rock_tunnel_sweep.ss1",
     "koga": "m8_post_snorlax.ss1",
     "sabrina": "m8_silph.ss1",
+    "blaine": "m8_secret_key.ss1",
 }
 
 

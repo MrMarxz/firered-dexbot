@@ -1527,6 +1527,115 @@ def rescue_mr_fuji() -> Generator:
         raise SkillError("Poké Flute not obtained from Mr. Fuji")
 
 
+def get_secret_key() -> Generator:
+    """Pokémon Mansion → B1F Secret Key (unlocks Cinnabar gym for Blaine).
+    Route needs NO switches (probed): 1F stairs (10,13) → 2F (9,3) → 3F
+    balcony hole (18,18) drops into the sealed 1F pocket → B1F stairs
+    (25,27) → key item ball at (5,7). The switch doors only matter for
+    LEAVING the pocket afterwards — live A* sees their current state."""
+    from modules.map_data import MapFRLG
+    from modules.memory import get_event_flag
+    from modules.modes.util.walking import (
+        navigate_to as navigate_same_level,
+        wait_for_player_avatar_to_be_controllable,
+    )
+    from modules.player import get_player_avatar
+
+    from dexbot.items_ground import collect_item_balls
+    from dexbot.navigation import _walkable
+    from dexbot.runner import _log_event
+
+    if get_event_flag("HIDE_POKEMON_MANSION_B1F_SECRET_KEY"):  # item ball taken
+        return
+
+    def _phase(name: str) -> None:
+        _log_event(skill="get_secret_key", status="phase", phase=name)
+
+    # Statue switches (bg events, from ROM): pressing A toggles the floor's
+    # switch doors. When a target is unreachable, flip the floor's statue(s)
+    # until the path opens.
+    statues = {
+        MapFRLG.POKEMON_MANSION_1F.value: [(5, 5)],
+        MapFRLG.POKEMON_MANSION_2F.value: [(2, 16)],
+        MapFRLG.POKEMON_MANSION_3F.value: [(12, 5)],
+        MapFRLG.POKEMON_MANSION_B1F.value: [(24, 29), (27, 5)],
+    }
+
+    def _toggle_statue(map_enum, statue) -> Generator:
+        from modules.context import context
+        from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_for_yes_no_question
+        from modules.modes.util.walking import ensure_facing_direction
+
+        yield from navigate_same_level(map_enum, (statue[0], statue[1] + 1))  # below it
+        yield from ensure_facing_direction("Up")
+        context.emulator.press_button("A")
+        yield
+        yield from wait_for_yes_no_question("Yes")  # "A secret switch! Press it?"
+        yield from wait_for_no_script_to_run("B")
+        yield from wait_for_player_avatar_to_be_controllable("B")
+        # The toggle flips door passability BOTH ways — cached A* verdicts
+        # (positive and negative) are stale now.
+        from dexbot.navigation import _walkable_cache, _walkable_neg
+
+        _walkable_cache.clear()
+        _walkable_neg.clear()
+
+    def _stair(map_enum, tile) -> Generator:
+        here = map_enum.value
+        pos = tuple(get_player_avatar().local_coordinates)
+        if not _walkable((here, pos), (here, tile), max_nodes=3_000):
+            for statue in statues.get(here, []):
+                _phase(f"statue_{here[1]}_{statue[0]}_{statue[1]}")
+                yield from _toggle_statue(map_enum, statue)
+                pos = tuple(get_player_avatar().local_coordinates)
+                if _walkable((here, pos), (here, tile), max_nodes=3_000):
+                    break
+        yield from navigate_same_level(map_enum, tile)  # stepping on it warps
+        yield from wait_for_player_avatar_to_be_controllable("B")
+
+    mansion = {
+        MapFRLG.POKEMON_MANSION_1F.value,
+        MapFRLG.POKEMON_MANSION_2F.value,
+        MapFRLG.POKEMON_MANSION_3F.value,
+        MapFRLG.POKEMON_MANSION_B1F.value,
+    }
+    if tuple(get_player_avatar().map_group_and_number) not in mansion:
+        _phase("trek")
+        yield from navigate_to(MapFRLG.POKEMON_MANSION_1F, (8, 31))
+
+    for _ in range(8):
+        here = tuple(get_player_avatar().map_group_and_number)
+        pos = tuple(get_player_avatar().local_coordinates)
+        if here == MapFRLG.POKEMON_MANSION_B1F.value:
+            break
+        if here == MapFRLG.POKEMON_MANSION_1F.value:
+            if _walkable((here, pos), (here, (25, 27)), max_nodes=3_000):  # in the drop pocket
+                _phase("b1f_stairs")
+                yield from _stair(MapFRLG.POKEMON_MANSION_1F, (25, 27))
+            else:
+                _phase("to_2f")
+                yield from _stair(MapFRLG.POKEMON_MANSION_1F, (10, 13))
+        elif here == MapFRLG.POKEMON_MANSION_2F.value:
+            _phase("to_3f")
+            yield from _stair(MapFRLG.POKEMON_MANSION_2F, (9, 3))
+        elif here == MapFRLG.POKEMON_MANSION_3F.value:
+            _phase("drop")
+            yield from _stair(MapFRLG.POKEMON_MANSION_3F, (18, 18))  # balcony hole
+    else:
+        raise SkillError("get_secret_key: never reached Mansion B1F")
+
+    _phase("key")
+    b1f = MapFRLG.POKEMON_MANSION_B1F
+    for statue in [None, *statues[b1f.value]]:
+        if statue is not None:
+            _phase(f"statue_b1f_{statue[0]}_{statue[1]}")
+            yield from _toggle_statue(b1f, statue)
+        yield from collect_item_balls(b1f, limit=6)  # key + TM14/TM22/Full Restore
+        if get_event_flag("HIDE_POKEMON_MANSION_B1F_SECRET_KEY"):
+            return
+    raise SkillError("Secret Key ball not reachable (switch doors stayed closed)")
+
+
 STORY_SKILLS = {
     "clear_mt_moon": clear_mt_moon,
     "cross_nugget_bridge": cross_nugget_bridge,
@@ -1540,6 +1649,7 @@ STORY_SKILLS = {
     "get_exp_share": get_exp_share,
     "get_hm_strength": get_hm_strength,
     "clear_silph_co": clear_silph_co,
+    "get_secret_key": get_secret_key,
     "clear_rocket_hideout": clear_rocket_hideout,
     "rescue_mr_fuji": rescue_mr_fuji,
     "catch_snorlax": catch_snorlax,
