@@ -90,6 +90,104 @@ def _encounter_tiles(map_group_and_number: tuple[int, int]) -> list[tuple[int, i
     return sorted(tiles, key=lambda t: abs(t[0] - center_x) + abs(t[1] - center_y))
 
 
+def _shore_tiles(map_group_and_number: tuple[int, int]) -> list[tuple[tuple[int, int], str]]:
+    """(tile, facing) pairs for fishing: standable land tiles whose neighbour
+    is SURFABLE (upstream's own fishability test — elevation alone misfired:
+    Fuchsia's pond read as land and every cast got 'not the time to use
+    that'). Facing points at the water; nearest the map centre first."""
+    from modules.map import get_map_data
+    from modules.map_path import _get_all_maps_metadata
+
+    path_map = _get_all_maps_metadata()[map_group_and_number]
+    surfable_cache: dict[tuple[int, int], bool] = {}
+
+    def is_water(c: tuple[int, int]) -> bool:
+        if c not in surfable_cache:
+            try:
+                surfable_cache[c] = bool(get_map_data(map_group_and_number, c).is_surfable)
+            except Exception:
+                surfable_cache[c] = False
+        return surfable_cache[c]
+
+    shore: list[tuple[tuple[int, int], str]] = []
+    for t in path_map.tiles:
+        c = t.local_coordinates
+        if is_water(c):
+            continue
+        x, y = c
+        for neighbour, facing in (((x, y - 1), "Up"), ((x, y + 1), "Down"),
+                                  ((x - 1, y), "Left"), ((x + 1, y), "Right")):
+            if is_water(neighbour):
+                shore.append((c, facing))
+                break
+    if not shore:
+        raise SkillError(f"Map {map_group_and_number} has no shore tiles to fish from")
+    cx = sum(t[0][0] for t in shore) / len(shore)
+    cy = sum(t[0][1] for t in shore) / len(shore)
+    return sorted(shore, key=lambda s: abs(s[0][0] - cx) + abs(s[0][1] - cy))
+
+
+def _fish_until(rod_name: str, facing: str | None, stop_condition) -> Generator:
+    """Cast the rod repeatedly until `stop_condition`. Casts from the BAG
+    (the registered-item Select shortcut silently no-ops in this harness —
+    same finding as the Vs Seeker); upstream's fish() drives the bite/reel
+    stages once Task_Fishing is up. Task-driven waits, not blind frame gaps —
+    a fixed gap left the USE menu open forever."""
+    from modules.context import context
+    from modules.items import get_item_by_name
+    from modules.memory import GameState, get_game_state
+    from modules.menuing import StartMenuNavigator, scroll_to_item_in_bag
+    from modules.modes.util.higher_level_actions import TaskFishing
+    from modules.modes.util.walking import ensure_facing_direction
+    from modules.player import player_avatar_is_controllable
+    from modules.tasks import get_task, task_is_active
+
+    def drive_fishing_task() -> Generator:
+        while (task := get_task("Task_Fishing")) is not None:
+            stage = task.data[0]
+            if stage in (
+                TaskFishing.WAIT_FOR_A.value,
+                TaskFishing.START_ENCOUNTER.value,
+                TaskFishing.END_NO_MON.value,
+            ):
+                context.emulator.press_button("A")
+            elif stage == TaskFishing.NOT_EVEN_NIBBLE.value:
+                context.emulator.press_button("B")
+            yield
+
+    while not stop_condition():
+        if get_game_state() != GameState.OVERWORLD or not player_avatar_is_controllable():
+            yield  # battle (listeners drive it) or transition — wait it out
+            continue
+        if facing is not None:
+            yield from ensure_facing_direction(facing)
+        yield from StartMenuNavigator("BAG").step()
+        yield from scroll_to_item_in_bag(get_item_by_name(rod_name))
+        context.emulator.press_button("A")  # open the item context menu
+        for _ in range(120):
+            yield
+            if task_is_active("Task_FieldItemContextMenuHandleInput"):
+                break
+        context.emulator.press_button("A")  # USE → casts
+        for _ in range(300):
+            yield
+            if get_task("Task_Fishing") is not None:
+                break
+        else:
+            # Cast never started ("can't use here"?) — back out and retry;
+            # mash B to close whatever is open.
+            for _ in range(120):
+                if get_game_state() == GameState.OVERWORLD and player_avatar_is_controllable():
+                    break
+                if _ % 8 == 0:
+                    context.emulator.press_button("B")
+                yield
+            continue
+        yield from drive_fishing_task()
+        for _ in range(60):  # battle intro / message settle
+            yield
+
+
 class WeakeningCatchStrategy:
     """CatchStrategy that first chips the target down (never risking a KO) to
     roughly double per-ball catch odds — halves ball spend vs. full-HP throws."""
@@ -336,10 +434,14 @@ def ensure_healthy(minimum_fraction: float = 0.5, center=None) -> Generator:
     yield from heal_in_pokemon_center(center)
 
 
+_ROD_METHODS = {"old_rod": "Old Rod", "good_rod": "Good Rod", "super_rod": "Super Rod"}
+
+
 def catch_species(
     species_name: str,
     map_key: tuple[int, int] | None = None,
     tile: tuple[int, int] | None = None,
+    method: str = "spin",
 ) -> Generator:
     """Catch one specimen of `species_name` at its best (KB) encounter map.
 
@@ -349,10 +451,13 @@ def catch_species(
                     with the dependency graph instead.
     :param tile: Optional explicit tile to spin on (overrides the centroid pick —
                  use when the centroid would walk through trainer line-of-sight).
+    :param method: "spin" (land encounters) or "old_rod"/"good_rod"/"super_rod"
+                   (fish from a shore tile facing water).
     """
     from modules.map_data import MapFRLG
     from modules.modes._interface import BotModeError
     from modules.modes.util.higher_level_actions import spin
+    from modules.modes.util.walking import ensure_facing_direction
 
     if _species_is_owned(species_name):
         return
@@ -361,28 +466,40 @@ def catch_species(
 
     if _ball_count() == 0:
         raise SkillError(f"No Poké Balls — cannot catch {species_name}")
+    rod_name = _ROD_METHODS.get(method)
+    if rod_name is not None and get_item_bag().quantity_of(get_item_by_name(rod_name)) == 0:
+        raise SkillError(f"No {rod_name} — cannot fish for {species_name}")
 
     yield from ensure_healthy()
 
     if map_key is None:
         map_key, _rate = best_encounter_map(species_name)
-    if tile is not None:
+    facing_by_tile: dict = {}
+    if rod_name is not None:
+        shore = _shore_tiles(map_key)
+        facing_by_tile = dict(shore)
+        candidates = [tile] if tile is not None else [c for c, _f in shore[:: max(1, len(shore) // 5)][:5]]
+    elif tile is not None:
         candidates = [tile]
     else:
         # Spread sample: the N nearest-centroid tiles can all sit in the same
         # unreachable pocket (Route 24's east grass is water-locked). Keep only
         # graph-plannable ones — a bad candidate otherwise costs a 30s live
         # search before we try the next.
-        from modules.player import get_player_avatar
-
-        from dexbot.navigation import _plan_via_graph, _walkable
-
         tiles = _encounter_tiles(map_key)
         candidates = tiles[:: max(1, len(tiles) // 5)][:5]
-        avatar = get_player_avatar()
-        pos = (avatar.map_group_and_number, avatar.local_coordinates)
-        feasible = [c for c in candidates if _plan_via_graph(pos, (map_key, c), frozenset(), _walkable) is not None]
-        candidates = feasible or candidates
+    from modules.player import get_player_avatar
+
+    from dexbot.navigation import _plan_via_graph, _walkable
+
+    avatar = get_player_avatar()
+    pos = (avatar.map_group_and_number, avatar.local_coordinates)
+    feasible = [c for c in candidates if _plan_via_graph(pos, (map_key, c), frozenset(), _walkable) is not None]
+    if rod_name is not None and not feasible:
+        # Fishable-looking water can be pure decoration (Fuchsia's pond is a
+        # fenced zoo pen) — churning plans against it stalls for 30k frames.
+        raise SkillError(f"No reachable shore tile on {MapFRLG(map_key).name} to fish for {species_name}")
+    candidates = feasible or candidates
 
     from modules.pokemon import StatusCondition
     from modules.pokemon_party import get_party
@@ -398,22 +515,26 @@ def catch_species(
             # abort to manual mode and churn.
             raise SkillError(f"Out of Poké Balls hunting {species_name}")
         yield from ensure_healthy(minimum_fraction=0.5)
-        arrived = False
+        arrived = None
         for candidate in candidates:
             try:
                 yield from navigate_to(map_key, candidate)
-                arrived = True
+                arrived = candidate
                 break
             except (BotModeError, SkillError):
                 # SkillError covers plan failures (no route to THIS tile) —
                 # the next candidate may sit in a reachable pocket.
                 continue
-        if not arrived:
+        if arrived is None:
             raise SkillError(f"Could not reach an encounter tile on {MapFRLG(map_key).name}")
 
-        # Spin until caught — or break out to heal when the starter is chipped
-        # down (fled encounters and catch battles still deal damage over time).
-        yield from spin(stop_condition=lambda: _species_is_owned(species_name) or needs_heal())
+        stop = lambda: _species_is_owned(species_name) or needs_heal()  # noqa: E731
+        if rod_name is not None:
+            yield from _fish_until(rod_name, facing_by_tile.get(tuple(arrived)), stop)
+        else:
+            # Spin until caught — or break out to heal when the starter is
+            # chipped down (fled encounters and catch battles chip over time).
+            yield from spin(stop_condition=stop)
 
 
 # (species, explicit map or None, explicit tile or None) — forest tiles chosen

@@ -66,27 +66,77 @@ def _graph_reachable(map_key: tuple[int, int], annotation: dict) -> bool:
         return False
 
 
-def missing_catchable() -> list[tuple[str, tuple[int, int], int, dict]]:
-    """(species, map, rate%, annotation) for every missing species catchable on an
-    accessible AND currently-reachable map, most-common-first."""
+# (encounter table key, catch_species method, required bag item)
+_ENCOUNTER_METHODS = (
+    ("land_encounters", "spin", None),
+    ("old_rod_encounters", "old_rod", "Old Rod"),
+    ("good_rod_encounters", "good_rod", "Good Rod"),
+    ("super_rod_encounters", "super_rod", "Super Rod"),
+)
+
+
+def _shore_reachable(map_key: tuple[int, int], cache: dict) -> bool:
+    """Whether a fishable SHORE tile on this map is walkable-to. Separate from
+    land reachability: Fuchsia's pond is a fenced zoo pen — land tiles reach,
+    shore tiles don't."""
+    if map_key not in cache:
+        from modules.player import get_player_avatar
+
+        from dexbot.catching import _shore_tiles
+        from dexbot.navigation import _plan_via_graph, _walkable
+
+        try:
+            tiles = [c for c, _f in _shore_tiles(map_key)]
+        except Exception:
+            cache[map_key] = False
+            return False
+        sample = tiles[:: max(1, len(tiles) // 3)][:3]
+        avatar = get_player_avatar()
+        pos = (avatar.map_group_and_number, avatar.local_coordinates)
+        cache[map_key] = any(
+            _plan_via_graph(pos, (map_key, t), frozenset(), _walkable) is not None for t in sample
+        )
+    return cache[map_key]
+
+
+def missing_catchable() -> list[tuple[str, tuple[int, int], int, dict, str]]:
+    """(species, map, rate%, annotation, method) for every missing species
+    catchable on an accessible AND currently-reachable map — land spinning
+    plus rod fishing for rods we own — most-common-first."""
+    from modules.items import get_item_bag, get_item_by_name
     from modules.pokedex import get_pokedex
 
     owned = {s.name for s in get_pokedex().owned_species}
-    best: dict[str, tuple[tuple[int, int], int, dict]] = {}
+    best: dict[str, tuple[tuple[int, int], int, dict, str]] = {}
+    shore_cache: dict = {}
     for map_key, annotation in accessible_maps().items():
         table = encounters().get(f"{map_key[0]},{map_key[1]}")
         if table is None:
             continue
-        if not _graph_reachable(map_key, annotation):
-            continue
-        rates: dict[str, int] = {}
-        for entry in table["land_encounters"]:
-            rates[entry["species_name"]] = rates.get(entry["species_name"], 0) + entry["encounter_rate"]
-        for species, rate in rates.items():
-            if species in owned:
+        land_ok = None  # lazy: only computed when the map has missing land species
+        for kind, method, rod_item in _ENCOUNTER_METHODS:
+            entries = table.get(kind) or []
+            if not entries:
                 continue
-            if species not in best or rate > best[species][1]:
-                best[species] = (map_key, rate, annotation)
+            if rod_item is not None and get_item_bag().quantity_of(get_item_by_name(rod_item)) == 0:
+                continue
+            rates: dict[str, int] = {}
+            for entry in entries:
+                rates[entry["species_name"]] = rates.get(entry["species_name"], 0) + entry["encounter_rate"]
+            if all(s in owned for s in rates):
+                continue
+            if rod_item is None:
+                if land_ok is None:
+                    land_ok = _graph_reachable(map_key, annotation)
+                if not land_ok:
+                    continue
+            elif not _shore_reachable(map_key, shore_cache):
+                continue
+            for species, rate in rates.items():
+                if species in owned:
+                    continue
+                if species not in best or rate > best[species][1]:
+                    best[species] = (map_key, rate, annotation, method)
     queue = [(species, *info) for species, info in best.items()]
     # visit_last maps (one-way descents) go to the back regardless of rate.
     queue.sort(key=lambda item: (item[3].get("visit_last", False), -item[2], item[0]))
@@ -460,9 +510,9 @@ def plan_and_catch_all() -> int:
         # entry; invalid/disabled/error → deterministic queue head (queue[0]).
         by_name = {f"catch_{entry[0]}": entry for entry in queue}
         chosen_name, rationale = choose_objective(capture_state(), list(by_name))
-        species, map_key, rate, annotation = by_name[chosen_name]
-        print(f"[planner] objective {chosen_name}: {rationale}")
-        tile = tuple(annotation["safe_tile"]) if "safe_tile" in annotation else None
+        species, map_key, rate, annotation, method = by_name[chosen_name]
+        print(f"[planner] objective {chosen_name}: {rationale} (method {method})")
+        tile = tuple(annotation["safe_tile"]) if method == "spin" and "safe_tile" in annotation else None
 
         # Field a diverse, catch-rate-optimized team (sleep/False-Swipe/para
         # roles + HM mules), leaving one slot for the catch. No-op when the
@@ -498,7 +548,7 @@ def plan_and_catch_all() -> int:
         for attempt in range(2):
             try:
                 run_skill(
-                    catch_species(species, map_key, tile),
+                    catch_species(species, map_key, tile, method=method),
                     f"catch_{species}",
                     timeout_frames=600_000,
                     on_battle_started=make_catch_decider(species),

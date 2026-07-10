@@ -27,7 +27,7 @@ def test_planner_queue_covers_pre_brock_species():
     queue = missing_catchable()
     assert {species for species, *_ in queue} == PRE_BROCK_SPECIES
     # deterministic: most common first
-    rates = [rate for _, _, rate, _ in queue]
+    rates = [rate for _, _, rate, _, _ in queue]
     assert rates == sorted(rates, reverse=True)
 
 
