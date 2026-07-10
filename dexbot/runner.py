@@ -209,6 +209,13 @@ def _make_bot_mode(skill: Generator, on_battle_started=None):
             _log_event(skill="whiteout", status="recovered")
             return True
 
+        def on_safari_zone_timeout(self) -> bool:
+            # Balls/steps ran out: the listener has already walked us back to
+            # the entrance building. safari_run's loop re-enters by itself —
+            # returning False here would drop the whole run to Manual mode.
+            _log_event(skill="safari_timeout", status="recovered")
+            return True
+
     return DexSkillMode()
 
 
