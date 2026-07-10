@@ -15,5 +15,6 @@ mGBA savestates (`.ss1`) for headless tests, all produced with FireRed USA **1.0
 | `m7_mt_moon_cleared.ss1` | `python -m dexbot.story clear_mt_moon m7_badge_brock.ss1 m7_mt_moon_cleared.ss1` — Helix Fossil, east exit open. |
 | `m7_ss_ticket.ss1` | `python -m dexbot.story visit_bill m7_bridge.ss1 m7_ss_ticket.ss1` — Bill helped, SS Ticket obtained. |
 | `m8_post_snorlax.ss1` | Copy of the live profile's `current_state.ss1` right after `catch_snorlax` (badges 4, dex 34, Route 12 south end). Used to rebuild nav-graph epoch 4 with the Snorlax tile cleared. |
+| `m7_badge_koga.ss1` | Koga campaign from the live `current_state.ss1` (2026-07-10, dex 41): one Route 11 Vs Seeker income lap (→ ₽11,676), then `beat_koga` (assemble_party at Vermilion PC, 9 Hyper Potions, Fuchsia gym gauntlet + Koga). Badge 5 set, party alive. |
 
 Regenerate any fixture by re-running the listed command from the project root.

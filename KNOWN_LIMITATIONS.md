@@ -88,6 +88,11 @@ Honesty over optimism. Current as of M5.
 - **navigate_to script interruptions**: handled generically (A-mash + periodic
   START + B), verified on the Pallet sign lady. Other one-time triggers across
   Kanto may need the same treatment — watch logs/skills.jsonl for timeouts.
+- **Vs Seeker re-arm yields zero after the first charged lap**: `arm_seeker`'s
+  recharge walk (one Route 11 length) appears to be under the ~100-step charge
+  requirement, so consecutive laps earn nothing (observed: lap 0 +₽4.7k, laps
+  1–9 +0). Double the recharge walk when the economy next needs sustained
+  income; today's Koga loadout fit within one charged lap.
 - **Cycling Road is downhill-only**: Route 17's slope tiles keep the avatar in
   a perpetual forced-slide state, so legs there use walk_carefully
   (tap-and-settle; a released coast is re-pathed from the landing). Southbound

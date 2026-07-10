@@ -1,5 +1,22 @@
 # DEVLOG
 
+## 2026-07-10 (later) — badge 5: Koga beaten headless; frontier is now the Safari Zone
+
+With the Cycling Road stall fixed (entry below), the remaining Koga blocker was
+money: ₽4.6k bought 3 Hyper Potions and the party whited out. Campaign run
+(headless, test profile, from the live checkpoint): one charged Route 11
+Vs Seeker lap (+₽4.7k → ₽11,676; laps 2–9 earned zero — re-arm never recharges,
+see KNOWN_LIMITATIONS), then `beat_koga` bought 9 Hyper Potions and won —
+BADGE05_GET verified, party alive, `fixtures/m7_badge_koga.ss1` saved and
+`tests/test_m7_koga.py` green (suite 46/46). The final state was applied to the
+live profile's `current_state.ss1` (previous checkpoint backed up in states/).
+
+**Planner note:** with dex 41, every species on annotated maps is owned and
+BADGE05_GET unlocks no map annotations (only Surf field-use + mansion key), so
+`run.py` idles by design. Next milestone: Safari Zone — map annotations,
+`safari_run` (step budget, bait/rock policy), HM03 Surf from the Secret House,
+Gold Teeth → Strength. That opens the next dex chunk.
+
 ## 2026-07-10 — Cycling Road pinned the avatar in a state no walker could see
 
 **Symptom:** beat_koga stalled twice at Route 17 (11,18), 30k frames of nothing,
