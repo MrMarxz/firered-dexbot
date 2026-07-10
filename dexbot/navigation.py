@@ -415,6 +415,28 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
             b = comp.get((dst_map, dst_coords))
             if a is not None and b is not None:
                 warp_adj.setdefault(a, []).append((b, src_tile))
+
+    # Stitch split TINY interiors (gate buildings): their bike-check trigger /
+    # counter tiles read as walls when the map isn't loaded, so the build cuts
+    # e.g. the Route 15 and Route 18 gates into two components each and the
+    # whole Fuchsia corridor "vanishes" (get_rods stalled in Lavender with
+    # every plan returning None). Crossing a LOADED gate executes fine — the
+    # badge-5 runs crossed both. Story gating is unaffected: it drops the warp
+    # edges INTO a gated map, not interior edges. Dungeons (real splits:
+    # Strength boulders) are excluded by the size cap.
+    from modules.map_path import _get_all_maps_metadata
+
+    stitch: dict[tuple, set] = {}
+    for (m, _xy), cid in comp.items():
+        stitch.setdefault(m, set()).add(cid)
+    extra_walk: dict[int, list] = {}
+    for m, cids in stitch.items():
+        pm = _get_all_maps_metadata().get(tuple(m))
+        if len(cids) > 1 and pm is not None and pm.size[0] * pm.size[1] <= 200:
+            for a in cids:
+                for b in cids:
+                    if a != b:
+                        extra_walk.setdefault(a, []).append(b)
     # Lazily test "can this component walk to dest" only for components with a
     # tile on dest's level, using the component tile nearest to dest.
     dest_level = _map_level(dest[0])
@@ -521,6 +543,10 @@ def _plan_via_graph(start, dest, blacklist, walkable) -> list | None:
             elif any(walkable(rep, dest) for rep in dest_reps.get(cid, ())):
                 return _finalize(route)
             for next_cid in graph["walk"].get(cid, []):
+                if next_cid not in seen:
+                    seen.add(next_cid)
+                    queue.appendleft((next_cid, route))
+            for next_cid in extra_walk.get(cid, []):
                 if next_cid not in seen:
                     seen.add(next_cid)
                     queue.appendleft((next_cid, route))

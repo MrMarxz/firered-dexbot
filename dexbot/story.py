@@ -628,6 +628,30 @@ def get_amulet_coin() -> Generator:
     yield from give_item_to_party_mon("Amulet Coin", 0)
 
 
+def get_rods() -> Generator:
+    """Collect all three fishing rods (pret-verified givers, each behind a
+    'do you like to fish?' YES prompt):
+    - Old Rod   — Vermilion City House 1, Fishing Guru.
+    - Good Rod  — Fuchsia City House 2, Fishing Guru's brother.
+    - Super Rod — Route 12 Fishing House.
+    Idempotent: skips rods already in the bag. Rods unlock the fishing dex
+    chunk (Magikarp/Horsea/Krabby/Goldeen/Poliwag/Gyarados/Dratini...)."""
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG
+
+    for rod_name, map_enum in (
+        ("Old Rod", MapFRLG.VERMILION_CITY_HOUSE1),
+        ("Super Rod", MapFRLG.ROUTE12_FISHING_HOUSE),
+        ("Good Rod", MapFRLG.FUCHSIA_CITY_HOUSE2),
+    ):
+        rod = get_item_by_name(rod_name)
+        if get_item_bag().quantity_of(rod) > 0:
+            continue
+        yield from _talk_until(map_enum, 1, rod)
+        if get_item_bag().quantity_of(rod) == 0:
+            raise SkillError(f"{rod_name} giver did not hand it over")
+
+
 def _descend_hidden_stairs() -> Generator:
     """Game Corner (11,2) → the opened hidden stairs at (15,2). The stairs are
     a metatile swap so cached collision blocks pathing — walk right blind
@@ -1171,6 +1195,7 @@ STORY_SKILLS = {
     "get_vs_seeker": get_vs_seeker,
     "get_bicycle": get_bicycle,
     "get_amulet_coin": get_amulet_coin,
+    "get_rods": get_rods,
     "clear_rocket_hideout": clear_rocket_hideout,
     "rescue_mr_fuji": rescue_mr_fuji,
     "catch_snorlax": catch_snorlax,
