@@ -7,15 +7,25 @@ inert in the bag for a day; the False-Swipe Cubone sat at L15 in a box).
 Acquisition skills must follow through themselves where possible
 (get_amulet_coin now gives the coin to the lead as part of the skill).
 
-## Where we are (2026-07-10, evening)
+## Where we are (2026-07-10, late night)
 
-Badges 1–5 (Koga ✓). **Dex: 51 owned** (fishing chunk complete: Magikarp,
-Horsea, Poliwag, Poliwhirl, Goldeen, Krabby, Gyarados, Psyduck). Bicycle ✓,
-Vs Seeker ✓, all three rods ✓, HM01 Cut ✓, HM03 Surf ✓ (taught to Blastoise),
-Poké Flute ✓, Amulet Coin ✓ (held by Blastoise), **Exp. Share ✓** (collected
-the hour dex hit 50), catch kit complete: Marowak L33 **False Swipe** +
-Parasect L33 **Spore** + Gloom Sleep Powder backup. Catch queue idle again —
-the frontier is the Safari Zone / Surf-water annotations.
+Badges 1–5 (Koga ✓). **Dex: 63 owned** — fishing chunk (8 species) AND the
+Safari Zone sweep (11 species: Scyther, Seaking, Exeggcute, Rhyhorn, Dratini,
+Nidorino, Nidorina, Venomoth, Chansey, Kangaskhan, Tauros, Dragonair 1%!)
+done autonomously via `safari_run` + upstream's documented bait/rock policies.
+Bicycle ✓, Vs Seeker ✓, all rods ✓, HM01 Cut ✓, HM03 Surf ✓, Poké Flute ✓,
+Amulet Coin ✓ (held), Exp. Share ✓, catch kit complete (False Swipe Marowak,
+Spore Parasect). Money low (~1.1k — safari entries) — patrols/coin fights
+refill it. Queue idle — next frontier below.
+
+## Next frontier
+
+1. **Gold Teeth → Warden → HM04 Strength** (Safari West item ball — walk it
+   with safari_run's machinery, no catching).
+2. **Surf-water + Power Plant + Pokémon Mansion annotations** — Surf is
+   usable; Electabuzz/Magnemite/Grimer/Koffing/etc. await map annotations
+   (and Strength for Seafoam).
+3. **Silph Co → Sabrina (badge 6)** — story spine.
 
 ## Story spine (mirrors data/dependencies.json `objectives`)
 

@@ -233,9 +233,21 @@ def restock_pokeballs_if_low(minimum: int = 15) -> None:
         _fund_by_selling(needed * 200 + 1000)
     from dexbot.openings import buy_items
 
-    # Great Balls (1.5x) when funded — full-HP throws at rate-190 targets ate
-    # 10-15 Poké Balls apiece; the multiplier pays for itself. The upstream
-    # catch strategy picks the best ball in the bag automatically.
+    # Best affordable multiplier — the upstream catch strategy picks the best
+    # ball in the bag automatically. Ultra (2x, 1200) once Fuchsia-era marts
+    # sell them; Great (1.5x, 600) otherwise — full-HP throws at rate-190
+    # targets ate 10-15 Poké Balls apiece, so the multiplier pays for itself.
+    if get_player().money >= (needed + 3) * 1200:
+        quantity = min(needed + 5, get_player().money // 1200, 40)
+        try:
+            run_skill(
+                buy_items([("Ultra Ball", quantity)], _nearest_mart()),
+                f"restock_{quantity}_ultraballs",
+                timeout_frames=120_000,
+            )
+            return
+        except SkillError:
+            pass  # this mart doesn't stock Ultra — fall through to Great
     if get_player().money >= (needed + 3) * 600:
         quantity = min(needed + 5, get_player().money // 600, 40)
         run_skill(
