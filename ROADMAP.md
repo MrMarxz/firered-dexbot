@@ -9,7 +9,9 @@ Acquisition skills must follow through themselves where possible
 
 ## Where we are (2026-07-10, late night)
 
-Badges 1–6 (Koga ✓, Sabrina ✓). **Dex: 72 owned** (gift Lapras!) — fishing chunk (8 species) AND the
+**Badges 1–7 (Blaine ✓)** — Mansion Secret Key obtained via the statue-switch
+maze (fork now models setmetatile doors at path time), Cinnabar gym quiz
+gauntlet answered from decomp data. **Dex: 72 owned** (gift Lapras!) — fishing chunk (8 species) AND the
 Safari Zone sweep (11 species: Scyther, Seaking, Exeggcute, Rhyhorn, Dratini,
 Nidorino, Nidorina, Venomoth, Chansey, Kangaskhan, Tauros, Dragonair 1%!)
 done autonomously via `safari_run` + upstream's documented bait/rock policies.
@@ -37,15 +39,13 @@ Next, in dependency order:
    Safari-exclusive dex chunk (Scyther/Pinsir/Chansey/Kangaskhan/Tauros/
    Dratini via fishing, ...). Needs M8 `safari_run` (step budget, bait/rock).
 2. **Silph Co** (open now): clears Saffron gym access → Sabrina (badge 6).
-3. **Cinnabar** via Surf from Pallet/Route 21: Mansion Secret Key → Blaine
-   (badge 7). Surfable water routes also open big dex chunks — annotate them.
-   (In progress 2026-07-10: nav graph fixed — Viridian gym-pocket ledge drop
-   edge was invisible, orphaning Pallet/Cinnabar; fork now models the
-   Mansion/Cinnabar-gym setmetatile doors at path time via
-   FLAG_POKEMON_MANSION_SWITCH_STATE / CINNABAR_GYM_QUIZ_* — static layout
-   reads never see setmetatile.)
-4. **Sevii Islands** (after Blaine): island dex species, Moltres.
-5. **Viridian gym** (Giovanni, badge 8) → Elite Four only if a species needs it.
+3. ~~**Cinnabar**: Mansion Secret Key → Blaine (badge 7)~~ ✅ done 2026-07-10.
+4. **Seafoam Islands** (Surf ✓ Strength ✓, open NOW): Articuno + Seel/
+   Dewgong/Krabby-line water chunk; boulder puzzle = new nav territory.
+5. **Sevii Islands** (Bill offers the trip right after Blaine): island dex
+   species, Moltres (Mt. Ember).
+6. **Viridian gym** (Giovanni, badge 8 — unlocked at 7 badges) → Elite Four
+   only if a species needs it (Cerulean Cave does: Mewtwo).
 
 ## Opportunities (trigger → action)
 

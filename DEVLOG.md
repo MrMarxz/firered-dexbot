@@ -1,5 +1,47 @@
 # DEVLOG
 
+## 2026-07-10 (late night) — badge 7: Mansion Secret Key + Blaine, and the setmetatile lesson
+
+**Done**
+- **Badge 7 (Blaine)** and the **Mansion Secret Key**, fully autonomous after
+  fixes; fixtures `m8_secret_key.ss1`, `m7_badge_blaine.ss1`, tests green.
+- Nav graph: Pallet/Cinnabar were orphaned because walk-edge discovery only
+  saw *portal* tiles — the Viridian gym pocket (the only one-way ledge into
+  that component) has no ungated warp; its component is minted by the
+  cut-tree pass. Cut minting now runs BEFORE edge discovery and its tiles
+  join the candidate set.
+- **The big class-fix: flag-conditioned setmetatile doors.** `setmetatile`
+  writes the RAM map buffer; every tile read we do (get_map_data, A*) comes
+  from the static ROM layout — so switch doors read as walls forever (and
+  phantom-open once flipped). Fork `map_path._FLAG_DOORS` now models
+  passability at path time as a pure function of the governing event flag,
+  tables derived from pret scripts (Mansion PressSwitch_*/ResetSwitch_*,
+  Cinnabar gym OpenDoor1-6 — the setmetatile collision bit is the truth
+  table). Same pattern will cover Victory Road / any future switch maze.
+- Mansion choreography (headless-verified before live): 3F statue → hole
+  drop → sealed 1F pocket → B1F; key room needs CLEAR→walk→SET double
+  toggle; `leave_mansion` exits via the back door (pocket only opens
+  switch-SET). Statue prompts are Yes/No — the B-mash was silently
+  declining them.
+- Cinnabar gym: quiz answers taken from the decomp branches (Y/N/N/N/Y/N);
+  wrong answers battle the room trainer whose defeat script ALSO opens the
+  door. `talk_to_npc` ids are 1-based: Blaine is 8, 7 is Zac (memory saved —
+  second time this trap cost a live run, after Giovanni).
+- `collect_item_balls`: cheap per-stand `_walkable` probe before the full
+  planner — sealed balls used to burn minutes of failed A* (the B1F wedge).
+
+**Lessons**
+- "Game fact from the horse's mouth": the gym quiz answer table and door
+  metatiles came straight from pret scripts in minutes; guessing "Yes
+  everywhere" cost a run and a fainted Blastoise.
+- Wedge detection via log-growth monitors caught the collect_item_balls
+  spin in 4 minutes; the standstill detector alone would have burned 30k
+  frames × 8 retries.
+
+**State:** Badges **7**/8, dex **72**/124, money ₽36.8k, tests green
+(75 incl. new secret-key + blaine). **Next:** Seafoam Islands chunk
+(Articuno, Seel line) — boulder puzzles; Sevii after; Viridian gym open.
+
 ## 2026-07-10 (night) — fishing chunk complete: dex 41 → 51, autonomously
 
 The rods opened 8 species and the planner caught them all unattended
