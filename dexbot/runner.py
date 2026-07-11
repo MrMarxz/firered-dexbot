@@ -37,6 +37,33 @@ _STEP_BUDGET_SECONDS = 120
 # watchdog only catches CPU wedges; this catches walk/menu/battle loops that
 # happily burn frames. On trip: state dump + savestate for offline debugging.
 _PROGRESS_BUDGET_FRAMES = 30_000
+# Menus have no legitimate long-idle states: any bag/party/shop interaction
+# resolves in a few hundred frames, so a menu that sits unchanged for 6k
+# frames is a wedged blind loop (quantity selector clamped below the asked
+# amount, refused cast, declined prompt...). Overworld keeps the big budget —
+# treks and battles legitimately idle position for minutes.
+_MENU_PROGRESS_BUDGET_FRAMES = 6_000
+
+
+def press_until(predicate, button: str, what: str, budget_frames: int = 600, interval: int = 2):
+    """Bounded actuation: press `button` every `interval` frames until
+    `predicate()` is true, raising SkillError when the budget expires.
+
+    THE rule for menu drivers: never loop a button on a memory predicate
+    without a budget — when the game clamps or refuses (a quantity selector
+    capped by wallet, a rod cast refused, a prompt declined), the predicate
+    is unreachable and a bare loop spins until the coarse standstill
+    detector fires 30k frames later. This fails in seconds and names the
+    exact interaction instead."""
+    from modules.context import context
+
+    for i in range(budget_frames):
+        if predicate():
+            return
+        if i % interval == 0:
+            context.emulator.press_button(button)
+        yield
+    raise SkillError(f"press_until: {what} did not happen within {budget_frames} frames")
 
 
 def _progress_sample():
@@ -228,7 +255,7 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
     to logs/skills.jsonl either way.
     """
     from modules.context import context
-    from modules.memory import get_game_state
+    from modules.memory import GameState, get_game_state
     from modules.modes import FrameInfo, get_bot_listeners
     from modules.tasks import get_global_script_context, get_tasks
 
@@ -358,7 +385,18 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
                 if sample != last_sample:
                     last_sample = sample
                     frames_at_last_progress = frames
-                elif frames - frames_at_last_progress >= _PROGRESS_BUDGET_FRAMES:
+                elif frames - frames_at_last_progress >= (
+                    _MENU_PROGRESS_BUDGET_FRAMES
+                    if get_game_state()
+                    not in (
+                        GameState.OVERWORLD,
+                        GameState.BATTLE,
+                        GameState.BATTLE_STARTING,
+                        GameState.BATTLE_ENDING,
+                        GameState.CHANGE_MAP,
+                    )
+                    else _PROGRESS_BUDGET_FRAMES
+                ):
                     # Battle rescue (once per skill): a stalled BATTLE usually
                     # means nothing is driving it — a skill that STARTED
                     # mid-battle (mid-battle checkpoint resume) or a stale

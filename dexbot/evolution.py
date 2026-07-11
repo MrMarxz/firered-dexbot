@@ -157,10 +157,9 @@ def evolve_stones() -> Generator:
             need = sum(1 for p in plans if p[1] == stone)
             if need > have:
                 to_buy[stone] = need - have
-    affordable = get_player().money // _STONE_PRICE
-    if to_buy and affordable == 0:
+    if to_buy and get_player().money < _STONE_PRICE:
         raise SkillError("No money for evolution stones")
-    shopping = [(stone, n) for stone, n in to_buy.items()][:affordable]
+    shopping = list(to_buy.items())  # buy_items clamps quantities by wallet
     if shopping:
         _log_event(skill="evolve_stones", status="phase", phase="shop")
         # The clerk (3,13) stands in a walled pocket behind the counter row

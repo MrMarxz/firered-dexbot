@@ -129,9 +129,11 @@ def deliver_parcel_get_pokedex() -> Generator:
         raise SkillError("Pokédex flag not set after talking to Oak")
 
 
-def buy_items(shopping_list, mart=None) -> Generator:
+def buy_items(shopping_list, mart=None, counter=(4, 3), facing="Left") -> Generator:
     """Buy a list of (item_name, quantity) at a mart (default: Viridian). FRLG
-    mart interiors share one layout, so the counter position works everywhere.
+    mart interiors share one layout, so the default counter position works in
+    every standard mart; department-store floors pass their own counter/facing
+    (Celadon 4F stones: counter=(5,13), facing="Left").
 
     FRLG's mart flow (observed): clerk script → Buy/Sell/Quit list (A picks Buy)
     → Task_BuyMenu item list → Task_BuyHowManyDialogueHandleInput → yes/no.
@@ -150,28 +152,45 @@ def buy_items(shopping_list, mart=None) -> Generator:
     wanted = [(get_item_by_name(name), quantity) for name, quantity in shopping_list]
     starting = {item.index: get_item_bag().quantity_of(item) for item, _ in wanted}
 
-    yield from navigate_to(mart, (4, 3))
-    yield from ensure_facing_direction("Left")
+    yield from navigate_to(mart, counter)
+    yield from ensure_facing_direction(facing)
     _ctx().emulator.press_button("A")
     yield
     yield from wait_until_task_is_active("Task_BuyMenu", "A")
     for _ in range(20):
         yield
 
+    from modules.player import get_player
+
+    from dexbot.runner import press_until
+
     buyable = get_mart_buyable_items()
+    expected: dict[int, int] = {}
     for item, quantity in wanted:
         if item not in buyable:
             continue
+        # Never ask for more than the wallet covers: the game CLAMPS the
+        # quantity selector at what is affordable, so a loop waiting for a
+        # larger number spins forever (the Leaf Stone wedge — asked for
+        # 2 × ₽2100 holding ₽3084; the selector pinned at ×01).
+        if item.price > 0:
+            quantity = min(quantity, get_player().money // item.price)
+        if quantity <= 0:
+            continue
+        expected[item.index] = quantity
         slot = buyable.index(item)
-        while get_mart_buy_menu_scroll_position() != slot:
-            _ctx().emulator.press_button("Up" if get_mart_buy_menu_scroll_position() > slot else "Down")
-            yield
-            yield
+        yield from press_until(
+            lambda: get_mart_buy_menu_scroll_position() == slot,
+            "Up" if get_mart_buy_menu_scroll_position() > slot else "Down",
+            f"buy menu scroll to {item.name}",
+        )
         yield from wait_until_task_is_active("Task_BuyHowManyDialogueHandleInput", "A")
-        while (current := get_task("Task_BuyHowManyDialogueHandleInput").data_value(1)) != quantity:
-            _ctx().emulator.press_button("Up" if current < quantity else "Down")
-            yield
-            yield
+        direction = "Up" if get_task("Task_BuyHowManyDialogueHandleInput").data_value(1) < quantity else "Down"
+        yield from press_until(
+            lambda: get_task("Task_BuyHowManyDialogueHandleInput").data_value(1) == quantity,
+            direction,
+            f"quantity selector to reach {quantity}× {item.name}",
+        )
         # A-mash confirms the quantity, the price yes/no, and the "Here you
         # are!" message, landing back in the item list.
         yield from wait_until_task_is_active("Task_BuyMenu", "A")
@@ -180,8 +199,9 @@ def buy_items(shopping_list, mart=None) -> Generator:
     yield from wait_for_no_script_to_run("B")
     yield from wait_for_player_avatar_to_be_controllable("B")
 
-    for item, quantity in wanted:
-        if item in buyable and get_item_bag().quantity_of(item) < starting[item.index] + quantity:
+    for item, _quantity in wanted:
+        bought = expected.get(item.index, 0)
+        if bought and get_item_bag().quantity_of(item) < starting[item.index] + bought:
             raise SkillError(f"Purchase of {item.name} failed")
 
 
