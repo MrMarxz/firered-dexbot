@@ -1481,6 +1481,14 @@ def catch_zapdos() -> Generator:
 
     if _owned():
         return
+    # The full catch kit or nothing: a skeleton party fed Zapdos 19 Ultra
+    # Balls at ~1% odds (no sleeper, no tank). Surf carries the party
+    # across Route 10's strip; the sleeper (Spore ×2 odds) is the lever.
+    from dexbot.team import TeamObjective, assemble_party
+
+    yield from assemble_party(
+        TeamObjective(kind="catch", field_moves=("Surf",), prefer_offense_types=("Electric",))
+    )
     ultra = get_item_by_name("Ultra Ball")
     have = get_item_bag().quantity_of(ultra)
     if have < 20:
@@ -1493,6 +1501,16 @@ def catch_zapdos() -> Generator:
             yield from buy_items([("Ultra Ball", n)], _nearest_mart())
     _log_event(skill="catch_zapdos", status="phase", phase="approach")
     yield from ensure_healthy(minimum_fraction=0.95)
+    # Best lead vs an Electric/Flying legendary: Magneton walls Drill Peck
+    # and Electric STAB at 0.5x, paralyzes (Thunder Wave, catch x1.5) and
+    # chips a deterministic 20/turn (Sonicboom never randomly KOs).
+    from modules.pokemon_party import get_party
+    from dexbot.team import make_lead
+
+    for lead in ("Magneton", "Electabuzz"):
+        if any(p.species.name == lead and not p.is_egg and p.current_hp > 0 for p in get_party()):
+            yield from make_lead(lead)
+            break
     yield from collect_item_balls(MapFRLG.POWER_PLANT, limit=5)  # Thunder Stone, TM25, ...
     _log_event(skill="catch_zapdos", status="phase", phase="engage")
     yield from _engage_static(MapFRLG.POWER_PLANT, (5, 11), "catch_zapdos")
@@ -1855,6 +1873,15 @@ STORY_SKILLS = {
     "catch_zapdos": catch_zapdos,
     "catch_electrode": catch_electrode,
 }
+
+
+def _register_evolution_skills() -> None:
+    from dexbot.evolution import evolve_stones
+
+    STORY_SKILLS["evolve_stones"] = evolve_stones
+
+
+_register_evolution_skills()
 
 
 def main() -> None:

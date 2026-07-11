@@ -233,6 +233,11 @@ def run_skill(skill: Generator, name: str, timeout_frames: int = 100_000, on_bat
     from modules.tasks import get_global_script_context, get_tasks
 
     bot_mode = _make_bot_mode(skill, on_battle_started)
+    if context.bot_mode == "Manual":
+        # A prior skill's battle strategy bailed to Manual (e.g. CatchStrategy
+        # with no balls) — Manual freezes the controller stack, so a retry
+        # that doesn't reclaim the mode wedges forever doing nothing.
+        context.bot_mode = bot_mode.name()
     context.bot_mode_instance = bot_mode
     context._current_bot_mode = bot_mode.name()
     context.bot_listeners = get_bot_listeners(context.rom)

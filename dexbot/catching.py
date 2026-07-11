@@ -61,6 +61,11 @@ def choose_catch_action(v: CatchView) -> tuple[str, int | None]:
             return ("move", v.status_move_index)
         return ("ball", None)
     can_false_swipe = v.active_knows_false_swipe and not v.is_ghost
+    # Status before rotating — the active mon may be a deliberate status
+    # lead (Thunder Wave Magneton walls Zapdos; rotating it out turn 1 fed
+    # Marowak to Drill Peck). ×1.5-2 odds and it doesn't spend HP.
+    if not v.opponent_is_statused and v.status_move_index is not None:
+        return ("move", v.status_move_index)
     # Rotate to the designated weakener if the active mon isn't it.
     if (
         not can_false_swipe
@@ -69,9 +74,6 @@ def choose_catch_action(v: CatchView) -> tuple[str, int | None]:
         and v.party_weakener_index != v.active_index
     ):
         return ("rotate", v.party_weakener_index)
-    # Sleep (or best status) before anything else — ×2 and it doesn't spend HP.
-    if not v.opponent_is_statused and v.status_move_index is not None:
-        return ("move", v.status_move_index)
     if v.sleep_first and not v.opponent_is_statused:
         # Boomer still awake and we can't put it to sleep: chipping invites a
         # Selfdestruct — just throw.

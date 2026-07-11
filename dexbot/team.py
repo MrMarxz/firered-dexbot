@@ -205,6 +205,32 @@ def give_item_to_party_mon(item_name: str, party_index: int = 0) -> Generator:
         raise SkillError(f"Failed to give {item_name} to party slot {party_index}")
 
 
+def make_lead(species: str) -> Generator:
+    """Swap the party's `species` into slot 0 (battle lead). Upstream's
+    party-menu 'switch' mode swaps the selected mon with the lead."""
+    from modules.menuing import PokemonPartyMenuNavigator, StartMenuNavigator
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+    from modules.pokemon_party import get_party
+
+    from dexbot.runner import SkillError
+
+    idx = next(
+        (
+            i
+            for i, p in enumerate(get_party())
+            if p.species.name == species and not p.is_egg and p.current_hp > 0
+        ),
+        None,
+    )
+    if idx is None:
+        raise SkillError(f"make_lead: no healthy {species} in party")
+    if idx == 0:
+        return
+    yield from StartMenuNavigator("POKEMON").step()
+    yield from PokemonPartyMenuNavigator(idx, "switch").step()
+    yield from wait_for_player_avatar_to_be_controllable("B")
+
+
 def make_false_swipe_trainer(species: str = "Cubone", move: str = "False Swipe"):
     """Battle strategy for training the catch-kit weakener: upstream's
     LevelBalancingBattleStrategy keeps the lowest-level mon as lead (switching
