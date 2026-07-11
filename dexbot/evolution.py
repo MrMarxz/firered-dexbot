@@ -131,6 +131,101 @@ def _fetch_to_party(species: str) -> Generator:
     state_cache.reset()
 
 
+def _level_plans() -> list[tuple[str, int, str, int]]:
+    """(pre, evolve_level, target, levels_needed) for every owned pre-evo
+    whose level-up evolution target is missing — cheapest grind first,
+    judged by the best specimen we own."""
+    import json
+
+    from dexbot import PROJECT_ROOT
+    from dexbot.team import enumerate_roster
+
+    species = json.loads(
+        (PROJECT_ROOT / "pokebot-gen3" / "modules" / "data" / "species.json").read_text()
+    )
+    by_index = {i: s for i, s in enumerate(species)}
+    owned = _owned()
+    best: dict[str, int] = {}
+    for m in enumerate_roster():
+        best[m.species_name] = max(best.get(m.species_name, 0), m.level)
+    plans = []
+    for s in species:
+        if s["name"] not in owned:
+            continue
+        for e in s.get("evolutions", []):
+            if e["method"] != "level":
+                continue
+            target = by_index.get(e["target_species"], {}).get("name")
+            if target is None or target in owned:
+                continue
+            lvl = e["method_param"]
+            plans.append((s["name"], lvl, target, max(0, lvl - best.get(s["name"], 0))))
+    plans.sort(key=lambda p: p[3])
+    return plans
+
+
+def evolve_levels(max_grind_levels: int = 12) -> Generator:
+    """Grind owned pre-evolutions to their level-up evolutions, cheapest
+    first: fetch the best specimen, hand it the Exp Share, spin at the
+    Route 23 grass (L32-40 wilds — the badge-8-era XP spot) with the
+    existing heal-stint machinery. Plans needing more than
+    `max_grind_levels` are skipped (Dragonite is a campaign, not an errand)."""
+    from modules.map_data import MapFRLG
+    from modules.pokemon import StatusCondition
+    from modules.pokemon_party import get_party
+
+    from dexbot.catching import _encounter_tiles, ensure_healthy
+    from dexbot.navigation import navigate_to
+    from dexbot.team import give_item_to_party_mon
+
+    plans = _level_plans()
+    if not plans:
+        return
+    grind_map = MapFRLG.ROUTE23.value
+    grind_tile = _encounter_tiles(grind_map)[0]
+
+    for pre, lvl, target, need in plans:
+        if need > max_grind_levels:
+            _log_event(skill="evolve_levels", status="skipped", species=target, levels_needed=need)
+            continue
+        _log_event(skill="evolve_levels", status="phase", phase=f"evolve_{target}")
+        yield from _fetch_to_party(pre)
+
+        def trainee():
+            for p in get_party():
+                if not p.is_egg and p.species.name == pre:
+                    return p
+            return None
+
+        def done() -> bool:
+            return target in _owned()
+
+        index = next(i for i, p in enumerate(get_party()) if p.species.name == pre and not p.is_egg)
+        yield from give_item_to_party_mon("Exp. Share", index)
+
+        def needs_heal() -> bool:
+            p = trainee()
+            lead = get_party()[0]
+            return (
+                (p is not None and p.current_hp == 0)
+                or lead.current_hp / lead.total_hp < 0.4
+                or lead.status_condition != StatusCondition.Healthy
+            )
+
+        from modules.modes.util.higher_level_actions import spin
+
+        while not done():
+            p = trainee()
+            if p is None and not done():
+                raise SkillError(f"evolve_levels: {pre} vanished mid-grind")
+            if p is not None:
+                _log_event(skill="evolve_levels", status="progress", species=pre, level=p.level)
+            yield from ensure_healthy(minimum_fraction=0.95)
+            yield from navigate_to(grind_map, grind_tile)
+            yield from spin(stop_condition=lambda: done() or needs_heal())
+        _log_event(skill="evolve_levels", status="evolved", species=target)
+
+
 def evolve_stones() -> Generator:
     """Run every currently-satisfiable stone plan: buy buyable stones at
     Celadon Dept 4F in one trip, then withdraw each pre-evolution and use

@@ -1915,9 +1915,10 @@ def leave_viridian_gym() -> Generator:
 
 
 def _register_evolution_skills() -> None:
-    from dexbot.evolution import evolve_stones
+    from dexbot.evolution import evolve_levels, evolve_stones
 
     STORY_SKILLS["evolve_stones"] = evolve_stones
+    STORY_SKILLS["evolve_levels"] = evolve_levels
 
 
 def get_moon_stone() -> Generator:
