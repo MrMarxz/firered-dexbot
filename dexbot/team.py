@@ -205,6 +205,31 @@ def give_item_to_party_mon(item_name: str, party_index: int = 0) -> Generator:
         raise SkillError(f"Failed to give {item_name} to party slot {party_index}")
 
 
+def take_item_from_party_mon(party_index: int) -> Generator:
+    """Take a party mon's held item back into the bag (start menu → POKéMON
+    → mon → ITEM → TAKE). No-op if it holds nothing."""
+    from modules.context import context
+    from modules.memory import GameState, get_game_state
+    from modules.menuing import PokemonPartyMenuNavigator, StartMenuNavigator
+    from modules.player import player_avatar_is_controllable
+    from modules.pokemon_party import get_party
+
+    from dexbot.runner import SkillError
+
+    if get_party()[party_index].held_item is None:
+        return
+    yield from StartMenuNavigator("POKEMON").step()
+    yield from PokemonPartyMenuNavigator(party_index, "take_item").step()
+    for frame in range(600):
+        if get_game_state() == GameState.OVERWORLD and player_avatar_is_controllable():
+            break
+        if frame % 8 == 0:
+            context.emulator.press_button("B")
+        yield
+    if get_party()[party_index].held_item is not None:
+        raise SkillError(f"Failed to take item from party slot {party_index}")
+
+
 def make_lead(species: str) -> Generator:
     """Swap the party's `species` into slot 0 (battle lead). Upstream's
     party-menu 'switch' mode swaps the selected mon with the lead."""

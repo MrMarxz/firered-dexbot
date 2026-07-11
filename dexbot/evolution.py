@@ -200,6 +200,25 @@ def evolve_levels(max_grind_levels: int = 12) -> Generator:
         def done() -> bool:
             return target in _owned()
 
+        # Reclaim the Exp Share from whoever holds it (the previous trainee
+        # keeps holding it after evolving — Butterfree walked off with it).
+        from modules.items import get_item_bag, get_item_by_name
+
+        from dexbot.team import take_item_from_party_mon
+
+        if get_item_bag().quantity_of(get_item_by_name("Exp. Share")) == 0:
+            holder = next(
+                (
+                    i
+                    for i, p in enumerate(get_party())
+                    if not p.is_egg and p.held_item is not None and p.held_item.name == "Exp. Share"
+                ),
+                None,
+            )
+            if holder is None:
+                raise SkillError("Exp. Share is neither in the bag nor held in the party")
+            yield from take_item_from_party_mon(holder)
+
         index = next(i for i, p in enumerate(get_party()) if p.species.name == pre and not p.is_egg)
         yield from give_item_to_party_mon("Exp. Share", index)
 
