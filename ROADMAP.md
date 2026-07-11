@@ -9,9 +9,12 @@ Acquisition skills must follow through themselves where possible
 
 ## Where we are (2026-07-10, late night)
 
-**Badges 1–7 (Blaine ✓)** — Mansion Secret Key obtained via the statue-switch
-maze (fork now models setmetatile doors at path time), Cinnabar gym quiz
-gauntlet answered from decomp data. **Dex: 72 owned** (gift Lapras!) — fishing chunk (8 species) AND the
+**ALL 8 BADGES (Giovanni ✓ 2026-07-11)** — Victory Road & Elite Four now
+open (Mewtwo gate). **Dex: 83 owned** — Seafoam walk chunk ✓ (Seel, Dewgong,
+Golduck, Golbat), first surf-method catch ✓ (Tentacool), **Zapdos ✓**
+(Magneton wall doctrine: Thunder Wave para + Sonicboom fixed chip + Ultra
+spam), stone pass ✓ (Arcanine, Raichu, Poliwrath, Vileplume; Exeggutor next
+Leaf Stone). Earlier: fishing chunk (8 species) AND the
 Safari Zone sweep (11 species: Scyther, Seaking, Exeggcute, Rhyhorn, Dratini,
 Nidorino, Nidorina, Venomoth, Chansey, Kangaskhan, Tauros, Dragonair 1%!)
 done autonomously via `safari_run` + upstream's documented bait/rock policies.
@@ -40,12 +43,15 @@ Next, in dependency order:
    Dratini via fishing, ...). Needs M8 `safari_run` (step budget, bait/rock).
 2. **Silph Co** (open now): clears Saffron gym access → Sabrina (badge 6).
 3. ~~**Cinnabar**: Mansion Secret Key → Blaine (badge 7)~~ ✅ done 2026-07-10.
-4. **Seafoam Islands** (Surf ✓ Strength ✓, open NOW): Articuno + Seel/
-   Dewgong/Krabby-line water chunk; boulder puzzle = new nav territory.
-5. **Sevii Islands** (Bill offers the trip right after Blaine): island dex
-   species, Moltres (Mt. Ember).
-6. **Viridian gym** (Giovanni, badge 8 — unlocked at 7 badges) → Elite Four
-   only if a species needs it (Cerulean Cave does: Mewtwo).
+4. **Seafoam walk chunk** ✅; **Articuno** still needs the B4F boulder/current
+   puzzle (probe territory).
+5. **Sevii Islands** (Bill's offer waiting at Cinnabar gym exit): island dex
+   species, Moltres (Mt. Ember). Islands 4-7 need the post-E4 Ruby/Sapphire
+   quest.
+6. ~~Viridian gym (badge 8)~~ ✅ 2026-07-11. Next gate: **Elite Four** →
+   Cerulean Cave (Mewtwo, Kadabra/Graveler/Machoke wilds) + Sevii 4-7.
+7. **Level-up evolution pass** (M8): ~20 species via Exp-Share grinding
+   (Butterfree L10 ... Dragonite L55) — build after the cheap chunks.
 
 ## Opportunities (trigger → action)
 
