@@ -16,7 +16,7 @@ from dexbot.runner import SkillError, _log_event
 # a Moon Stone is already in the bag.
 STONE_PLANS = [
     ("Growlithe", "Fire Stone", "Arcanine"),
-    ("Pikachu", "Thunder Stone", "Raichu"),
+    ("Pikachu", "Thunderstone", "Raichu"),
     ("Poliwhirl", "Water Stone", "Poliwrath"),
     ("Gloom", "Leaf Stone", "Vileplume"),
     ("Exeggcute", "Leaf Stone", "Exeggutor"),
@@ -25,7 +25,7 @@ STONE_PLANS = [
     ("Clefairy", "Moon Stone", "Clefable"),
     ("Jigglypuff", "Moon Stone", "Wigglytuff"),
 ]
-_BUYABLE_STONES = {"Fire Stone", "Water Stone", "Thunder Stone", "Leaf Stone"}
+_BUYABLE_STONES = {"Fire Stone", "Water Stone", "Thunderstone", "Leaf Stone"}
 _STONE_PRICE = 2100
 
 
