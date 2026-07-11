@@ -1936,9 +1936,77 @@ def get_moon_stone() -> Generator:
         raise SkillError("Moon Stone ball not collected")
 
 
+def _claim_gift_ball(map_enum, ball: tuple[int, int], skill: str) -> Generator:
+    """Stand below a gift Poké Ball object, A, accept ('...take it?' → Yes),
+    decline the nickname (B-drain). Gifts need a party slot — callers ensure
+    space first."""
+    from modules.context import context
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_for_yes_no_question
+    from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_controllable
+
+    yield from navigate_to(map_enum, (ball[0], ball[1] + 1))
+    yield from ensure_facing_direction("Up")
+    context.emulator.press_button("A")
+    yield
+    yield from wait_for_yes_no_question("Yes")
+    yield from wait_for_no_script_to_run("B")  # B declines the nickname prompt
+    yield from wait_for_player_avatar_to_be_controllable("B")
+
+
+def get_eevee() -> Generator:
+    """Celadon Condominiums roof room gift Eevee (obj 2 @ (7,3)). One per
+    cart — its stone evolution adds a second dex entry later."""
+    from modules.map_data import MapFRLG
+    from modules.pokedex import get_pokedex
+
+    from dexbot.boxes import deposit_party_fodder
+    from dexbot.runner import _log_event
+
+    if "Eevee" in {s.name for s in get_pokedex().owned_species}:
+        return
+    yield from deposit_party_fodder(keep=5)
+    _log_event(skill="get_eevee", status="phase", phase="claim")
+    yield from _claim_gift_ball(MapFRLG.CELADON_CITY_CONDOMINIUMS_ROOF_ROOM, (7, 3), "get_eevee")
+    if "Eevee" not in {s.name for s in get_pokedex().owned_species}:
+        raise SkillError("Eevee not received (party full or wrong tile?)")
+
+
+def fighting_dojo() -> Generator:
+    """Saffron Fighting Dojo: beat Master Koichi (local_id 5 — the four
+    students en route are fought by the battle handler), then claim the
+    HITMONLEE ball (id 6 @ (5,3)). Choosing one forfeits the other —
+    single-cart exclusion, documented."""
+    from modules.map_data import MapFRLG, PokemonCenter
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+    from modules.pokedex import get_pokedex
+
+    from dexbot.boxes import deposit_party_fodder
+    from dexbot.catching import ensure_healthy
+    from dexbot.runner import _log_event
+
+    owned = {s.name for s in get_pokedex().owned_species}
+    if "Hitmonlee" in owned or "Hitmonchan" in owned:
+        return
+    yield from ensure_healthy(minimum_fraction=0.9, center=PokemonCenter.SaffronCity)
+    yield from deposit_party_fodder(keep=5)
+    _log_event(skill="fighting_dojo", status="phase", phase="koichi")
+    yield from navigate_to(MapFRLG.SAFFRON_CITY_DOJO, (6, 6))  # below Koichi @ (6,5)
+    yield from talk_to_npc(5)
+    yield from wait_for_no_script_to_run("B")
+    yield from wait_for_player_avatar_to_be_controllable("B")
+    _log_event(skill="fighting_dojo", status="phase", phase="claim")
+    yield from _claim_gift_ball(MapFRLG.SAFFRON_CITY_DOJO, (5, 3), "fighting_dojo")
+    if "Hitmonlee" not in {s.name for s in get_pokedex().owned_species}:
+        raise SkillError("Hitmonlee not received (Koichi undefeated or ball blocked?)")
+
+
 _register_evolution_skills()
 STORY_SKILLS["leave_viridian_gym"] = leave_viridian_gym
 STORY_SKILLS["get_moon_stone"] = get_moon_stone
+STORY_SKILLS["get_eevee"] = get_eevee
+STORY_SKILLS["fighting_dojo"] = fighting_dojo
 
 
 def main() -> None:
