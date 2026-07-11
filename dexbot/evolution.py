@@ -207,16 +207,40 @@ def evolve_levels(max_grind_levels: int = 12) -> Generator:
         from dexbot.team import take_item_from_party_mon
 
         if get_item_bag().quantity_of(get_item_by_name("Exp. Share")) == 0:
-            holder = next(
-                (
-                    i
-                    for i, p in enumerate(get_party())
-                    if not p.is_egg and p.held_item is not None and p.held_item.name == "Exp. Share"
-                ),
-                None,
-            )
+
+            def _party_holder():
+                return next(
+                    (
+                        i
+                        for i, p in enumerate(get_party())
+                        if not p.is_egg and p.held_item is not None and p.held_item.name == "Exp. Share"
+                    ),
+                    None,
+                )
+
+            holder = _party_holder()
             if holder is None:
-                raise SkillError("Exp. Share is neither in the bag nor held in the party")
+                # A graduate got deposited still holding it (Butterfree) —
+                # find the boxed holder and pull it back first.
+                from modules.pokemon_storage import get_pokemon_storage
+
+                boxed_holder = next(
+                    (
+                        slot.pokemon.species.name
+                        for box in get_pokemon_storage().boxes
+                        for slot in box.slots
+                        if slot.pokemon is not None
+                        and slot.pokemon.held_item is not None
+                        and slot.pokemon.held_item.name == "Exp. Share"
+                    ),
+                    None,
+                )
+                if boxed_holder is None:
+                    raise SkillError("Exp. Share is neither in the bag, party, nor any box")
+                yield from _fetch_to_party(boxed_holder)
+                holder = _party_holder()
+                if holder is None:
+                    raise SkillError(f"Withdrew {boxed_holder} but it no longer holds the Exp. Share")
             yield from take_item_from_party_mon(holder)
 
         index = next(i for i, p in enumerate(get_party()) if p.species.name == pre and not p.is_egg)
@@ -243,6 +267,17 @@ def evolve_levels(max_grind_levels: int = 12) -> Generator:
             yield from navigate_to(grind_map, grind_tile)
             yield from spin(stop_condition=lambda: done() or needs_heal())
         _log_event(skill="evolve_levels", status="evolved", species=target)
+        # Reclaim the Share NOW, before any deposit walks off with it.
+        graduate = next(
+            (
+                i
+                for i, p in enumerate(get_party())
+                if not p.is_egg and p.held_item is not None and p.held_item.name == "Exp. Share"
+            ),
+            None,
+        )
+        if graduate is not None:
+            yield from take_item_from_party_mon(graduate)
 
 
 def evolve_stones() -> Generator:
