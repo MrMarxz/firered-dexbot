@@ -139,3 +139,14 @@ Honesty over optimism. Current as of M5.
   Alakazam, Machamp, Golem, Politoed, Steelix, Scizor, Kingdra. Also only ONE
   of Omanyte/Kabuto (fossil choice) and ONE Eeveelution (single gift Eevee).
   The living-dex "100%" target must count against the obtainable set, not 386.
+- **Sevii-deep + boulder puzzles blocked on unbuilt nav** (2026-07-11, dex
+  100): three remaining chunks each need a subsystem we haven't built:
+  (1) **Strength-boulder puzzles** gate Mt Ember (Moltres, Slugma) and
+  Seafoam B4F (Articuno) — the pathfinder has no boulder-push planning, so
+  these maps are unreachable even standing adjacent. (2) **Multi-island
+  sail travel**: the planner can't invoke harbor sailors, so Cape Brink /
+  Berry Forest (Hypno) / Three Island Port (Dunsparce 1%) are off-queue —
+  needs a `sail_to(island)` travel primitive. (3) **Elite Four** gates
+  Cerulean Cave (Mewtwo — Master Ball reserved) and Sevii 4-7. Kindle Road
+  (walkable) was swept clean → dex 100. Next builds, in rough value order:
+  sail_to primitive, then E4, then boulder-push nav.
