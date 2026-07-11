@@ -1880,6 +1880,40 @@ STORY_SKILLS = {
 }
 
 
+# probe_maze tape (fixtures/_stalls/evolve_stones_163922.ss1 → door): the
+# Viridian gym spinner rows defeat live pathing on the way OUT (the walker
+# paced (1-3,7) for 8 retries); the tape rides the spinners deliberately —
+# Right at (10,3) slides to (17,3), Right again chains to (18,14), then the
+# east wall column walks down to the exit.
+_VIRIDIAN_GYM_EXIT_TAPE = [
+    ("Up", (2, 6)), ("Right", (3, 6)), ("Right", (4, 6)), ("Right", (5, 6)),
+    ("Right", (6, 6)), ("Right", (7, 6)), ("Up", (7, 5)), ("Up", (7, 4)),
+    ("Up", (7, 3)), ("Right", (8, 3)), ("Right", (9, 3)), ("Right", (10, 3)),
+    ("Right", (17, 3)), ("Right", (18, 14)), ("Down", (18, 15)),
+    ("Down", (18, 16)), ("Down", (18, 17)), ("Down", (18, 18)),
+    ("Down", (18, 19)), ("Down", (18, 20)), ("Down", (18, 21)),
+    ("Down", (18, 22)), ("Left", (17, 22)),
+]
+
+
+def leave_viridian_gym() -> Generator:
+    """Exit the Viridian gym via the probed spinner tape (live A* handles
+    the maze inbound but paces forever outbound). (17,22) is a door warp —
+    stepping on it lands in Viridian City."""
+    from modules.map_data import MapFRLG
+    from modules.modes.util.walking import (
+        navigate_to as navigate_same_level,
+        wait_for_player_avatar_to_be_controllable,
+    )
+    from modules.player import get_player_avatar
+
+    if tuple(get_player_avatar().map_group_and_number) != MapFRLG.VIRIDIAN_CITY_GYM.value:
+        return
+    yield from navigate_same_level(MapFRLG.VIRIDIAN_CITY_GYM, (2, 7))  # tape anchor
+    yield from _walk_route(_VIRIDIAN_GYM_EXIT_TAPE)
+    yield from wait_for_player_avatar_to_be_controllable("B")
+
+
 def _register_evolution_skills() -> None:
     from dexbot.evolution import evolve_stones
 
@@ -1887,6 +1921,7 @@ def _register_evolution_skills() -> None:
 
 
 _register_evolution_skills()
+STORY_SKILLS["leave_viridian_gym"] = leave_viridian_gym
 
 
 def main() -> None:
@@ -1924,12 +1959,21 @@ def main() -> None:
     )
 
     attempts = 0
+    last_error = None
     while True:
         attempts += 1
         try:
             run_skill(STORY_SKILLS[which](), which, timeout_frames=900_000, on_battle_started=handler)
             break
         except Exception as e:  # noqa: BLE001 — bounded retries; last error re-raised
+            # Fast-fail on deterministic failures: the same error (same stall
+            # position) twice in a row means retrying is theater — the walker
+            # paced the Viridian gym spinners through 8 heal-retry cycles
+            # before anyone noticed. Flaky failures differ run to run.
+            error_key = str(e).split("(stall state:")[0]
+            if error_key == last_error:
+                raise
+            last_error = error_key
             if attempts >= 8:
                 raise
             print(f"attempt {attempts} failed ({type(e).__name__}: {e}); healing, then retrying")
