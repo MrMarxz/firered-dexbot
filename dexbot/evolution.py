@@ -163,8 +163,10 @@ def evolve_stones() -> Generator:
     shopping = [(stone, n) for stone, n in to_buy.items()][:affordable]
     if shopping:
         _log_event(skill="evolve_stones", status="phase", phase="shop")
+        # The clerk (3,13) stands in a walled pocket behind the counter row
+        # (y=12); the buyer stands ABOVE the counter and talks across it.
         yield from buy_items(
-            shopping, MapFRLG.CELADON_CITY_DEPARTMENT_STORE_4F, counter=(5, 13), facing="Left"
+            shopping, MapFRLG.CELADON_CITY_DEPARTMENT_STORE_4F, counter=(3, 11), facing="Down"
         )
 
     for pre, stone, target in plans:
