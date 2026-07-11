@@ -10,7 +10,7 @@ Acquisition skills must follow through themselves where possible
 ## Where we are (2026-07-10, late night)
 
 **ALL 8 BADGES (Giovanni ✓ 2026-07-11)** — Victory Road & Elite Four now
-open (Mewtwo gate). **Dex: 96 owned** — Seafoam walk chunk ✓ (Seel, Dewgong,
+open (Mewtwo gate). **Dex: 100 owned** 🎉 — Seafoam walk chunk ✓ (Seel, Dewgong,
 Golduck, Golbat), first surf-method catch ✓ (Tentacool), **Zapdos ✓**
 (Magneton wall doctrine: Thunder Wave para + Sonicboom fixed chip + Ultra
 spam), stone pass ✓ (Arcanine, Raichu, Poliwrath, Vileplume; Exeggutor next

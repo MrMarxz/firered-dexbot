@@ -650,3 +650,29 @@ Support work: planner auto-deposits fodder at ≥5 party members (HM mules alway
 - Upstream already ships far more than expected: `map_path.py` (pathfinding), battle handling, safari strategy, a savestate-based test harness (`tests/utility.py` with `AutomatedTestBotMode`, `@with_save_state`). M3/M5/M7 should reuse these heavily instead of building from scratch.
 - `context.rom.game_name` is `"Pokémon FireRed (E)"` — the (E) suffix is their language tag for English, not Europe.
 - The bundled libmgba-py build targets Ubuntu 23.04; works fine on 24.04 with the vendored 0.10.2 lib, but keep an eye on it.
+
+## 2026-07-11 (cont.) — Sevii unlocked, DEX 100
+
+**Done**
+- Sevii ferry: `sevii_accept` (Bill at Cinnabar center → sail cutscene) +
+  sail helper. Tri-Pass is granted automatically by Celio on arrival (the
+  Lostelle rescue is NOT a prerequisite — Hypno is a Berry Forest wild).
+- Kindle Road sweep: Ponyta, Rapidash, Persian, Tentacruel → **DEX 100**.
+
+**Sevii navigation is a disconnected graph region** (only the scripted sail
+links it to Kanto). Three fixes, each a class not an instance:
+- `_nearest_mart` → None when no mart is graph-reachable (Sevii marts are
+  PC counters, not standalone maps); restock wrapped best-effort so a mart
+  trip can never abort the catch loop.
+- `_pick_reachable_center` short-circuits when already INSIDE a center —
+  from a center interior (no global coords) graph resolution degenerates and
+  latched onto Celadon from One Island. Also now considers all FRLG centers.
+- Sevii Pokémon Centers added to the `PokemonCenter` enum.
+
+**Blocked / next:** the farther Sevii maps (Cape Brink, Berry Forest,
+Three Island Port's 1% Dunsparce, Mt Ember's Moltres/Slugma) need a
+harbor-sailing travel primitive the deterministic planner can invoke —
+`sail_to(island)`. That's the next build.
+
+**State:** DEX **100**/124, 8 badges. Remaining: Sevii-deep chunk, 3
+legendaries, fossils, Moon-Stone trio, E4→Mewtwo/Cerulean Cave.
