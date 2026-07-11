@@ -226,6 +226,12 @@ def restock_pokeballs_if_low(minimum: int = 15) -> None:
     needed = minimum - balls
     if needed <= 0:
         return
+    if _nearest_mart() is None:
+        # No reachable mart (on the Sevii Islands). Don't strand the run
+        # marching to the mainland — proceed with the balls on hand; the
+        # per-catch loop defers cleanly if it genuinely runs dry.
+        _log_event(skill="restock_pokeballs", status="skipped", reason="no reachable mart", balls=balls)
+        return
     if get_player().money < needed * 200:
         _fund_by_selling(needed * 200 + 1000)
     if get_player().money < needed * 200:
@@ -496,7 +502,12 @@ def _nearest_mart():
         route = _plan_via_graph(pos, (m.value, (4, 3)), frozenset(), _walkable)
         if route is not None and (best is None or len(route) < best[1]):
             best = (m, len(route))
-    return best[0] if best else MapFRLG.VIRIDIAN_CITY_MART
+    # None when no standalone mart is graph-reachable (e.g. the Sevii Islands,
+    # whose marts are counters inside the Pokémon Centers and whose only link
+    # to the mainland is the scripted sail). Callers must skip restocking
+    # rather than route to an unreachable mainland mart (the Kindle Road
+    # sweep crashed marching to Saffron from One Island).
+    return best[0] if best else None
 
 
 def plan_and_catch_all() -> int:
