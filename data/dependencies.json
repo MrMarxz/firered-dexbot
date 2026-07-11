@@ -254,6 +254,36 @@
     "BADGE08_GET"
    ],
    "note": "Route 23 (Victory Road approach) \u2014 Arbok/Primeape; badge gate checks all 8"
+  },
+  "3,45": {
+   "requires": [
+    "BADGE08_GET"
+   ],
+   "note": "One Island Kindle Road \u2014 Meowth/Persian/Ponyta land + surf water [Tri-Pass]"
+  },
+  "3,46": {
+   "requires": [
+    "BADGE08_GET"
+   ],
+   "note": "One Island Treasure Beach \u2014 Meowth/Persian + surf [Tri-Pass]"
+  },
+  "3,47": {
+   "requires": [
+    "BADGE08_GET"
+   ],
+   "note": "Two Island Cape Brink \u2014 Meowth/Persian/Poliwhirl + surf [Tri-Pass]"
+  },
+  "3,49": {
+   "requires": [
+    "BADGE08_GET"
+   ],
+   "note": "Three Island Port \u2014 Dunsparce (1%!) [Tri-Pass]"
+  },
+  "1,109": {
+   "requires": [
+    "BADGE08_GET"
+   ],
+   "note": "Three Island Berry Forest \u2014 Hypno/Drowzee/Venomoth (Cut trees inside) [Tri-Pass]"
   }
  },
  "objectives": {
