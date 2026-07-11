@@ -1,5 +1,49 @@
 # DEVLOG
 
+## 2026-07-11 — ALL 8 BADGES, Zapdos, dex 72→85; the detection-stack revisit
+
+**Done**
+- **Badge 8 (Giovanni)** — Water sweep, spinner maze inbound via native
+  forced-movement pathing; outbound needed a probe tape
+  (`leave_viridian_gym` — live pathing paces the spinner rows outbound).
+- **Zapdos caught** (4 Ultra Balls on the winning round). Doctrine that
+  finally worked: Magneton wall lead (0.5x vs Drill Peck AND Electric STAB),
+  Thunder Wave paralysis, Sonicboom fixed-20 chip, then Ultra spam. Failures
+  on the way: skeleton party fed 19 Ultras at ~1% (fixed: hopeless-flee
+  branch in choose_catch_action + assemble full catch party + status-before-
+  rotate precedence), `_fetch_to_party` box filter ('box' vs 'box:2:8'),
+  encounter-classifier red herring, and an mGBA segfault that sat unnoticed
+  as a blank window for 23 minutes.
+- **Dex 72→85**: Seafoam walk chunk (Seel/Dewgong/Golduck/Golbat), Tentacool
+  (surf encounters were an unimplemented planner method!), Zapdos, stone
+  pass ×6 (Arcanine, Raichu, Poliwrath, Vileplume, Exeggutor, Nidoqueen via
+  the last unclaimed Mt Moon Moon Stone).
+- Power Plant Electrodes self-destructed before the no-KO discipline existed
+  (KNOWN_LIMITATIONS; Voltorb→L30 recovers Electrode).
+
+**The detection-stack revisit** (owner, three times: "should catch these
+faster" / "zoom out and find the root of this type of issue"):
+- Class named: **blind actuation loops** — press-button-until-memory-shows-X
+  with no bailout. The game clamps/refuses silently (shop quantity selector
+  pins at affordable; statue prompts declined by B-mash; casts refused).
+  Fix: `press_until` primitive (bounded, names the interaction), menu-tier
+  6k-frame stall budget, feasibility-before-actuation (wallet clamp).
+- Layered-retry multiplication: skill retries × CLI heal-retries ×
+  supervisor restarts replayed deterministic failures for "ages". Fixes:
+  CLI fast-fails on identical consecutive errors; supervisor resumes ONLY
+  signal deaths (segfaults) and surfaces skill failures immediately.
+- **Partial nav-graph sections**: badge 8 flipped the epoch; the auto-
+  rebuild kept getting killed mid-way, leaving 1/363 levels — planner
+  "worked" via live fallback and paced Route 1. Loader now rejects short
+  sections (sibling epochs know the real level count) and resumes the
+  build (25s) at load.
+- Launch discipline (memory): supervisor script + run_in_background always;
+  monitor loops must never pgrep patterns their own cmdline contains.
+
+**State:** 8/8 badges, dex 85/124, ₽13.5k, Master Ball banked for Mewtwo.
+**Next:** Sevii ferry (Bill waits at Cinnabar), level-up evolution pass
+(~15 species), Articuno B4F boulder puzzle, E4 → Cerulean Cave.
+
 ## 2026-07-10 (late night) — badge 7: Mansion Secret Key + Blaine, and the setmetatile lesson
 
 **Done**
