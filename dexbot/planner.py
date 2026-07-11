@@ -534,7 +534,14 @@ def plan_and_catch_all() -> int:
                 caught_since_reset = 0
                 continue
             return caught
-        restock_pokeballs_if_low()
+        try:
+            restock_pokeballs_if_low()
+        except SkillError as e:
+            # Restock is best-effort — a failed mart trip (unreachable from a
+            # scripted-transit region like the Sevii Islands, where the graph
+            # can mis-resolve an interior to a Kanto component) must never
+            # abort the catch loop. Proceed with the balls on hand.
+            _log_event(skill="restock_pokeballs", status="skipped", reason=str(e)[:80])
         # Objective boundary: the optional LLM planner may pick any valid queue
         # entry; invalid/disabled/error → deterministic queue head (queue[0]).
         by_name = {f"catch_{entry[0]}": entry for entry in queue}
