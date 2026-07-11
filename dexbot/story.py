@@ -2066,6 +2066,122 @@ def sevii_accept() -> Generator:
 STORY_SKILLS["sevii_accept"] = sevii_accept
 
 
+def _sail(harbor_map, sailor_id: int, choice_index: int, expect_prefix: tuple, skill: str) -> Generator:
+    """Talk to a Sevii harbor sailor, pick the destination from the
+    multichoice, ride the cutscene out. Bounded drain to a controllable
+    state on a map whose enum name starts with `expect_prefix`."""
+    from modules.context import context
+    from modules.map_data import MapFRLG
+    from modules.memory import GameState, get_game_state
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.tasks_scripts import wait_for_multiple_choice_question, wait_for_yes_no_question
+    from modules.player import get_player_avatar, player_avatar_is_controllable
+    from modules.tasks import get_global_script_context
+
+    from dexbot.runner import _log_event
+
+    yield from talk_to_npc(sailor_id)
+    yield from wait_for_multiple_choice_question(choice_index)
+    yield from wait_for_yes_no_question("Yes")  # "All aboard?" confirm
+    _log_event(skill=skill, status="phase", phase=f"sailing_{choice_index}")
+    for frame in range(20_000):
+        try:
+            name = MapFRLG(tuple(get_player_avatar().map_group_and_number)).name
+        except ValueError:
+            name = ""
+        ctx = get_global_script_context()
+        busy = (ctx is not None and ctx.is_active) or get_game_state() != GameState.OVERWORLD
+        if not busy and player_avatar_is_controllable() and name.startswith(expect_prefix):
+            return
+        if frame % 8 == 0:
+            context.emulator.press_button("B")
+        yield
+    raise SkillError(f"{skill}: sail never landed on {expect_prefix}")
+
+
+def sevii_errand() -> Generator:
+    """Bill's errand chain, One → Two → Three and back: the game-corner
+    owner's daughter Lostelle is lost in Berry Forest; her kidnapper is a
+    CATCHABLE static Hypno (our missing dex entry — run with the Hypno
+    catch decider). Rescue → deliver the Meteorite → Celio's Tri Pass."""
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG
+    from modules.memory import get_event_flag
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+    from modules.player import get_player_avatar
+    from modules.pokedex import get_pokedex
+
+    from dexbot.catching import ensure_healthy
+    from dexbot.runner import _log_event
+
+    def _phase(p):
+        _log_event(skill="sevii_errand", status="phase", phase=p)
+
+    def _map_name() -> str:
+        try:
+            return MapFRLG(tuple(get_player_avatar().map_group_and_number)).name
+        except ValueError:
+            return ""
+
+    owned = lambda s: s in {x.name for x in get_pokedex().owned_species}  # noqa: E731
+
+    if get_item_bag().quantity_of(get_item_by_name("Tri Pass")) > 0:
+        return
+
+    # Leg 1: One Island → Two Island, talk to the game-corner owner.
+    if _map_name().startswith("ONE_ISLAND"):
+        _phase("to_two")
+        yield from navigate_to(MapFRLG.ONE_ISLAND_HARBOR, (8, 7))  # beside sailor (8,6)
+        yield from _sail(MapFRLG.ONE_ISLAND_HARBOR, 2, 0, ("TWO_ISLAND",), "sevii_errand")
+
+    if _map_name().startswith("TWO_ISLAND") and not owned("Hypno"):
+        _phase("game_corner")
+        yield from navigate_to(MapFRLG.TWO_ISLAND_JOYFUL_GAME_CORNER, (3, 6))
+        yield from talk_to_npc(1)  # the owner — sends us after Lostelle
+        yield from wait_for_no_script_to_run("B")
+        yield from wait_for_player_avatar_to_be_controllable("B")
+        _phase("to_three")
+        yield from navigate_to(MapFRLG.TWO_ISLAND_HARBOR, (8, 7))
+        yield from _sail(MapFRLG.TWO_ISLAND_HARBOR, 2, 1, ("THREE_ISLAND",), "sevii_errand")
+
+    if _map_name().startswith("THREE_ISLAND") and not owned("Hypno"):
+        _phase("berry_forest")
+        yield from ensure_healthy(minimum_fraction=0.9)
+        yield from navigate_to(MapFRLG.THREE_ISLAND_BERRY_FOREST, (4, 9))  # below Lostelle (4,8)
+        _phase("lostelle")
+        yield from talk_to_npc(1)  # her dialog → the Hypno battle (decider catches)
+        yield from wait_for_no_script_to_run("B")
+        yield from wait_for_player_avatar_to_be_controllable("B")
+        if not owned("Hypno"):
+            raise SkillError("Lostelle's Hypno was not caught (fled/KO'd?)")
+        _phase("back_to_two")
+        yield from navigate_to(MapFRLG.THREE_ISLAND_HARBOR, (8, 7))
+        yield from _sail(MapFRLG.THREE_ISLAND_HARBOR, 2, 1, ("TWO_ISLAND",), "sevii_errand")
+
+    if _map_name().startswith("TWO_ISLAND"):
+        _phase("deliver_meteorite")
+        yield from navigate_to(MapFRLG.TWO_ISLAND_JOYFUL_GAME_CORNER, (3, 6))
+        yield from talk_to_npc(1)
+        yield from wait_for_no_script_to_run("B")
+        yield from wait_for_player_avatar_to_be_controllable("B")
+        _phase("back_to_one")
+        yield from navigate_to(MapFRLG.TWO_ISLAND_HARBOR, (8, 7))
+        yield from _sail(MapFRLG.TWO_ISLAND_HARBOR, 2, 0, ("ONE_ISLAND",), "sevii_errand")
+
+    _phase("tri_pass")
+    yield from navigate_to(MapFRLG.ONE_ISLAND_POKEMON_CENTER_1F, (15, 7))  # below Celio
+    yield from talk_to_npc(3)
+    yield from wait_for_no_script_to_run("B")
+    yield from wait_for_player_avatar_to_be_controllable("B")
+    if get_item_bag().quantity_of(get_item_by_name("Tri Pass")) == 0:
+        raise SkillError("Tri Pass not received from Celio")
+
+
+STORY_SKILLS["sevii_errand"] = sevii_errand
+
+
 def main() -> None:
     from dexbot.catching import fight_all_battles
     from dexbot.emulator import setup_headless_emulator
@@ -2093,12 +2209,15 @@ def main() -> None:
     from dexbot.catching import make_catch_decider
 
     # catch_* story skills (Snorlax, later legendaries) must CATCH their
-    # battle, not KO it.
-    handler = (
-        make_catch_decider(which.removeprefix("catch_").capitalize())
-        if which.startswith("catch_")
-        else fight_all_battles
-    )
+    # battle, not KO it. Some story skills embed a catch too (the Lostelle
+    # Hypno inside the Sevii errand).
+    _embedded_catch = {"sevii_errand": "Hypno"}
+    if which.startswith("catch_"):
+        handler = make_catch_decider(which.removeprefix("catch_").capitalize())
+    elif which in _embedded_catch:
+        handler = make_catch_decider(_embedded_catch[which])
+    else:
+        handler = fight_all_battles
 
     attempts = 0
     last_error = None
