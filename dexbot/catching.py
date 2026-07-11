@@ -445,18 +445,27 @@ def _pick_reachable_center():
     from modules.map_data import PokemonCenter
     from modules.player import get_player_avatar
 
+    from modules.map_data import MapFRLG
+
     avatar = get_player_avatar()
     position = (avatar.map_group_and_number, avatar.local_coordinates)
-    candidates = [
-        PokemonCenter.ViridianCity,
-        PokemonCenter.PewterCity,
-        PokemonCenter.Route4,
-        PokemonCenter.CeruleanCity,
-        PokemonCenter.VermilionCity,
-        PokemonCenter.Route10,
-        PokemonCenter.LavenderTown,
-        PokemonCenter.CeladonCity,
-    ]
+
+    # Already inside a center? Return it directly — no planning. This is the
+    # ONLY reliable answer from a center interior (no global coordinates, so
+    # graph component resolution degenerates and can latch onto a far Kanto
+    # component — from the One Island center it "reached" Celadon).
+    try:
+        here_name = MapFRLG(tuple(position[0])).name
+    except ValueError:
+        here_name = ""
+    for member in PokemonCenter:
+        if not isinstance(member.value[0], MapFRLG):
+            continue
+        if here_name.startswith(member.value[0].name + "_POKEMON_CENTER"):
+            return member
+
+    # Consider every FRLG center (Sevii included), fewest-warps first.
+    candidates = [c for c in PokemonCenter if isinstance(c.value[0], MapFRLG)]
     best = None
     for candidate in candidates:
         route = _plan_via_graph(
