@@ -34,6 +34,14 @@ while true; do
         echo "[skill-supervisor] clean exit — done."
         break
     fi
+    # Only CRASHES (signal deaths: segfault=139, kill=137...) get resumed.
+    # A plain nonzero exit is the skill's own bounded-retry giving up on a
+    # deterministic failure — restarting it just replays the failure loop
+    # (the Route 1 pacing wedge ran skill-retries × supervisor-retries).
+    if [ $CODE -lt 128 ]; then
+        echo "[skill-supervisor] skill failed (exit $CODE) — surfacing, not retrying."
+        exit $CODE
+    fi
     ELAPSED=$(( $(date +%s) - START ))
     if [ $ELAPSED -lt 120 ]; then
         FAILS=$((FAILS + 1))
@@ -41,9 +49,9 @@ while true; do
         FAILS=0
     fi
     if [ $FAILS -ge 4 ]; then
-        echo "[skill-supervisor] 4 rapid failures — giving up (real bug, not emulator flake)."
+        echo "[skill-supervisor] 4 rapid crashes — giving up."
         exit 1
     fi
-    echo "[skill-supervisor] run died (exit $CODE) after ${ELAPSED}s — resuming from checkpoint."
+    echo "[skill-supervisor] crashed (exit $CODE) after ${ELAPSED}s — resuming from checkpoint."
     sleep 2
 done

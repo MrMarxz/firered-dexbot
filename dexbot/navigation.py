@@ -300,7 +300,18 @@ def _load_nav_graph() -> dict | None:
 
     def read_section() -> dict | None:
         try:
-            raw = json.loads(path.read_text())["epochs"][epoch]
+            epochs = json.loads(path.read_text())["epochs"]
+            raw = epochs[epoch]
+            # A PARTIAL section (epoch flipped on a badge, the in-process
+            # rebuild got killed by a stall-abort or supervisor restart) is
+            # worse than none: it "plans" with 1 of 363 levels and strands
+            # everything in live fallback (the Route 1 pacing wedge).
+            # Sibling epochs know the real level count; treat short sections
+            # as absent so build(None) resumes them to completion.
+            done = len(raw.get("levels_done", ()))
+            expected = max(len(s.get("levels_done", ())) for s in epochs.values())
+            if done < expected:
+                return None
             comp = {}
             for key, cid in raw["components"].items():
                 mg, mn, x, y = (int(v) for v in key.split(","))
