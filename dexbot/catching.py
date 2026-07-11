@@ -84,6 +84,19 @@ def choose_catch_action(v: CatchView) -> tuple[str, int | None]:
     # No False Swipe: chip with the strongest move that can't KO, while HP high.
     if v.opponent_hp_fraction > 0.5 and v.safe_chip_move_index is not None:
         return ("move", v.safe_chip_move_index)
+    # Hopeless: no way to improve tiny odds (no status move, no chip, no
+    # weakener anywhere) — retreat and let the skill re-prepare instead of
+    # donating the ball pocket (a battered party fed Zapdos 19 Ultra Balls
+    # at ~1% each, then wedged in Manual when only the Master Ball remained).
+    if (
+        not v.opponent_is_statused
+        and v.one_turn_catch_chance < 0.03
+        and v.status_move_index is None
+        and not can_false_swipe
+        and v.safe_chip_move_index is None
+        and (v.party_weakener_index is None or v.party_weakener_index == v.active_index)
+    ):
+        return ("flee", None)
     return ("ball", None)
 
 
@@ -332,6 +345,10 @@ class WeakeningCatchStrategy:
                     return TurnAction.rotate_lead(arg)
                 if kind == "move" and arg is not None:
                     return TurnAction.use_move(arg)
+                if kind == "flee" and not battle_state.is_trainer_battle:
+                    escape = util.get_best_escape_method()
+                    if escape is not None:
+                        return escape  # regroup: heal/restock, re-engage later
                 return super().decide_turn(battle_state)  # throws the best ball
 
         return _Strategy()

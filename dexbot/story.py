@@ -1489,6 +1489,11 @@ def catch_zapdos() -> Generator:
     yield from assemble_party(
         TeamObjective(kind="catch", field_moves=("Surf",), prefer_offense_types=("Electric",))
     )
+    # The wall lead is non-negotiable for this fight; the generic selector
+    # ranks by level and leaves L34 Magneton boxed.
+    from dexbot.evolution import _fetch_to_party
+
+    yield from _fetch_to_party("Magneton")
     ultra = get_item_by_name("Ultra Ball")
     have = get_item_bag().quantity_of(ultra)
     if have < 20:
