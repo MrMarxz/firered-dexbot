@@ -24,6 +24,9 @@ STONE_PLANS = [
     ("Nidorino", "Moon Stone", "Nidoking"),
     ("Clefairy", "Moon Stone", "Clefable"),
     ("Jigglypuff", "Moon Stone", "Wigglytuff"),
+    # Single gift Eevee = one evolution; Vaporeon picked (Jolteon/Flareon
+    # are single-cart forfeits, see KNOWN_LIMITATIONS).
+    ("Eevee", "Water Stone", "Vaporeon"),
 ]
 _BUYABLE_STONES = {"Fire Stone", "Water Stone", "Thunderstone", "Leaf Stone"}
 _STONE_PRICE = 2100
