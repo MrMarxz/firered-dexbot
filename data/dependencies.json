@@ -248,6 +248,12 @@
     "BADGE05_GET"
    ],
    "note": "Seafoam Islands B3F \u2014 Seel/Dewgong/Golduck; interior walk, no boulders needed for wilds"
+  },
+  "3,42": {
+   "requires": [
+    "BADGE08_GET"
+   ],
+   "note": "Route 23 (Victory Road approach) \u2014 Arbok/Primeape; badge gate checks all 8"
   }
  },
  "objectives": {
