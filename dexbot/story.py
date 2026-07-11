@@ -1920,8 +1920,25 @@ def _register_evolution_skills() -> None:
     STORY_SKILLS["evolve_stones"] = evolve_stones
 
 
+def get_moon_stone() -> Generator:
+    """Mt Moon 1F's unclaimed Moon Stone ball (local_id 13 @ (3,2)) — feeds
+    one Moon evolution (Nidoqueen first per STONE_PLANS order). Kanto's
+    other Moon Stones are already collected or hidden items; Sevii has more."""
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG
+
+    from dexbot.items_ground import collect_item_balls
+
+    if get_item_bag().quantity_of(get_item_by_name("Moon Stone")) > 0:
+        return
+    yield from collect_item_balls(MapFRLG.MT_MOON_1F, only=[(3, 2)])
+    if get_item_bag().quantity_of(get_item_by_name("Moon Stone")) == 0:
+        raise SkillError("Moon Stone ball not collected")
+
+
 _register_evolution_skills()
 STORY_SKILLS["leave_viridian_gym"] = leave_viridian_gym
+STORY_SKILLS["get_moon_stone"] = get_moon_stone
 
 
 def main() -> None:
