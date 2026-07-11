@@ -131,3 +131,11 @@ Honesty over optimism. Current as of M5.
   beyond the acceptance paths (M10 will tell).
 - **dependencies.json gating details** (Sevii timing, Flash aide's 10-dex
   requirement) are documentation-sourced, not yet verified in-game.
+- **Power Plant Electrode statics are gone** (2026-07-10): both "item ball"
+  Electrodes self-destructed / were KO'd during the first engage before the
+  no-KO discipline existed; their hide flags are set permanently. Electrode
+  still obtainable via Voltorb → level 30 (evolution pass).
+- **Single-cart dex exclusions** (trade evolutions, not obtainable): Gengar,
+  Alakazam, Machamp, Golem, Politoed, Steelix, Scizor, Kingdra. Also only ONE
+  of Omanyte/Kabuto (fossil choice) and ONE Eeveelution (single gift Eevee).
+  The living-dex "100%" target must count against the obtainable set, not 386.
