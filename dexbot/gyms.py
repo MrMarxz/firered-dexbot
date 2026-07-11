@@ -525,8 +525,57 @@ def beat_blaine(min_level: int = 47) -> Generator:
         raise SkillError("Blaine was not defeated (badge flag unset)")
 
 
+def beat_giovanni(min_level: int = 50) -> Generator:
+    """Beat Giovanni (badge 8, Viridian — opens after badge 7). His all-
+    Ground team folds to Water: Blastoise Surf sweeps. The gym's arrow
+    spinners are forced-movement tiles the pathfinder models natively; the
+    trainers en route are fought by the run's battle handler."""
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.map_data import MapFRLG, PokemonCenter
+    from modules.memory import get_event_flag
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+    from modules.player import get_player
+    from modules.pokemon_party import get_party
+
+    from dexbot.planner import _nearest_mart
+    from dexbot.runner import _log_event
+
+    if get_event_flag("BADGE08_GET"):
+        return
+
+    from dexbot.team import TeamObjective, assemble_party
+
+    yield from assemble_party(
+        TeamObjective(kind="gym", field_moves=("Cut",), avoid_defense_types=("Ground",),
+                      prefer_offense_types=("Water", "Grass", "Ice"))
+    )
+    if max(p.level for p in get_party() if not p.is_egg) < min_level:
+        yield from grind_levels(min_level)
+    yield from ensure_healthy(minimum_fraction=0.99, center=PokemonCenter.ViridianCity)
+
+    from dexbot.openings import buy_items
+
+    if get_item_bag().quantity_of(get_item_by_name("Hyper Potion")) < 8:
+        hyper = min(8, get_player().money // 1200)
+        if hyper > 0:
+            yield from buy_items([("Hyper Potion", hyper)], _nearest_mart())
+
+    _log_event(skill="beat_giovanni", status="phase", phase="enter_gym")
+    yield from navigate_to(MapFRLG.VIRIDIAN_CITY_GYM, (2, 3))  # below Giovanni (local_id 8 @ 2,2)
+
+    _log_event(skill="beat_giovanni", status="phase", phase="fight")
+    yield from talk_to_npc(8)
+    yield from wait_for_no_script_to_run("B")
+    yield from wait_for_player_avatar_to_be_controllable("B")
+
+    if not get_event_flag("BADGE08_GET"):
+        raise SkillError("Giovanni was not defeated (badge flag unset)")
+
+
 GYMS = {"brock": beat_brock, "misty": beat_misty, "surge": beat_surge, "erika": beat_erika, "koga": beat_koga,
-        "sabrina": beat_sabrina, "blaine": beat_blaine}
+        "sabrina": beat_sabrina, "blaine": beat_blaine, "giovanni": beat_giovanni}
 _DEFAULT_FIXTURE = {
     "brock": "m6_pre_brock_dex.ss1",
     "misty": "m7_ss_ticket.ss1",
@@ -535,6 +584,7 @@ _DEFAULT_FIXTURE = {
     "koga": "m8_post_snorlax.ss1",
     "sabrina": "m8_silph.ss1",
     "blaine": "m8_secret_key.ss1",
+    "giovanni": "m7_badge_blaine.ss1",
 }
 
 
