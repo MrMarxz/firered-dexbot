@@ -181,6 +181,20 @@ def evolve_levels(max_grind_levels: int = 12) -> Generator:
     plans = _level_plans()
     if not plans:
         return
+    # Potions turn the healing strategy's low-HP verdict into a drink
+    # instead of a flee — an empty potion pocket plus a chipped lead fled
+    # every Route 23 wild forever (owner watched Zapdos run from everything).
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.player import get_player
+
+    if get_item_bag().quantity_of(get_item_by_name("Hyper Potion")) < 6:
+        n = min(8, get_player().money // 1200)
+        if n > 0:
+            from dexbot.openings import buy_items
+            from dexbot.planner import _nearest_mart
+
+            _log_event(skill="evolve_levels", status="phase", phase="restock")
+            yield from buy_items([("Hyper Potion", n)], _nearest_mart())
     grind_map = MapFRLG.ROUTE23.value
     grind_tile = _encounter_tiles(grind_map)[0]
 
@@ -251,7 +265,7 @@ def evolve_levels(max_grind_levels: int = 12) -> Generator:
             lead = get_party()[0]
             return (
                 (p is not None and p.current_hp == 0)
-                or lead.current_hp / lead.total_hp < 0.4
+                or lead.current_hp / lead.total_hp < 0.55  # ABOVE the strategy flee_below (0.5): the [0.4,0.5) band fled every wild forever
                 or lead.status_condition != StatusCondition.Healthy
             )
 

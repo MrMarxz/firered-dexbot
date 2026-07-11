@@ -346,7 +346,7 @@ def train_false_swipe(species: str = "Cubone", move: str = "False Swipe") -> Gen
         return (
             p is None
             or p.current_hp == 0
-            or lead.current_hp / lead.total_hp < 0.4
+            or lead.current_hp / lead.total_hp < 0.55  # ABOVE the strategy flee_below (0.5): the [0.4,0.5) band fled every wild forever
             or lead.status_condition != StatusCondition.Healthy
         )
 
