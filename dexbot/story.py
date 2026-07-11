@@ -2127,7 +2127,7 @@ def sevii_errand() -> Generator:
 
     owned = lambda s: s in {x.name for x in get_pokedex().owned_species}  # noqa: E731
 
-    if get_item_bag().quantity_of(get_item_by_name("Tri Pass")) > 0:
+    if get_item_bag().quantity_of(get_item_by_name("Tri-Pass")) > 0:
         return
 
     # Leg 1: One Island → Two Island, talk to the game-corner owner.
@@ -2175,7 +2175,7 @@ def sevii_errand() -> Generator:
     yield from talk_to_npc(3)
     yield from wait_for_no_script_to_run("B")
     yield from wait_for_player_avatar_to_be_controllable("B")
-    if get_item_bag().quantity_of(get_item_by_name("Tri Pass")) == 0:
+    if get_item_bag().quantity_of(get_item_by_name("Tri-Pass")) == 0:
         raise SkillError("Tri Pass not received from Celio")
 
 
