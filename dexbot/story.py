@@ -2010,6 +2010,62 @@ STORY_SKILLS["get_eevee"] = get_eevee
 STORY_SKILLS["fighting_dojo"] = fighting_dojo
 
 
+def _on_sevii() -> bool:
+    from modules.map_data import MapFRLG
+    from modules.player import get_player_avatar
+
+    try:
+        name = MapFRLG(tuple(get_player_avatar().map_group_and_number)).name
+    except ValueError:
+        return False
+    return name.startswith(("ONE_ISLAND", "TWO_ISLAND", "THREE_ISLAND"))
+
+
+def sevii_accept() -> Generator:
+    """Take Bill up on the One Island trip. After the declined gym-exit
+    scene he waits in the Cinnabar Pokémon Center (pret: scene var 2,
+    HIDE_CINNABAR_POKECENTER_BILL cleared — Bill local_id 7 @ (11,5)).
+    Saying Yes runs the seagallop cutscene; the Bill→Celio scene then
+    auto-plays on One Island (msgbox-only — B drains it safely)."""
+    from modules.map_data import PokemonCenter
+    from modules.memory import GameState, get_game_state
+    from modules.modes.util.higher_level_actions import talk_to_npc
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_for_yes_no_question
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+    from modules.player import get_player_avatar, player_avatar_is_controllable
+    from modules.tasks import get_global_script_context
+
+    from dexbot.navigation import enter_center
+    from dexbot.runner import _log_event
+
+    if _on_sevii():
+        return
+    _log_event(skill="sevii_accept", status="phase", phase="to_bill")
+    yield from enter_center(PokemonCenter.CinnabarIsland)
+    yield from talk_to_npc(7)
+    yield from wait_for_yes_no_question("Yes")
+    _log_event(skill="sevii_accept", status="phase", phase="sail")
+    # Sail cutscene + arrival scene: several chained scripts with map
+    # changes. Drain until we're controllable on a Sevii map (bounded).
+    from modules.context import context
+
+    for frame in range(30_000):
+        ctx = get_global_script_context()
+        busy = (ctx is not None and ctx.is_active) or get_game_state() != GameState.OVERWORLD
+        if not busy and player_avatar_is_controllable() and _on_sevii():
+            break
+        if frame % 8 == 0:
+            context.emulator.press_button("B")  # advance msgboxes; harmless in fades
+        yield
+    else:
+        raise SkillError("sevii_accept: never arrived controllable on a Sevii map")
+    yield from wait_for_player_avatar_to_be_controllable("B")
+    _log_event(skill="sevii_accept", status="phase", phase="arrived")
+
+
+STORY_SKILLS["sevii_accept"] = sevii_accept
+
+
 def main() -> None:
     from dexbot.catching import fight_all_battles
     from dexbot.emulator import setup_headless_emulator
