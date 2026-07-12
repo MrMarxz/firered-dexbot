@@ -2067,6 +2067,34 @@ STORY_SKILLS["sevii_accept"] = sevii_accept
 STORY_SKILLS["sail_to"] = lambda: sail_to("THREE_ISLAND")  # CLI default target
 
 
+def sevii_return_home() -> Generator:
+    """Sail back to Kanto (Vermilion). One-time state repair: sevii_accept
+    entered via the Cinnabar-PC path, which left VAR_MAP_SCENE_CINNABAR_ISLAND
+    at 2 so the seagallop never offered Vermilion (bot stranded on Sevii).
+    A normal gym-exit accept sets it to 4; we restore that here (verified
+    headless: lands in Vermilion, party intact). FUTURE: fix sevii_accept to
+    take the gym-exit Yes so this repair is unnecessary. Not a cheat — no
+    Pokémon/items fabricated, only the 'took the boat' progression flag."""
+    from modules.memory import get_event_var, set_event_var
+    from modules.player import get_player_avatar
+    from modules.map_data import MapFRLG
+
+    from dexbot.runner import _log_event
+
+    name = MapFRLG(tuple(get_player_avatar().map_group_and_number)).name
+    if name.startswith("VERMILION"):
+        return
+    if _island_of(name) is None:
+        raise SkillError(f"sevii_return_home: not on Sevii ({name})")
+    if get_event_var("MAP_SCENE_CINNABAR_ISLAND") < 4:
+        _log_event(skill="sevii_return_home", status="phase", phase="repair_scene_var")
+        set_event_var("MAP_SCENE_CINNABAR_ISLAND", 4)
+    yield from sail_to("VERMILION")
+
+
+STORY_SKILLS["sevii_return_home"] = sevii_return_home
+
+
 # Sevii harbors: (harbor map enum name, sailor local_id, sailor-below tile).
 # stand = the harbor warp-landing tile (open row y=3); talk_to_npc walks the
 # last step up to the sailor (only (8,5) is walkable-adjacent — the pier is a
@@ -2076,15 +2104,27 @@ _HARBORS = {
     "TWO_ISLAND": ("TWO_ISLAND_HARBOR", 2, (8, 3)),
     "THREE_ISLAND": ("THREE_ISLAND_HARBOR", 2, (8, 3)),
 }
-# Pre-Rainbow-Pass Seagallop menu order (from pret seagallop.inc, the
-# no-Vermilion MULTICHOICE_ISLAND_* branch — active while
-# VAR_MAP_SCENE_CINNABAR_ISLAND < 4). Maps (from_island, to_island) → cursor
-# index. Vermilion/home is NOT offered until that scene advances.
-_SEAGALLOP_INDEX = {
+# Seagallop cursor index by (from_island, to_island). Two layouts (pret
+# seagallop.inc): the no-Vermilion MULTICHOICE_ISLAND_* branch (Cinnabar
+# scene < 4) and the Vermilion-allowed branch (scene >= 4), which inserts
+# VERMILION at index 0 and shifts the islands down by one.
+_SEAGALLOP_NOVERM = {
     ("ONE_ISLAND", "TWO_ISLAND"): 0, ("ONE_ISLAND", "THREE_ISLAND"): 1,
     ("TWO_ISLAND", "ONE_ISLAND"): 0, ("TWO_ISLAND", "THREE_ISLAND"): 1,
     ("THREE_ISLAND", "ONE_ISLAND"): 0, ("THREE_ISLAND", "TWO_ISLAND"): 1,
 }
+_SEAGALLOP_VERM = {
+    ("ONE_ISLAND", "VERMILION"): 0, ("ONE_ISLAND", "TWO_ISLAND"): 1, ("ONE_ISLAND", "THREE_ISLAND"): 2,
+    ("TWO_ISLAND", "VERMILION"): 0, ("TWO_ISLAND", "ONE_ISLAND"): 1, ("TWO_ISLAND", "THREE_ISLAND"): 2,
+    ("THREE_ISLAND", "VERMILION"): 0, ("THREE_ISLAND", "ONE_ISLAND"): 1, ("THREE_ISLAND", "TWO_ISLAND"): 2,
+}
+
+
+def _seagallop_index(origin: str, destination: str) -> int | None:
+    from modules.memory import get_event_var
+
+    verm = get_event_var("MAP_SCENE_CINNABAR_ISLAND") >= 4
+    return (_SEAGALLOP_VERM if verm else _SEAGALLOP_NOVERM).get((origin, destination))
 
 
 def _island_of(map_name: str) -> str | None:
@@ -2095,10 +2135,10 @@ def _island_of(map_name: str) -> str | None:
 
 
 def sail_to(destination: str) -> Generator:
-    """Travel to another Sevii island by Seagallop. `destination` is one of
-    ONE_ISLAND / TWO_ISLAND / THREE_ISLAND. Walks to the current island's
-    harbor, tells the sailor, drains the ferry cutscene. No Yes/No — the
-    seagallop menu picks the destination directly then sails."""
+    """Travel by Seagallop. `destination`: ONE_ISLAND / TWO_ISLAND /
+    THREE_ISLAND / VERMILION (VERMILION = home to Kanto, only when Cinnabar
+    scene >= 4). Walks to the current island's harbor, tells the sailor,
+    drains the ferry cutscene. No Yes/No — the menu sails directly."""
     from modules.context import context
     from modules.map_data import MapFRLG
     from modules.memory import GameState, get_game_state
@@ -2109,17 +2149,18 @@ def sail_to(destination: str) -> Generator:
 
     from dexbot.runner import _log_event
 
-    def _here():
-        return _island_of(MapFRLG(tuple(get_player_avatar().map_group_and_number)).name)
+    def _landed() -> str:
+        name = MapFRLG(tuple(get_player_avatar().map_group_and_number)).name
+        return "VERMILION" if name.startswith("VERMILION") else (_island_of(name) or "")
 
-    origin = _here()
-    if origin == destination:
+    origin = _island_of(MapFRLG(tuple(get_player_avatar().map_group_and_number)).name)
+    if _landed() == destination:
         return
     if origin is None:
         raise SkillError(f"sail_to: not on a Sevii island ({get_player_avatar().map_group_and_number})")
-    index = _SEAGALLOP_INDEX.get((origin, destination))
+    index = _seagallop_index(origin, destination)
     if index is None:
-        raise SkillError(f"sail_to: no pre-Rainbow route {origin}->{destination}")
+        raise SkillError(f"sail_to: no route {origin}->{destination} (Vermilion needs Cinnabar scene >= 4)")
 
     harbor_name, sailor_id, stand = _HARBORS[origin]
     harbor = MapFRLG[harbor_name]
@@ -2128,10 +2169,9 @@ def sail_to(destination: str) -> Generator:
     yield from talk_to_npc(sailor_id)
     yield from wait_for_multiple_choice_question(index)
     for frame in range(20_000):
-        name = MapFRLG(tuple(get_player_avatar().map_group_and_number)).name
         ctx = get_global_script_context()
         busy = (ctx is not None and ctx.is_active) or get_game_state() != GameState.OVERWORLD
-        if not busy and player_avatar_is_controllable() and _island_of(name) == destination:
+        if not busy and player_avatar_is_controllable() and _landed() == destination:
             return
         if frame % 8 == 0:
             context.emulator.press_button("B")  # drain arrival msgboxes
