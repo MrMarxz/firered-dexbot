@@ -2095,6 +2095,19 @@ def sevii_return_home() -> Generator:
 STORY_SKILLS["sevii_return_home"] = sevii_return_home
 
 
+def reach_victory_road() -> Generator:
+    """Cross Kanto to Victory Road 1F entrance (Route 23 badge gates pass at
+    8 badges). Staging point for the E4 push."""
+    from modules.map_data import MapFRLG
+    from dexbot.catching import ensure_healthy
+
+    yield from ensure_healthy(minimum_fraction=0.9)
+    yield from navigate_to(MapFRLG.VICTORY_ROAD_1F, (11, 19))
+
+
+STORY_SKILLS["reach_victory_road"] = reach_victory_road
+
+
 # Sevii harbors: (harbor map enum name, sailor local_id, sailor-below tile).
 # stand = the harbor warp-landing tile (open row y=3); talk_to_npc walks the
 # last step up to the sailor (only (8,5) is walkable-adjacent — the pier is a
