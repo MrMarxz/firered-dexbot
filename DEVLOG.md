@@ -676,3 +676,44 @@ harbor-sailing travel primitive the deterministic planner can invoke —
 
 **State:** DEX **100**/124, 8 badges. Remaining: Sevii-deep chunk, 3
 legendaries, fossils, Moon-Stone trio, E4→Mewtwo/Cerulean Cave.
+
+## 2026-07-12 — STRANDED ON SEVII (dex 100, hard blocker for E4)
+
+Attempted the E4 push; hit a hard, entangled blocker chain and STOPPED
+rather than risk the 100-dex live save with blind overnight experimentation.
+
+**The trap (root cause):** `sevii_accept` entered Sevii via the Cinnabar
+*Pokémon-Center* Bill-accept path (we'd declined at the gym exit earlier).
+That path leaves `VAR_MAP_SCENE_CINNABAR_ISLAND = 2`. The seagallop only
+offers **Vermilion (home)** when that scene is ≥4 — which is set by the
+*gym-exit* accept cutscene (pret CinnabarIsland line 73), the path we
+skipped. Verified empirically: seagallop index 0 from One Island lands on
+Two Island, i.e. the menu is [Two, Three, Cancel] — **no way home**.
+
+**Compounding:** we're out of throwing balls (Sevii sweep drained them),
+and Sevii islands 1-3 have no Poké Mart that sells balls at this progress,
+and no reachable Kanto mart. So there is ZERO catchable progress available
+from the current live state — every path needs either home (blocked) or
+balls (unavailable here).
+
+**Why the endgame all routes through home:** E4/Victory Road, fossils
+(Omanyte), Mewtwo, and re-stocking all live in Kanto. Even the in-game
+return-enable (network-machine questline → Ruby at Mt Ember) needs
+Strength-boulder-push nav we haven't built.
+
+**Recovery options (need owner decision — all have real cost):**
+1. **Revert + re-enter correctly** — restore a pre-Sevii checkpoint and
+   fix `sevii_accept` to take the GYM-EXIT accept (sets scene 4 → return
+   enabled). Cost: the only clean pre-Sevii fixture is m7_badge_giovanni
+   (dex 83); redoing the Kanto endgame (stone/gift/level/Route23 = 83→96)
+   + Sevii is hours of redo, losing ~17 dex temporarily.
+2. **Save-var repair** — set VAR_MAP_SCENE_CINNABAR_ISLAND=4 directly to
+   unblock the return sail. Fast, but a memory poke (not "playing the
+   game") and may leave related object/scene state inconsistent.
+3. **Build the network questline + boulder-nav** to legitimately advance
+   the One Island PC scene ≥5 (the intended long path). Large, and the
+   Sapphire half may be circular with the Rainbow Pass.
+
+Live state left SAFE: Three Island, idle, uncorrupted. dex 100, all work
+committed. `sail_to` primitive delivered + verified. Recommend option 1 or
+2 with owner sign-off before touching the live save.
