@@ -781,3 +781,10 @@ the reusable keystone for VR 2F/3F, Seafoam B4F (Articuno), Mt Ember
 
 Live state SAFE at VR 1F entrance (m8_victory_road_1f.ss1). Two hardest
 keystones this session (Sevii unblock + boulder solver) done + committed.
+
+**Note (VR traversal):** boulder nav works, but VR trainers (L40+ Cooltrainers,
+unavoidable) need a strong assembled battle party — headless test hit "no
+damaging moves" with the leftover Sevii catch-kit lead. `traverse_victory_road`
+must `assemble_party(gym-like)` + `ensure_healthy` + grind-to-level BEFORE the
+floors, and the E4 gauntlet (5 fights + champion) is a real wipe risk to build
+carefully (not brute-forced). This is the natural next work item.
