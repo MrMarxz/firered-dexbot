@@ -150,3 +150,12 @@ Honesty over optimism. Current as of M5.
   Cerulean Cave (Mewtwo — Master Ball reserved) and Sevii 4-7. Kindle Road
   (walkable) was swept clean → dex 100. Next builds, in rough value order:
   sail_to primitive, then E4, then boulder-push nav.
+- **Sevii-deep catches need per-map reachability work** (2026-07-11, dex
+  100): `sail_to(island)` primitive works (verified One→Three), but the
+  island *catch targets* each hit a fresh gap: (a) Three Island Port's
+  Dunsparce grass (32,7) is a warpless area invisible to the warp graph —
+  needs a probe_maze tape from the dock. (b) Berry Forest (Hypno) is gated
+  by the Bond Bridge biker gang — CORRECTION: the Lostelle rescue errand
+  (removed earlier as "unneeded") IS required to open Bond Bridge north.
+  Rebuild sevii_errand on top of sail_to when pursuing Hypno. Net: sail_to
+  is banked infra; the deep catches are each a small nav investigation.
