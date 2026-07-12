@@ -754,3 +754,30 @@ here — remaining = boulder-nav (3+ puzzles) + E4 gauntlet + Cerulean Cave
 (Mewtwo) + remaining Sevii (Dunsparce/Hypno need probes + the Lostelle
 errand) + fossils (Omanyte) + Moon-stone trio. Multi-session build. Live
 state left SAFE at VR 1F entrance; everything committed.
+
+## 2026-07-12 (cont.) — BOULDER-NAV KEYSTONE BUILT (VR 1F solved headless)
+
+`dexbot/boulders.py`: logic-only sokoban BFS (`solve_boulder_puzzle`) +
+self-healing executor (`run_boulder_puzzle`: activate Strength → solve from
+live state → step-execute → re-solve on any stall). VR 1F verified headless:
+barrier scene var → 100, 2F stairs reachable. Push mechanic confirmed
+(activate once/map, walk into boulder → it slides, player follows). This is
+the reusable keystone for VR 2F/3F, Seafoam B4F (Articuno), Mt Ember
+(Moltres/Slugma + the Ruby that advances the network quest).
+
+**Remaining to 124/124 (scoped, multi-session):**
+- Victory Road full traverse: 2F switches (2,19)+(14,19), 3F switch (7,7),
+  plus the inter-floor hole maze → Indigo. Boulder puzzles now tractable via
+  run_boulder_puzzle; the floor routing needs assembling.
+- E4 gauntlet: 5 tough trainer battles + champion — needs a strong healthy
+  party (grind/heal) and the battle engine holding across consecutive fights
+  (wipe = lose). Real gameplay risk, not just nav.
+- Cerulean Cave (post-E4): Mewtwo (Master Ball reserved) + Kadabra/Machoke/
+  Graveler wilds (already own those evolutions).
+- Sevii-deep: Dunsparce (Three I. Port grass probe), Hypno (Berry Forest via
+  the Lostelle/Bond-Bridge errand), Moon-stone trio (islands have stones) →
+  Nidoking/Clefable/Wigglytuff, Omanyte (Helix at Cinnabar lab).
+- Mt Ember: Moltres, Slugma (boulder-gated, now doable).
+
+Live state SAFE at VR 1F entrance (m8_victory_road_1f.ss1). Two hardest
+keystones this session (Sevii unblock + boulder solver) done + committed.
