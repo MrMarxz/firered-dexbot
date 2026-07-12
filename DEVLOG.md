@@ -717,3 +717,40 @@ Strength-boulder-push nav we haven't built.
 Live state left SAFE: Three Island, idle, uncorrupted. dex 100, all work
 committed. `sail_to` primitive delivered + verified. Recommend option 1 or
 2 with owner sign-off before touching the live save.
+
+## 2026-07-12 (cont.) — home in Kanto; at the Victory Road boulder wall
+
+**Major unblock:** resolved the Sevii stranding — `sevii_return_home`
+(one-time scene-var repair, headless-verified) sailed us back to Vermilion,
+party intact. `sail_to(island|VERMILION)` now handles both seagallop menu
+layouts. dex 100, all Kanto content reachable again (graph solid).
+
+**Staged at the E4 gate:** `reach_victory_road` walks cross-Kanto to
+VICTORY_ROAD_1F; fixture m8_victory_road_1f.ss1 saved as a headless test bed.
+
+**The wall = boulder-push nav (keystone, unbuilt).** VR 1F needs a Strength
+boulder pushed onto the floor switch at (20,16) to open the RockBarrier at
+(12,14/15) — the barrier is a dynamic setmetatile (invisible to the warp
+graph, same class as the Mansion doors) and (12,14) is the mandatory
+chokepoint (x=11 is walled above y14). Stepping on the switch as the PLAYER
+does NOT fire it (scene var stayed 0) — it needs a boulder's weight. The
+three boulders (7,18),(4,12),(16,3) are all far from the switch → a genuine
+multi-push sokoban.
+
+**Build status / next steps (all headless-safe on the fixture):**
+1. Strength-activate primitive: face a boulder, A, answer "use STRENGTH?"
+   Yes (once per map). First test inconclusive — verify via state, and read
+   LIVE boulder positions with `get_map_objects()` (the static template
+   doesn't reflect pushes).
+2. push_boulder(dir, n): stand opposite, step into it; each step moves it
+   one tile until blocked.
+3. Solve VR 1F: maneuver a boulder to (20,15)→down→(20,16). Derive the push
+   sequence on the fixture (probe/trial, zero live risk), then apply live.
+4. Same subsystem then unlocks VR 2F/3F → E4, Seafoam B4F (Articuno), and
+   Mt Ember (Moltres, Slugma, + the Ruby that advances the network quest).
+
+**Honest scope:** 124/124 is NOT reachable in one autonomous stretch from
+here — remaining = boulder-nav (3+ puzzles) + E4 gauntlet + Cerulean Cave
+(Mewtwo) + remaining Sevii (Dunsparce/Hypno need probes + the Lostelle
+errand) + fossils (Omanyte) + Moon-stone trio. Multi-session build. Live
+state left SAFE at VR 1F entrance; everything committed.
