@@ -2108,6 +2108,27 @@ def reach_victory_road() -> Generator:
 STORY_SKILLS["reach_victory_road"] = reach_victory_road
 
 
+def victory_road_1f() -> Generator:
+    """Clear Victory Road 1F: lead with the tank, solve the boulder switch
+    (opens the barrier), climb to 2F. (2F/3F hole+barrier modeling still
+    WIP — this banks verified 1F progress.)"""
+    from modules.map_data import MapFRLG
+    from modules.memory import get_event_var
+    from modules.player import get_player_avatar
+
+    from dexbot.boulders import run_boulder_puzzle
+    from dexbot.team import make_lead
+
+    if tuple(get_player_avatar().map_group_and_number) == MapFRLG.VICTORY_ROAD_1F.value:
+        yield from make_lead("Blastoise")
+        if get_event_var("MAP_SCENE_VICTORY_ROAD_1F") != 100:
+            yield from run_boulder_puzzle(MapFRLG.VICTORY_ROAD_1F, [(20, 16)])
+        yield from navigate_to(MapFRLG.VICTORY_ROAD_1F, (3, 2))  # up-stairs → 2F
+
+
+STORY_SKILLS["victory_road_1f"] = victory_road_1f
+
+
 # Sevii harbors: (harbor map enum name, sailor local_id, sailor-below tile).
 # stand = the harbor warp-landing tile (open row y=3); talk_to_npc walks the
 # last step up to the sailor (only (8,5) is walkable-adjacent — the pier is a
