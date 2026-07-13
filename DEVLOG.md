@@ -1013,3 +1013,29 @@ navigate rides the east ladders after B1+B2.
 
 COMMITTED: var-name fix, wedge fix, spine, graph rebuild. Live state restored to
 clean 1F entry (pre_vr_traverse_backup); money+party intact throughout.
+
+## 2026-07-13 (cont.) — Clean pre-VR save chosen; flat solver is the wall
+
+Per owner: recover B2 via a clean pre-VR save. Found m8_back_in_kanto.ss1
+(Vermilion, dex owned=100 — SAME as live, party ~identical, pre-VR-entry so VR
+boulders pristine). Copied to states/pre_vr_clean.ss1 and set as the live
+entry. traverse_victory_road now self-contained (walks Kanto→VR 1F first).
+Verified live: reach_vr Vermilion→VR 1F works; GUI opens.
+
+NEW BLOCKER (regression): run_boulder_puzzle's LOGIC solver
+(solve_boulder_puzzle) now fails **1F switch (20,16)** — "unsolvable from
+(7,19) (tried 3 boulders)" — on the SAME m8_victory_road_1f fixture that a
+PRIOR session live-verified. Not the var-doors (fails with 1F door removed) and
+not the boulder blockers (removed). B2 (14,19) also unsolvable via the flat
+solver. Only B1 (2,19) solves. So the flat sokoban solver is unreliable for VR
+across the board — a regression in boulders.py's solver from this session's
+iteration.
+
+RECOMMENDED NEXT: switch VR boulder pushes to the emulator-ORACLE solver
+(solve_boulder_puzzle_oracle — real physics, can't diverge) or hand-author the
+per-switch pushes (1F (20,16)←?, B1 (2,19)←(6,17), B2 (14,19)←(33,19) push
+LEFT). Then run traverse live from states/pre_vr_clean.ss1.
+
+Committed: clean-save infra, self-contained traverse, activate_strength bounded
+(no hang when Strength already active), wedge fix (step-off-ladder), var-name
+fix. Live state = clean pre-VR (dex 100, money 29912, party intact).
