@@ -2285,6 +2285,12 @@ def traverse_victory_road() -> Generator:
     yield from make_lead("Blastoise")
     yield from ensure_healthy(minimum_fraction=0.8)
 
+    # --- Reach Victory Road 1F if we're still out in Kanto ---
+    vr_maps = {F1.value, F2.value, MapFRLG.VICTORY_ROAD_3F.value}
+    if here() not in vr_maps:
+        phase("reach_vr")
+        yield from navigate_to(F1, (11, 19))  # VR 1F entrance from Route 23
+
     # --- 1F: press switch (20,16), climb to 2F (navigate_to rides the ladder) ---
     if here() == F1.value:
         phase("1f_start")
