@@ -104,6 +104,86 @@ def solve_boulder_puzzle(
     return None
 
 
+def _oracle_step(emu, direction: str) -> tuple[bool, tuple[int, int]]:
+    """Synchronously press `direction` (up to a step+push animation), advancing
+    the emulator directly. Returns (moved, new_player_tile). Ground truth — the
+    real game decides walkability and whether a boulder shoved."""
+    from modules.player import get_player_avatar
+
+    before = tuple(get_player_avatar().local_coordinates)
+    moved = False
+    for _ in range(90):
+        emu.press_button(direction)
+        emu.run_single_frame()
+        if tuple(get_player_avatar().local_coordinates) != before:
+            moved = True
+            break
+    for _ in range(18):  # let a boulder slide finish before we read/branch
+        emu.run_single_frame()
+    return moved, tuple(get_player_avatar().local_coordinates)
+
+
+def solve_boulder_puzzle_oracle(context, map_key, switches, max_states: int = 6000) -> list[str] | None:
+    """Find a directional tape that lands a boulder on every switch, using the
+    EMULATOR ITSELF as the physics oracle (savestate BFS) — no Python model of
+    walkability/pushes, so it cannot diverge from the game. Boulder positions
+    are inferred from real pushes (player entering a tracked boulder tile).
+    The emulator must be parked at the puzzle with Strength already active.
+    Returns the tape (or None if unsolved within the state budget).
+
+    Directions are ordered by the cheap Python model's own solution first, so
+    the oracle usually walks straight to the answer instead of flooding."""
+    from collections import deque
+
+    from modules.memory import GameState, get_game_state
+    from modules.player import get_player_avatar
+
+    emu = context.emulator
+    switch_set = set(switches)
+    root = emu.get_save_state()
+    start = tuple(get_player_avatar().local_coordinates)
+    boulders0 = frozenset(_initial_boulders(map_key))
+    if switch_set <= boulders0:
+        return []
+
+    # Model hint: a candidate move-list (may be wrong on ledges, but orders
+    # exploration toward the goal) — try its first move first at each ply.
+    hint = solve_boulder_puzzle(map_key, start, list(boulders0), switches) or []
+
+    seen = {(start, boulders0)}
+    queue: deque = deque([(root, start, boulders0, [], 0)])
+    states = 0
+    while queue and states < max_states:
+        state_bytes, ppos, bs, tape, depth = queue.popleft()
+        states += 1
+        dirs = list(_DIR)
+        if depth < len(hint):  # bias toward the model's plan
+            h = hint[depth]
+            dirs = [h] + [d for d in dirs if d != h]
+        for d in dirs:
+            emu.load_save_state(state_bytes)
+            emu.run_single_frame()
+            dx, dy = _DIR[d]
+            target = (ppos[0] + dx, ppos[1] + dy)
+            moved, npos = _oracle_step(emu, d)
+            if not moved or get_game_state() != GameState.OVERWORLD:
+                continue  # blocked, or a trainer/script fired — dead branch
+            nbs = bs
+            if target in bs:  # pushed the boulder at `target` one tile further
+                nbs = frozenset((target[0] + dx, target[1] + dy) if b == target else b for b in bs)
+            key = (npos, nbs)
+            if key in seen:
+                continue
+            seen.add(key)
+            ntape = [*tape, d]
+            if switch_set <= nbs:
+                _log_event(skill="boulder_oracle", status="solved", states=states, moves=len(ntape))
+                return ntape
+            queue.append((emu.get_save_state(), npos, nbs, ntape, depth + 1))
+    _log_event(skill="boulder_oracle", status="unsolved", states=states)
+    return None
+
+
 def activate_strength(map_enum, boulder_xy: tuple[int, int]) -> Generator:
     """Face the boulder at `boulder_xy` and use Strength (once per map)."""
     from modules.context import context
