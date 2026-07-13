@@ -268,13 +268,18 @@ def _do_push(map_enum, boulder: tuple[int, int], direction: str) -> Generator:
     direction, take one step to shove it. Returns the boulder's new tile."""
     from modules.context import context
     from modules.modes.util.walking import ensure_facing_direction
+    from modules.modes.util.walking import navigate_to as navigate_same_level
     from modules.player import get_player_avatar
-
-    from dexbot.navigation import navigate_to
 
     dx, dy = _DIR[direction]
     behind = (boulder[0] - dx, boulder[1] - dy)  # stand opposite the push direction
-    yield from navigate_to(map_enum, behind)
+    # Single-map walk (NOT the warp-route navigate_to): repositioning around the
+    # boulder is same-map, and the boulder (in blocked_coordinates when loaded)
+    # can split the region into components — the warp planner then searches
+    # fruitlessly for a 1-tile move and dies "Route planning budget exceeded"
+    # (churned the live E4 run). navigate_same_level routes around the boulder
+    # via calculate_path and fails cleanly instead of escalating.
+    yield from navigate_same_level(map_enum.value, behind)
     yield from ensure_facing_direction(direction)
     before = tuple(get_player_avatar().local_coordinates)
     for _ in range(90):
