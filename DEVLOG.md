@@ -813,3 +813,30 @@ range limit that made the live boulder-read unreliable.
 
 Recommend (2) for the fixed story dungeons; (1) if a general solver is wanted.
 Live save SAFE at VR 2F entrance; 1F clear banked; all committed.
+
+## 2026-07-12 (cont.) — Victory Road: boulders are OPTIONAL; barrier modeling + a routing discrepancy
+
+KEY FINDING: the Strength-boulder puzzles gate ITEMS, not the through-path.
+The Victory Road exit to Route 23 north (→ Indigo Plateau / E4) is reachable
+via the inter-floor HOLE network — `_plan_via_graph` finds it in 3 legs from
+the VR 2F entrance. So the whole boulder-solver saga was for optional loot;
+the E4 route is a hole traversal.
+
+FIXED: VR RockBarriers were setmetatile walls invisible to the pathfinder
+(same class as the Mansion doors) — it routed phantom paths through closed
+barriers (the earlier navigate_to stall at (12,11) was walking into one).
+Added them to a new `_VAR_DOORS` table in the fork's map_path (scene var
+==100 => open), so calculate_path/the graph now see them.
+
+OPEN: with barriers modeled, `_plan_via_graph` (isolated) finds the 3-leg
+hole route to R23-north, but `navigate_to` returns "No warp route" for the
+same start/dest — a cache/planning discrepancy (likely the _walkable
+positive/negative cache state differing between the isolated query and the
+full navigate path, or _plan_warp_route falling to the live search). NEXT:
+reconcile — clear/inspect _walkable_cache during navigate, or trace why
+_plan_warp_route's _plan_via_graph call returns None where the isolated one
+returns 3 legs. Once navigate_to executes the hole route, VR is traversed
+(no boulders) → reach Indigo → E4 gauntlet.
+
+State: dex 100, 8 badges, live save SAFE at VR 2F entrance. Boulder solver
+(VR 1F verified) kept for Seafoam/Mt Ember legendaries + VR items.
