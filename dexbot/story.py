@@ -2338,9 +2338,10 @@ def traverse_victory_road() -> Generator:
         if here() == F3.value:
             phase("btn4_drop")
             # push boulder (33,18) RIGHT onto the (34,18) Fall Warp → it drops to
-            # 2F. Strength is already active from Button 3 (same 3F visit), so
-            # activate=False (re-activating wedges activate_strength's navigate).
-            yield from push_boulder_sequence(F3, (33, 18), [("Right", 1)], activate=False)
+            # 2F. activate=True: on a crash-resume, Button 3 is skipped (var=100)
+            # so Strength ISN'T active — the bounded activate_strength re-arms it
+            # (and no-ops harmlessly if it's already active from this 3F visit).
+            yield from push_boulder_sequence(F3, (33, 18), [("Right", 1)], activate=True)
             # follow it down: the player Fall Warp only fires mid-navigation, so
             # target a 2F tile PAST the (34,19) landing (like the exit warp).
             yield from _vr_goto(F2, (34, 20))
