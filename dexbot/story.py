@@ -2370,10 +2370,12 @@ def traverse_victory_road() -> Generator:
             yield from push_boulder_sequence(F2, (33, 19), [("Left", 19)])
             phase("btn4_done")
 
-    # --- Exit: warp graph rides the east ladders to Route 23 (barriers now open) ---
+    # --- Exit: navigate to Route 23 (18,30) — a tile PAST the (18,28) landing,
+    #     so the planner actually executes the (48,12) exit warp instead of
+    #     stopping on it. Rides the east ladders (36,17)→3F→(37,10)→2F(38,9). ---
     if here() == F2.value:
         phase("exit")
-        yield from _vr_goto(MapFRLG.ROUTE_23, (18, 28))
+        yield from _vr_goto(MapFRLG.ROUTE23, (18, 30))
     phase("done")
 
 
