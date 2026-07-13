@@ -2215,29 +2215,6 @@ def _vr_stand(map_enum, tile) -> Generator:
     yield from _walk_level(map_enum.value, tile)
 
 
-def _vr_fall_through(from_map_enum, warp_tile, dest_map_value) -> Generator:
-    """Step onto a Fall Warp tile (following a boulder we just pushed into it)
-    to drop to the floor below. Assumes we're at/adjacent to `warp_tile`; steps
-    toward it until the map changes to `dest_map_value`."""
-    from modules.context import context
-    from modules.player import get_player_avatar
-    from dexbot.runner import SkillError
-
-    def on_dest():
-        return tuple(get_player_avatar().map_group_and_number) == dest_map_value
-
-    for _ in range(60):
-        if on_dest():
-            return
-        px, py = get_player_avatar().local_coordinates
-        dx, dy = warp_tile[0] - px, warp_tile[1] - py
-        direction = "Right" if dx > 0 else "Left" if dx < 0 else "Down" if dy > 0 else "Up"
-        context.emulator.press_button(direction)
-        yield
-        for _ in range(4):
-            yield
-    if not on_dest():
-        raise SkillError(f"_vr_fall_through: did not drop to {dest_map_value} via {warp_tile}")
 
 
 def _vr_push_left_until(map_enum, boulder_xy, switch_xy, var_name) -> Generator:
