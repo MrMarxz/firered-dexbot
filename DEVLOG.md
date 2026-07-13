@@ -907,3 +907,29 @@ PLAN: implement `traverse_victory_road` as a region-spine:
 4. Walk to the 2F R23-north exit (47-49,13) → Route 23 → Indigo → E4.
 Verify each leg headless on the floor fixtures; run live with GUI (added a
 [video] window-created log line to confirm the GUI actually opens).
+
+## 2026-07-12 — Victory Road: DEFINITIVE — it's a multi-floor DEPENDENCY CHAIN
+
+After rebuilding the graph with barriers+boulders modeled, routing entrance→
+switch-2 push-site is correctly None: you CANNOT reach it without first
+opening the floors in between. VR is interlocking boulder puzzles across 1F/
+2F/3F joined by ladders, each floor's barrier gating passage to the next.
+Reaching 2F switch (14,19) needs a 3F crossing, which needs 3F's switch (7,7)
+solved, etc. This is the hardest nav in the game — a dependency chain, not a
+flat sokoban.
+
+EFFICIENT IMPLEMENTATION (the right-sized option 2), all prerequisites now in
+place (barrier var-doors ✓, boulder obstacles ✓, graph rebuilt ✓):
+`traverse_victory_road` as a dependency-ordered region spine —
+  for each (floor, switch) in dependency order:
+     navigate to the switch's push-site (graph now routes via ladders as
+        floors open up), local straight-push the boulder onto the switch;
+  then walk to the 2F R23-north exit → Indigo → E4.
+Each push-site is reached by the (now-correct) warp graph once prior switches
+have opened the intervening barriers; the pushes themselves are short slides.
+Order to determine empirically (which switch is reachable first). Verify each
+step headless on the floor fixtures; run live with GUI ([video] log confirms
+the window opens).
+
+Scope: real but bounded — ~3-4 switch-solves chained, reusing the push
+primitive + graph nav. Not a blind multi-floor sokoban search.
