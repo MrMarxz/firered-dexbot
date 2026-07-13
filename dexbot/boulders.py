@@ -185,38 +185,33 @@ def solve_boulder_puzzle_oracle(context, map_key, switches, max_states: int = 60
 
 
 def activate_strength(map_enum, boulder_xy: tuple[int, int]) -> Generator:
-    """Face the boulder at `boulder_xy` and use Strength (once per map).
-
-    Robust for both cases: if Strength isn't active yet, a "use STRENGTH?"
-    Yes/No appears (answer Yes) followed by a "...made it possible..." message
-    we must FULLY dismiss before returning — otherwise the next move can't
-    happen and the run stalls. If Strength is already active, no prompt appears
-    and we fall through. Uses the single-map walker to reach the boulder (the
-    warp-route navigate_to blows its budget when a loaded boulder splits the
-    region into components)."""
+    """Face the boulder at `boulder_xy` and use Strength (once per map)."""
     from modules.context import context
     from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_for_yes_no_question
     from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_controllable
-    from modules.modes.util.walking import navigate_to as navigate_same_level
-    from modules.tasks import get_global_script_context
+    from modules.player import get_player_avatar
 
+    from dexbot.navigation import navigate_to
+
+    # Stand on an adjacent floor tile and face the boulder.
     px, py = boulder_xy
     for (dx, dy), facing in (((0, 1), "Up"), ((0, -1), "Down"), ((1, 0), "Left"), ((-1, 0), "Right")):
         stand = (px + dx, py + dy)
         if stand[0] < 0 or stand[1] < 0:
             continue
         try:
-            yield from navigate_same_level(map_enum.value, stand)
-        except Exception:
+            yield from navigate_to(map_enum, stand)
+        except SkillError:
             continue
         yield from ensure_facing_direction(facing)
         context.emulator.press_button("A")
         yield
-        # A "use STRENGTH?" Yes/No appears only if Strength isn't active yet.
-        # Wait generously for it (live pacing is slower than headless), answer
-        # Yes, then FULLY drain the "...made it possible..." message with B
-        # before returning (else the next move can't happen and we stall).
-        for _ in range(150):
+        # "use STRENGTH?" appears ONLY if Strength isn't active yet. If it's
+        # already active (another boulder pushed earlier this map-visit),
+        # pressing A does nothing — don't block on a prompt that won't come.
+        from modules.tasks import get_global_script_context
+
+        for _ in range(90):
             script = get_global_script_context()
             if script and script.is_active:
                 yield from wait_for_yes_no_question("Yes")
