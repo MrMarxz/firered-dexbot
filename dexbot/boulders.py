@@ -20,18 +20,25 @@ _DIR = {"Up": (0, -1), "Down": (0, 1), "Left": (-1, 0), "Right": (1, 0)}
 
 
 def _walkable_grid(map_key: tuple[int, int]) -> tuple[set, int, int]:
-    """Set of floor tiles (collision 0) on the map, plus its size."""
+    """Set of genuinely-walkable floor tiles, using the pathfinder's own
+    per-tile accessibility (captures ledges/elevation that the raw collision
+    byte misses — a boulder solve planned on raw collision walked the player
+    into a ledge at VR 2F (8,10)). Warp/hole tiles are excluded: cave floors
+    have fall-throughs that read as floor but drop you a level; the intended
+    stairs are warps too and the caller navigates to those separately after
+    the switches are pressed."""
     from modules.map import get_map_data
+    from modules.map_path import _get_all_maps_metadata
 
-    w, h = get_map_data(map_key, (0, 0)).map_size
-    floor = set()
-    for y in range(h):
-        for x in range(w):
-            try:
-                if not get_map_data(map_key, (x, y)).collision:
-                    floor.add((x, y))
-            except Exception:
-                pass
+    md = get_map_data(map_key, (0, 0))
+    w, h = md.map_size
+    holes = {tuple(wp.local_coordinates) for wp in md.warps}
+    pm = _get_all_maps_metadata()[map_key]
+    floor = {
+        tuple(t.local_coordinates)
+        for t in pm.tiles
+        if any(t.accessible_from_direction) and tuple(t.local_coordinates) not in holes
+    }
     return floor, w, h
 
 
@@ -41,6 +48,7 @@ def solve_boulder_puzzle(
     boulders: list[tuple[int, int]],
     switches: list[tuple[int, int]],
     fixed: frozenset = frozenset(),
+    blocked: frozenset = frozenset(),
     max_states: int = 400_000,
 ) -> list[str] | None:
     """BFS for a move sequence (list of 'Up'/'Down'/'Left'/'Right' steps) that
@@ -51,7 +59,7 @@ def solve_boulder_puzzle(
     ponytail: plain BFS (shortest push-path); the per-switch decomposition in
     run_boulder_puzzle keeps each search small (one target, others fixed)."""
     floor, _w, _h = _walkable_grid(map_key)
-    floor = floor | set(boulders) | set(fixed)  # boulder tiles are floor underneath
+    floor = (floor | set(boulders) | set(fixed)) - set(blocked)  # boulder tiles are floor underneath
     switch_set = frozenset(switches)
 
     def won(bs: frozenset) -> bool:
@@ -162,28 +170,36 @@ def run_boulder_puzzle(map_enum, switches, activate_boulder=None) -> Generator:
     # replay is brittle (boulder-slide timing), so re-solve from live on any
     # stall.
     for switch in switches:
-        for _resolve in range(12):
+        blocked: set = set()  # tiles the game refused (ledge/elevation/hole) — learned empirically
+        for _resolve in range(40):
             boulders = _live_boulders(map_key)
-            done = frozenset(b for b in boulders if b in set(switches) and b != switch) | {
-                b for b in boulders if b == switch
-            }
             if switch in boulders:
                 break  # this switch already covered
             fixed = frozenset(b for b in boulders if b in set(switches))
             start = tuple(get_player_avatar().local_coordinates)
             movable = [b for b in boulders if b not in fixed]
-            moves = solve_boulder_puzzle(map_key, start, movable, [switch], fixed=fixed)
+            moves = solve_boulder_puzzle(map_key, start, movable, [switch], fixed=fixed, blocked=frozenset(blocked))
             if moves is None:
-                raise SkillError(f"switch {switch} unsolvable from {start} movable={movable} fixed={sorted(fixed)}")
+                raise SkillError(f"switch {switch} unsolvable from {start} (blocked={len(blocked)})")
             _log_event(skill="boulder_puzzle", status="executing", switch=switch, moves=len(moves), attempt=_resolve)
             for d in moves:
+                before = tuple(get_player_avatar().local_coordinates)
+                live = set(_live_boulders(map_key))
                 moved = yield from _step(d)
                 if not moved:
-                    break  # diverged — re-read live state and re-solve
+                    # The game refused this step. If a boulder was in front, the
+                    # PUSH was blocked — mark the boulder's far side unreachable
+                    # (not the boulder tile, or we'd cut off that boulder). Else
+                    # it's a walk into a ledge/hole — mark the target tile.
+                    dx, dy = _DIR[d]
+                    target = (before[0] + dx, before[1] + dy)
+                    if target in live:
+                        blocked.add((target[0] + dx, target[1] + dy))
+                    else:
+                        blocked.add(target)
+                    break
                 if switch in _live_boulders(map_key):
                     break
-            else:
-                continue
             if switch in _live_boulders(map_key):
                 break
         else:
