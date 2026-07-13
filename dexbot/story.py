@@ -2169,44 +2169,50 @@ _VR_SWITCH_VAR = {
 }
 
 
-def _vr_walk(map_enum, tile) -> Generator:
-    """Single-map A* walk (upstream navigate_to) — NO warp graph, so it never
-    hits the _plan_via_graph wedge. Walking onto a ladder tile fires its warp."""
+def _vr_step_off_ladder() -> Generator:
+    """If the player stands on a Ladder/warp tile, step to an open neighbour.
+    navigate_to's warp-route planner WEDGES (>120s) when the start position is
+    a warp tile; one step off makes every VR plan instant. After riding a
+    ladder we always land on one, so call this before each navigate_to."""
+    from modules.context import context
+    from modules.map import get_map_data
+    from modules.player import get_player_avatar
+
+    av = get_player_avatar()
+    here = tuple(av.map_group_and_number)
+    pos = tuple(av.local_coordinates)
+    td = get_map_data(here, pos)
+    on_warp = td.tile_type.startswith("Ladder") or any(tuple(w.local_coordinates) == pos for w in td.warps)
+    if not on_warp:
+        return
+    for direction, (dx, dy) in (("Right", (1, 0)), ("Left", (-1, 0)), ("Down", (0, 1)), ("Up", (0, -1))):
+        n = (pos[0] + dx, pos[1] + dy)
+        if n[0] < 0 or n[1] < 0:
+            continue
+        if get_map_data(here, n).collision == 0:
+            for _ in range(20):
+                context.emulator.press_button(direction)
+                yield
+                cur = tuple(get_player_avatar().local_coordinates)
+                if cur != pos and tuple(get_player_avatar().map_group_and_number) == here:
+                    return
+
+
+def _vr_goto(map_enum, tile) -> Generator:
+    """Reach `tile` on `map_enum` via the full warp-route navigator (rides
+    ladders across floors). Steps off any ladder first to dodge the planner
+    wedge."""
+    yield from _vr_step_off_ladder()
+    yield from navigate_to(map_enum, tile)
+
+
+def _vr_stand(map_enum, tile) -> Generator:
+    """Walk to `tile` and STAND on it (single-map A*, never rides its warp) —
+    for push positions that happen to be ladder tiles, e.g. (34,19)."""
     from modules.modes.util.walking import navigate_to as _walk_level
 
+    yield from _vr_step_off_ladder()
     yield from _walk_level(map_enum.value, tile)
-
-
-def _vr_ride(from_map_enum, ladder_tile, dest_map_value) -> Generator:
-    """Walk onto `ladder_tile` (fires the warp) and confirm we land on
-    `dest_map_value`. If the walk ends ON the ladder without warping (we started
-    there — a stairs tile fires on the step, not on standing), nudge each
-    direction to trigger it. Raises if the ride never happens."""
-    from modules.context import context
-    from modules.player import get_player_avatar
-    from dexbot.runner import SkillError
-
-    def on_dest():
-        return tuple(get_player_avatar().map_group_and_number) == dest_map_value
-
-    try:
-        yield from _vr_walk(from_map_enum, ladder_tile)
-    except Exception:
-        pass  # the warp fires mid-walk; the walker may complain about the jump
-    for _ in range(150):
-        if on_dest():
-            return
-        yield
-    # Didn't warp — likely standing on the ladder. Nudge to step onto/through it.
-    for direction in ("Up", "Down", "Left", "Right"):
-        for _ in range(8):
-            context.emulator.press_button(direction)
-            yield
-            if on_dest():
-                return
-        if on_dest():
-            return
-    raise SkillError(f"_vr_ride: did not warp to {dest_map_value} from {ladder_tile}")
 
 
 def _vr_push_left_until(map_enum, boulder_xy, switch_xy, var_name) -> Generator:
@@ -2249,14 +2255,14 @@ def _vr_push_left_until(map_enum, boulder_xy, switch_xy, var_name) -> Generator:
 
 
 def traverse_victory_road() -> Generator:
-    """Explicit ladder-spine traversal of Victory Road to the Route 23 exit.
-    No warp graph (avoids the _plan_via_graph wedge); every move is a single-map
-    walk or a ladder ride. Skips phases already done (scene var == 100) so it
-    resumes cleanly after a crash. Logs each phase.
+    """Traversal of Victory Road to the Route 23 exit. navigate_to rides ladders
+    fine as long as we don't PLAN from a ladder tile (that wedges the planner),
+    so _vr_goto/_vr_stand step off first. Skips phases already done (scene var
+    == 100) for clean crash-resume. Logs each phase.
 
-    Route: 1F switch → 2F. 2F: press (2,19) [B1]. Ride (3,3)→3F→(34,18)→2F(34,19),
-    push boulder (33,19) LEFT onto (14,19) [B2]. Ride (36,17)→3F(39,17)→(37,10)→
-    2F(38,9), walk to exit (47,13) → Route 23."""
+    Route: 1F switch → up to 2F. 2F: press (2,19) [B1]. Stand at (34,19), shove
+    boulder (33,19) LEFT onto (14,19) [B2]. Then navigate_to the Route 23 exit
+    (the warp graph rides the east ladders once both barriers are open)."""
     from modules.map_data import MapFRLG
     from modules.memory import get_event_var
     from modules.player import get_player_avatar
@@ -2266,7 +2272,7 @@ def traverse_victory_road() -> Generator:
     from dexbot.runner import _log_event
     from dexbot.team import make_lead
 
-    F1, F2, F3 = MapFRLG.VICTORY_ROAD_1F, MapFRLG.VICTORY_ROAD_2F, MapFRLG.VICTORY_ROAD_3F
+    F1, F2 = MapFRLG.VICTORY_ROAD_1F, MapFRLG.VICTORY_ROAD_2F
 
     def here():
         return tuple(get_player_avatar().map_group_and_number)
@@ -2279,41 +2285,34 @@ def traverse_victory_road() -> Generator:
     yield from make_lead("Blastoise")
     yield from ensure_healthy(minimum_fraction=0.8)
 
-    # --- 1F: press switch (20,16), climb the up-stairs to 2F ---
+    # --- 1F: press switch (20,16), climb to 2F (navigate_to rides the ladder) ---
     if here() == F1.value:
         phase("1f_start")
         if get_event_var("MAP_SCENE_VICTORY_ROAD_1F") != 100:
             yield from run_boulder_puzzle(F1, [(20, 16)])
-        yield from _vr_ride(F1, (3, 2), F2.value)
+        yield from _vr_goto(F2, (1, 9))
 
     # --- 2F: press B1 switch (2,19) (boulder (6,17), reachable from entrance) ---
     if here() == F2.value and get_event_var("MAP_SCENE_VICTORY_ROAD_2F_BOULDER1") != 100:
         phase("b1_start")
+        yield from _vr_step_off_ladder()  # land tile (1,9) is a ladder → step off first
         yield from run_boulder_puzzle(F2, [(2, 19)])
         phase("b1_done")
 
-    # --- B2 switch (14,19): once B1 opens the barrier, tile (34,19) is a
-    #     standable spot directly EAST of boulder (33,19); walk there and shove
-    #     the boulder LEFT along row 19 onto the switch ---
+    # --- B2 switch (14,19): (34,19) is standable and directly EAST of boulder
+    #     (33,19); stand there and shove the boulder LEFT onto the switch ---
     if here() == F2.value and get_event_var("MAP_SCENE_VICTORY_ROAD_2F_BOULDER2") != 100:
         phase("b2_walk_to_push")
-        yield from _vr_walk(F2, (34, 19))
+        yield from _vr_stand(F2, (34, 19))
         phase("b2_push")
         yield from _vr_push_left_until(F2, (33, 19), (14, 19), "MAP_SCENE_VICTORY_ROAD_2F_BOULDER2")
         phase("b2_done")
 
-    # --- Exit: ride (36,17)→3F(39,17), cross to (37,10), ride down to (38,9),
-    #     walk to the Route 23 exit warp ---
+    # --- Exit: navigate to the Route 23 exit; the warp graph rides the east
+    #     ladders ((36,17)→3F→(37,10)→2F(38,9)) now that both barriers are open ---
     if here() == F2.value:
-        phase("exit_to_3f")
-        yield from _vr_ride(F2, (36, 17), F3.value)    # 2F(36,17) → 3F(39,17)
-    if here() == F3.value:
-        phase("exit_cross_3f")
-        yield from _vr_walk(F3, (37, 10))
-        yield from _vr_ride(F3, (37, 10), F2.value)    # → 2F(38,9)
-    if here() == F2.value:
-        phase("exit_walk")
-        yield from _vr_walk(F2, (47, 13))              # exit warp → Route 23
+        phase("exit")
+        yield from _vr_goto(MapFRLG.ROUTE_23, (18, 28))
     phase("done")
 
 
