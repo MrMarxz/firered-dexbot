@@ -16,30 +16,29 @@ from typing import Generator
 
 from dexbot.runner import SkillError, _log_event
 
+# dx,dy plus the map_path Direction index (North=0,East=1,South=2,West=3) used
+# to enter a tile moving that way — for one-way ledge checks.
 _DIR = {"Up": (0, -1), "Down": (0, 1), "Left": (-1, 0), "Right": (1, 0)}
+_DIR_IDX = {"Up": 0, "Right": 1, "Down": 2, "Left": 3}
 
 
-def _walkable_grid(map_key: tuple[int, int]) -> tuple[set, int, int]:
-    """Set of genuinely-walkable floor tiles, using the pathfinder's own
-    per-tile accessibility (captures ledges/elevation that the raw collision
-    byte misses — a boulder solve planned on raw collision walked the player
-    into a ledge at VR 2F (8,10)). Warp/hole tiles are excluded: cave floors
-    have fall-throughs that read as floor but drop you a level; the intended
-    stairs are warps too and the caller navigates to those separately after
-    the switches are pressed."""
+def _access_grid(map_key: tuple[int, int]) -> dict:
+    """{tile: (accessible_from[N,E,S,W])} from the pathfinder's own per-tile,
+    per-direction accessibility — captures ONE-WAY LEDGES (a tile enterable
+    only from above) and elevation that the raw collision byte misses. Warp/
+    hole tiles are excluded: cave floors have fall-throughs that read as floor
+    but drop you a level; the intended stairs are warps too and the caller
+    navigates to those separately after the switches are pressed."""
     from modules.map import get_map_data
     from modules.map_path import _get_all_maps_metadata
 
-    md = get_map_data(map_key, (0, 0))
-    w, h = md.map_size
-    holes = {tuple(wp.local_coordinates) for wp in md.warps}
+    holes = {tuple(wp.local_coordinates) for wp in get_map_data(map_key, (0, 0)).warps}
     pm = _get_all_maps_metadata()[map_key]
-    floor = {
-        tuple(t.local_coordinates)
+    return {
+        tuple(t.local_coordinates): tuple(t.accessible_from_direction)
         for t in pm.tiles
         if any(t.accessible_from_direction) and tuple(t.local_coordinates) not in holes
     }
-    return floor, w, h
 
 
 def solve_boulder_puzzle(
@@ -58,9 +57,16 @@ def solve_boulder_puzzle(
 
     ponytail: plain BFS (shortest push-path); the per-switch decomposition in
     run_boulder_puzzle keeps each search small (one target, others fixed)."""
-    floor, _w, _h = _walkable_grid(map_key)
-    floor = (floor | set(boulders) | set(fixed)) - set(blocked)  # boulder tiles are floor underneath
+    access = _access_grid(map_key)
+    floor = (set(access) | set(boulders) | set(fixed)) - set(blocked)
     switch_set = frozenset(switches)
+
+    def can_enter(tile, d) -> bool:
+        # Directional: entering `tile` moving `d` needs the game to allow that
+        # side (one-way ledges). Boulder/fixed tiles have no access entry, so
+        # treat them as omni-enterable floor (the boulder is what's there).
+        acc = access.get(tile)
+        return acc is None or acc[_DIR_IDX[d]]
 
     def won(bs: frozenset) -> bool:
         return switch_set <= bs
@@ -81,13 +87,16 @@ def solve_boulder_puzzle(
             if nxt not in floor or nxt in fixed:
                 continue
             if nxt in bs:
-                # push: boulder at nxt slides to beyond
+                # push: boulder at nxt slides to beyond (must be plain floor
+                # enterable from this push direction, no boulder/fixed there)
                 beyond = (nxt[0] + dx, nxt[1] + dy)
-                if beyond not in floor or beyond in bs or beyond in fixed:
+                if beyond not in floor or beyond in bs or beyond in fixed or not can_enter(beyond, d):
                     continue
                 nbs = frozenset((beyond if b == nxt else b) for b in bs)
                 nstate = (nxt, nbs)
             else:
+                if not can_enter(nxt, d):
+                    continue
                 nstate = (nxt, bs)
             if nstate not in seen:
                 seen.add(nstate)
@@ -124,83 +133,116 @@ def activate_strength(map_enum, boulder_xy: tuple[int, int]) -> Generator:
     raise SkillError(f"activate_strength: no adjacent tile at {boulder_xy}")
 
 
-def _live_boulders(map_key: tuple[int, int]) -> list[tuple[int, int]]:
-    from modules.map import get_map_objects
+def _initial_boulders(map_key: tuple[int, int]) -> list[tuple[int, int]]:
+    """All Strength-boulder start positions from the map's object templates.
+    Unlike get_map_objects (which only returns objects loaded near the
+    player — far boulders silently drop off), this sees every boulder."""
+    from modules.map import get_map_data
 
     return sorted(
-        tuple(o.current_coords) for o in get_map_objects() if "isPlayer" not in o.flags
+        tuple(o.local_coordinates)
+        for o in get_map_data(map_key, (0, 0)).objects
+        if "StrengthBoulder" in str(getattr(o, "script_symbol", ""))
     )
 
 
-def _step(direction: str) -> Generator:
-    """One directional step (walk or push); True if the player advanced.
-    Waits out the push animation before settling so the next solve reads a
-    stable boulder state."""
+def _nearby_boulders(map_key: tuple[int, int]) -> set:
+    """Currently-loaded boulder positions (near the player) — used only to
+    confirm a push landed, never as the authoritative full set."""
+    from modules.map import get_map_objects
+
+    return {tuple(o.current_coords) for o in get_map_objects() if "isPlayer" not in o.flags}
+
+
+def _pushes_from_moves(start, boulders, moves) -> list:
+    """Replay a solved move list on the model, extracting the PUSHES:
+    [(boulder_tile_before, direction), ...]. Walking between pushes is left
+    to the game's real pathfinder (navigate_to), so the fragile part — my
+    approximate walk model — never drives the emulator."""
+    pos = start
+    bs = set(boulders)
+    pushes = []
+    for d in moves:
+        dx, dy = _DIR[d]
+        nxt = (pos[0] + dx, pos[1] + dy)
+        if nxt in bs:
+            bs.discard(nxt)
+            bs.add((nxt[0] + dx, nxt[1] + dy))
+            pushes.append((nxt, d))
+        pos = nxt
+    return pushes
+
+
+def _do_push(map_enum, boulder: tuple[int, int], direction: str) -> Generator:
+    """Walk to the tile behind `boulder` (game pathfinder), face the push
+    direction, take one step to shove it. Returns the boulder's new tile."""
     from modules.context import context
+    from modules.modes.util.walking import ensure_facing_direction
     from modules.player import get_player_avatar
 
+    from dexbot.navigation import navigate_to
+
+    dx, dy = _DIR[direction]
+    behind = (boulder[0] - dx, boulder[1] - dy)  # stand opposite the push direction
+    yield from navigate_to(map_enum, behind)
+    yield from ensure_facing_direction(direction)
     before = tuple(get_player_avatar().local_coordinates)
-    moved = False
     for _ in range(90):
         context.emulator.press_button(direction)
         yield
         if tuple(get_player_avatar().local_coordinates) != before:
-            moved = True
             break
-    for _ in range(16):  # let the boulder slide + object coords settle
+    for _ in range(16):  # boulder slide + object-coord settle
         yield
-    return moved
 
 
 def run_boulder_puzzle(map_enum, switches, activate_boulder=None) -> Generator:
-    """Solve + execute a Strength-boulder puzzle, RE-SOLVING from live state
-    whenever a step stalls (self-heals tape/reality divergence — boulder
-    physics timing makes a blind replay brittle). Activates Strength first
-    (on `activate_boulder`, or the boulder nearest the player if None)."""
+    """Solve + execute a Strength-boulder puzzle. Plan WHICH pushes with the
+    sokoban solver; execute each by walking to the push tile via the game's
+    OWN pathfinder (handles ledges/elevation the solver model can't) and
+    shoving once. Re-solve from live state after each switch and on any
+    divergence. Activates Strength first (nearest boulder if unspecified)."""
     from modules.player import get_player_avatar
 
     map_key = map_enum.value
+    # Authoritative boulder set (get_map_objects is range-limited); update it
+    # ourselves as we push. A push near the player is confirmed against the
+    # loaded objects; far boulders we trust our own tracking for.
+    positions = set(_initial_boulders(map_key))
     if activate_boulder is None:
         px, py = get_player_avatar().local_coordinates
-        activate_boulder = min(_live_boulders(map_key), key=lambda b: abs(b[0] - px) + abs(b[1] - py))
+        activate_boulder = min(positions, key=lambda b: abs(b[0] - px) + abs(b[1] - py))
     yield from activate_strength(map_enum, activate_boulder)
 
-    # Solve switches ONE AT A TIME (each a small search); boulders already on
-    # done switches are FIXED so a later solve can't knock them off. A blind
-    # replay is brittle (boulder-slide timing), so re-solve from live on any
-    # stall.
+    switch_set = set(switches)
     for switch in switches:
-        blocked: set = set()  # tiles the game refused (ledge/elevation/hole) — learned empirically
-        for _resolve in range(40):
-            boulders = _live_boulders(map_key)
-            if switch in boulders:
-                break  # this switch already covered
-            fixed = frozenset(b for b in boulders if b in set(switches))
+        for _resolve in range(20):
+            if switch in positions:
+                break
+            fixed = frozenset(b for b in positions if b in switch_set and b != switch)
             start = tuple(get_player_avatar().local_coordinates)
-            movable = [b for b in boulders if b not in fixed]
-            moves = solve_boulder_puzzle(map_key, start, movable, [switch], fixed=fixed, blocked=frozenset(blocked))
+            movable = [b for b in positions if b not in fixed]
+            moves = solve_boulder_puzzle(map_key, start, movable, [switch], fixed=fixed)
             if moves is None:
-                raise SkillError(f"switch {switch} unsolvable from {start} (blocked={len(blocked)})")
-            _log_event(skill="boulder_puzzle", status="executing", switch=switch, moves=len(moves), attempt=_resolve)
-            for d in moves:
-                before = tuple(get_player_avatar().local_coordinates)
-                live = set(_live_boulders(map_key))
-                moved = yield from _step(d)
-                if not moved:
-                    # The game refused this step. If a boulder was in front, the
-                    # PUSH was blocked — mark the boulder's far side unreachable
-                    # (not the boulder tile, or we'd cut off that boulder). Else
-                    # it's a walk into a ledge/hole — mark the target tile.
-                    dx, dy = _DIR[d]
-                    target = (before[0] + dx, before[1] + dy)
-                    if target in live:
-                        blocked.add((target[0] + dx, target[1] + dy))
-                    else:
-                        blocked.add(target)
+                raise SkillError(f"switch {switch} unsolvable from {start} boulders={movable}")
+            pushes = _pushes_from_moves(start, movable, moves)
+            _log_event(skill="boulder_puzzle", status="executing", switch=switch, pushes=len(pushes), attempt=_resolve)
+            diverged = False
+            for boulder, d in pushes:
+                dx, dy = _DIR[d]
+                dest = (boulder[0] + dx, boulder[1] + dy)
+                yield from _do_push(map_enum, boulder, d)
+                # If the boulder is loaded, confirm it actually reached dest;
+                # otherwise trust the plan (far boulder, out of object range).
+                near = _nearby_boulders(map_key)
+                if boulder in near and dest not in near:
+                    diverged = True
                     break
-                if switch in _live_boulders(map_key):
+                positions.discard(boulder)
+                positions.add(dest)
+                if switch in positions:
                     break
-            if switch in _live_boulders(map_key):
+            if switch in positions and not diverged:
                 break
         else:
             raise SkillError(f"run_boulder_puzzle: too many re-solves for switch {switch}")
