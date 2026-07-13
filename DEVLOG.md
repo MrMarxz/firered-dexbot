@@ -992,3 +992,24 @@ back UP so the warp fires (or capture the live state one tile below the
 stairs). (2) capture a clean fresh-2F-entry fixture to verify the B2 push with
 boulder (33,19) actually present. (3) test the exit phase's 3F crossing
 ((36,17)→3F(39,17)→(37,10)→(38,9)). (4) run live end-to-end.
+
+## 2026-07-13 (cont.) — VR wedge root-caused & fixed; spine reaches B2; end-to-end churns
+
+WEDGE ROOT CAUSE (fixed): navigate_to's warp-route planner wedges (>120s) ONLY
+when the plan STARTS on a ladder/warp tile. Proof: from 1F(4,2) [one step off
+the (3,2) ladder], navigate_to(2F,(1,9)) rode the ladder in 0s; from (3,2) it
+wedged. Fix: `_vr_step_off_ladder` before every navigate_to (and after each
+ride, since you land on a ladder). Also dropped the VR boulder-obstacle
+blockers (they fragmented VR into many components, worsening the planner).
+
+SPINE STATUS: 1F switch + climb to 2F ✓, B1 switch (2,19) ✓ — both solid live.
+B2 phase reaches the push position (34,19). BUT end-to-end churns: the live
+supervisor keeps resuming from 1F, i.e. the emulator crashes (segfault) during
+the B2 walk/push and resumes from a pre-2F checkpoint (2F progress not yet
+checkpointed → lost). Needs: (a) confirm B2 push presses on a FRESH 2F (boulder
+(33,19) present — the m8_victory_road_2f fixture is stale, boulder absent); (b)
+find why B2 crashes / make progress checkpoint before it; (c) verify the exit
+navigate rides the east ladders after B1+B2.
+
+COMMITTED: var-name fix, wedge fix, spine, graph rebuild. Live state restored to
+clean 1F entry (pre_vr_traverse_backup); money+party intact throughout.
