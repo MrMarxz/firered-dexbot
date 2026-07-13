@@ -1090,3 +1090,32 @@ wipe-risk — snapshot + headless-verify each battle).
 Deferred hardening (only if we ever re-run VR live): btn4 must activate Strength
 independent of Btn3 (activate on 3F entry, once, robustly) + navigate hardening
 for boulder-adjacent push tiles.
+
+## 2026-07-13 — Elite Four: fully scoped; execute-ready prep plan
+
+Reached the E4 planning after Victory Road. Live save on ROUTE23 (18,30), dex
+100, money 42344, party Blastoise75/Zapdos50/Parasect34/Arbok44/Primeape42/
+Machoke28 with only 2 Max Potions — NOT gauntlet-ready.
+
+Exact E4 parties + type plan saved to memory [[elite-four-parties-strategy]].
+Key: Blastoise L75 (Surf+Bite) carries Bruno (Surf 4× Onix), Agatha (Bite 2×
+ghosts), Champion (Surf 4× Charizard); the gap is Lorelei (resists Water) +
+Lance's Gyarados/Dragonite → need strong Electric. Zapdos learns Thunder only
+at L85 (unreachable); best paths: grind Electabuzz (L37→~52, learns Thunderbolt)
+OR Move-Reminder Zapdos→Thundershock (Two Island + Heart Scale).
+
+EXECUTE-READY PREP PLAN (owner chose "full prep then E4"):
+1. Team: Blastoise L75 + Electric carrier (Electabuzz, grind to ~52 for
+   Thunderbolt) + 2-3 support grinded to ~50 (Snorlax38 tank, Exeggutor25
+   Psychic for Agatha, a Fighting-resist). Keep Blastoise+Zapdos.
+2. Items: buy ~15 Hyper Potions/Full Restores + 3-4 Revives at Indigo Plateau
+   mart (money 42344 covers it).
+3. Build `beat_elite_four` skill: navigate INDIGO_PLATEAU_EXTERIOR → League;
+   fight LORELEIS→BRUNOS→AGATHAS→LANCES→CHAMPIONS rooms in sequence (barrier
+   opens after each win); item-heal between rooms (no PC); reuse the run's
+   battle handler. Assemble/heal BEFORE entering (no heal mid-gauntlet).
+4. Verify headless from the ROUTE23 snapshot; only then live (E4 loss = whiteout
+   → money zero + teleport; snapshot-restore guards it).
+
+Grinding a team to ~L52 is the bulk of the remaining effort (hours). Victory
+Road (this session's blocker) is DONE and committed.
