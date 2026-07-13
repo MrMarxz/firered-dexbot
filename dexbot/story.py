@@ -2129,6 +2129,23 @@ def victory_road_1f() -> Generator:
 STORY_SKILLS["victory_road_1f"] = victory_road_1f
 
 
+def victory_road_2f() -> Generator:
+    """Attempt the Victory Road 2F boulder switches (two of them). WIP — 2F is
+    a multi-region hole maze; run live to observe behaviour."""
+    from modules.map_data import MapFRLG
+    from modules.player import get_player_avatar
+
+    from dexbot.boulders import run_boulder_puzzle
+    from dexbot.team import make_lead
+
+    if tuple(get_player_avatar().map_group_and_number) == MapFRLG.VICTORY_ROAD_2F.value:
+        yield from make_lead("Blastoise")
+        yield from run_boulder_puzzle(MapFRLG.VICTORY_ROAD_2F, [(2, 19), (14, 19)])
+
+
+STORY_SKILLS["victory_road_2f"] = victory_road_2f
+
+
 # Sevii harbors: (harbor map enum name, sailor local_id, sailor-below tile).
 # stand = the harbor warp-landing tile (open row y=3); talk_to_npc walks the
 # last step up to the sailor (only (8,5) is walkable-adjacent — the pier is a
