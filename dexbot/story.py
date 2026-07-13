@@ -2247,22 +2247,25 @@ def _vr_push_left_until(map_enum, boulder_xy, switch_xy, var_name) -> Generator:
     bounded — never blocks waiting for a prompt that won't appear."""
     from modules.context import context
     from modules.memory import get_event_var
-    from modules.modes.util.walking import ensure_facing_direction
-    from modules.player import get_player_avatar, player_avatar_is_controllable
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run, wait_for_yes_no_question
+    from modules.modes.util.walking import ensure_facing_direction, wait_for_player_avatar_to_be_controllable
+    from modules.player import get_player_avatar
     from modules.tasks import get_global_script_context
 
     from dexbot.runner import SkillError, _log_event
 
     yield from ensure_facing_direction("Left")
     context.emulator.press_button("A")  # opens "use STRENGTH?" only if not already active
-    for _ in range(150):  # bounded: confirm the prompt if it appears, else fall through
+    # Wait for the prompt to actually render (a few frames), then answer it
+    # robustly. If Strength is already active no prompt appears — fall through.
+    for _ in range(90):
         script = get_global_script_context()
-        active = bool(script and script.is_active)
-        if active:
-            context.emulator.press_button("A")  # Yes / advance the message
-        elif player_avatar_is_controllable():
+        if script and script.is_active:
+            yield from wait_for_yes_no_question("Yes")
+            yield from wait_for_no_script_to_run("B")
             break
         yield
+    yield from wait_for_player_avatar_to_be_controllable("B")
     for shove in range(30):
         if get_event_var(var_name) == 100:
             _log_event(skill="vr_push", status="pressed", switch=switch_xy, shoves=shove)
@@ -2361,13 +2364,16 @@ def traverse_victory_road() -> Generator:
             # 2F. Strength is already active from Button 3 (same 3F visit), so
             # activate=False (re-activating wedges activate_strength's navigate).
             yield from push_boulder_sequence(F3, (33, 18), [("Right", 1)], activate=False)
-            # follow the boulder down: step onto the Fall Warp (34,18)
-            yield from _vr_fall_through(F3, (34, 18), F2.value)
+            # follow it down: the player Fall Warp only fires mid-navigation, so
+            # target a 2F tile PAST the (34,19) landing (like the exit warp).
+            yield from _vr_goto(F2, (34, 20))
         if here() == F2.value:
             phase("btn4_push")
-            # the dropped boulder sits at ~(33,19); shove it LEFT onto (14,19)
-            yield from _vr_step_off_ladder()
-            yield from push_boulder_sequence(F2, (33, 19), [("Left", 19)])
+            # stand at (34,19), directly EAST of the dropped boulder (33,19), and
+            # shove it LEFT onto (14,19). _vr_push_left_until faces Left, activates
+            # Strength, and shoves in place (no navigate → no ladder re-warp).
+            yield from _vr_stand(F2, (34, 19))
+            yield from _vr_push_left_until(F2, (33, 19), (14, 19), "MAP_SCENE_VICTORY_ROAD_2F_BOULDER2")
             phase("btn4_done")
 
     # --- Exit: navigate to Route 23 (18,30) — a tile PAST the (18,28) landing,
