@@ -2146,6 +2146,180 @@ def victory_road_2f() -> Generator:
 STORY_SKILLS["victory_road_2f"] = victory_road_2f
 
 
+# Victory Road is a multi-floor region maze joined by ladders (warps). Each
+# floor has Strength-button switches fed by a boulder; a solved switch opens a
+# barrier that connects regions. Exit to Route 23 (→ Indigo) is on 2F east
+# (warps 47-49,13). The static graph can't model post-push state reliably, so
+# we drive it greedily against LIVE state: on each floor solve whatever switch
+# is locally reachable (run_boulder_puzzle uses the game's own pathfinder),
+# then try the exit, else hop to a reachable ladder/region. Bounded + logged.
+_VR_SWITCHES = {  # floor (group,num) -> switch tiles on that floor
+    (1, 39): [(20, 16)],
+    (1, 40): [(2, 19), (14, 19)],
+    (1, 41): [(7, 7)],
+}
+# (floor, switch) -> scene var that flips to 100 once the switch is pressed.
+# Lets us skip switches already solved on a prior run instead of trying to
+# re-solve them (the boulder sits on the switch; templates still show spawns).
+_VR_SWITCH_VAR = {
+    ((1, 39), (20, 16)): "MAP_SCENE_VICTORY_ROAD_1F",
+    ((1, 40), (2, 19)): "MAP_SCENE_VICTORY_ROAD_2F_BOULDER1",
+    ((1, 40), (14, 19)): "MAP_SCENE_VICTORY_ROAD_2F_BOULDER2",
+    ((1, 41), (7, 7)): "MAP_SCENE_VICTORY_ROAD_3F",
+}
+
+
+def _vr_walk(map_enum, tile) -> Generator:
+    """Single-map A* walk (upstream navigate_to) — NO warp graph, so it never
+    hits the _plan_via_graph wedge. Walking onto a ladder tile fires its warp."""
+    from modules.modes.util.walking import navigate_to as _walk_level
+
+    yield from _walk_level(map_enum.value, tile)
+
+
+def _vr_ride(from_map_enum, ladder_tile, dest_map_value) -> Generator:
+    """Walk onto `ladder_tile` (fires the warp) and confirm we land on
+    `dest_map_value`. If the walk ends ON the ladder without warping (we started
+    there — a stairs tile fires on the step, not on standing), nudge each
+    direction to trigger it. Raises if the ride never happens."""
+    from modules.context import context
+    from modules.player import get_player_avatar
+    from dexbot.runner import SkillError
+
+    def on_dest():
+        return tuple(get_player_avatar().map_group_and_number) == dest_map_value
+
+    try:
+        yield from _vr_walk(from_map_enum, ladder_tile)
+    except Exception:
+        pass  # the warp fires mid-walk; the walker may complain about the jump
+    for _ in range(150):
+        if on_dest():
+            return
+        yield
+    # Didn't warp — likely standing on the ladder. Nudge to step onto/through it.
+    for direction in ("Up", "Down", "Left", "Right"):
+        for _ in range(8):
+            context.emulator.press_button(direction)
+            yield
+            if on_dest():
+                return
+        if on_dest():
+            return
+    raise SkillError(f"_vr_ride: did not warp to {dest_map_value} from {ladder_tile}")
+
+
+def _vr_push_left_until(map_enum, boulder_xy, switch_xy, var_name) -> Generator:
+    """Standing EAST of `boulder_xy`, ensure Strength is active, then shove the
+    boulder LEFT until the switch var reads 100. Strength may already be active
+    (a boulder solved earlier this map-visit), so activation is best-effort and
+    bounded — never blocks waiting for a prompt that won't appear."""
+    from modules.context import context
+    from modules.memory import get_event_var
+    from modules.modes.util.walking import ensure_facing_direction
+    from modules.player import get_player_avatar, player_avatar_is_controllable
+    from modules.tasks import get_global_script_context
+
+    from dexbot.runner import SkillError, _log_event
+
+    yield from ensure_facing_direction("Left")
+    context.emulator.press_button("A")  # opens "use STRENGTH?" only if not already active
+    for _ in range(150):  # bounded: confirm the prompt if it appears, else fall through
+        script = get_global_script_context()
+        active = bool(script and script.is_active)
+        if active:
+            context.emulator.press_button("A")  # Yes / advance the message
+        elif player_avatar_is_controllable():
+            break
+        yield
+    for shove in range(30):
+        if get_event_var(var_name) == 100:
+            _log_event(skill="vr_push", status="pressed", switch=switch_xy, shoves=shove)
+            return
+        before = tuple(get_player_avatar().local_coordinates)
+        for _ in range(90):
+            context.emulator.press_button("Left")
+            yield
+            if tuple(get_player_avatar().local_coordinates) != before:
+                break
+        for _ in range(16):  # boulder slide settle
+            yield
+    if get_event_var(var_name) != 100:
+        raise SkillError(f"_vr_push_left_until: {switch_xy} not pressed after 30 shoves")
+
+
+def traverse_victory_road() -> Generator:
+    """Explicit ladder-spine traversal of Victory Road to the Route 23 exit.
+    No warp graph (avoids the _plan_via_graph wedge); every move is a single-map
+    walk or a ladder ride. Skips phases already done (scene var == 100) so it
+    resumes cleanly after a crash. Logs each phase.
+
+    Route: 1F switch → 2F. 2F: press (2,19) [B1]. Ride (3,3)→3F→(34,18)→2F(34,19),
+    push boulder (33,19) LEFT onto (14,19) [B2]. Ride (36,17)→3F(39,17)→(37,10)→
+    2F(38,9), walk to exit (47,13) → Route 23."""
+    from modules.map_data import MapFRLG
+    from modules.memory import get_event_var
+    from modules.player import get_player_avatar
+
+    from dexbot.boulders import run_boulder_puzzle
+    from dexbot.catching import ensure_healthy
+    from dexbot.runner import _log_event
+    from dexbot.team import make_lead
+
+    F1, F2, F3 = MapFRLG.VICTORY_ROAD_1F, MapFRLG.VICTORY_ROAD_2F, MapFRLG.VICTORY_ROAD_3F
+
+    def here():
+        return tuple(get_player_avatar().map_group_and_number)
+
+    def phase(name):
+        av = get_player_avatar()
+        _log_event(skill="vr_spine", status=name, map=MapFRLG(tuple(av.map_group_and_number)).name,
+                   pos=tuple(av.local_coordinates))
+
+    yield from make_lead("Blastoise")
+    yield from ensure_healthy(minimum_fraction=0.8)
+
+    # --- 1F: press switch (20,16), climb the up-stairs to 2F ---
+    if here() == F1.value:
+        phase("1f_start")
+        if get_event_var("MAP_SCENE_VICTORY_ROAD_1F") != 100:
+            yield from run_boulder_puzzle(F1, [(20, 16)])
+        yield from _vr_ride(F1, (3, 2), F2.value)
+
+    # --- 2F: press B1 switch (2,19) (boulder (6,17), reachable from entrance) ---
+    if here() == F2.value and get_event_var("MAP_SCENE_VICTORY_ROAD_2F_BOULDER1") != 100:
+        phase("b1_start")
+        yield from run_boulder_puzzle(F2, [(2, 19)])
+        phase("b1_done")
+
+    # --- B2 switch (14,19): once B1 opens the barrier, tile (34,19) is a
+    #     standable spot directly EAST of boulder (33,19); walk there and shove
+    #     the boulder LEFT along row 19 onto the switch ---
+    if here() == F2.value and get_event_var("MAP_SCENE_VICTORY_ROAD_2F_BOULDER2") != 100:
+        phase("b2_walk_to_push")
+        yield from _vr_walk(F2, (34, 19))
+        phase("b2_push")
+        yield from _vr_push_left_until(F2, (33, 19), (14, 19), "MAP_SCENE_VICTORY_ROAD_2F_BOULDER2")
+        phase("b2_done")
+
+    # --- Exit: ride (36,17)→3F(39,17), cross to (37,10), ride down to (38,9),
+    #     walk to the Route 23 exit warp ---
+    if here() == F2.value:
+        phase("exit_to_3f")
+        yield from _vr_ride(F2, (36, 17), F3.value)    # 2F(36,17) → 3F(39,17)
+    if here() == F3.value:
+        phase("exit_cross_3f")
+        yield from _vr_walk(F3, (37, 10))
+        yield from _vr_ride(F3, (37, 10), F2.value)    # → 2F(38,9)
+    if here() == F2.value:
+        phase("exit_walk")
+        yield from _vr_walk(F2, (47, 13))              # exit warp → Route 23
+    phase("done")
+
+
+STORY_SKILLS["traverse_victory_road"] = traverse_victory_road
+
+
 # Sevii harbors: (harbor map enum name, sailor local_id, sailor-below tile).
 # stand = the harbor warp-landing tile (open row y=3); talk_to_npc walks the
 # last step up to the sailor (only (8,5) is walkable-adjacent — the pier is a

@@ -276,7 +276,7 @@ def _do_push(map_enum, boulder: tuple[int, int], direction: str) -> Generator:
         yield
 
 
-def run_boulder_puzzle(map_enum, switches, activate_boulder=None) -> Generator:
+def run_boulder_puzzle(map_enum, switches, activate_boulder=None, activate=True) -> Generator:
     """Solve + execute a Strength-boulder puzzle. Plan WHICH pushes with the
     sokoban solver; execute each by walking to the push tile via the game's
     OWN pathfinder (handles ledges/elevation the solver model can't) and
@@ -289,10 +289,11 @@ def run_boulder_puzzle(map_enum, switches, activate_boulder=None) -> Generator:
     # ourselves as we push. A push near the player is confirmed against the
     # loaded objects; far boulders we trust our own tracking for.
     positions = set(_initial_boulders(map_key))
-    if activate_boulder is None:
-        px, py = get_player_avatar().local_coordinates
-        activate_boulder = min(positions, key=lambda b: abs(b[0] - px) + abs(b[1] - py))
-    yield from activate_strength(map_enum, activate_boulder)
+    if activate:
+        if activate_boulder is None:
+            px, py = get_player_avatar().local_coordinates
+            activate_boulder = min(positions, key=lambda b: abs(b[0] - px) + abs(b[1] - py))
+        yield from activate_strength(map_enum, activate_boulder)
 
     switch_set = set(switches)
     for switch in switches:
