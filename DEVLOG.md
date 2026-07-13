@@ -1068,3 +1068,25 @@ trainers/timing make each attempt costly). Headless remains green.
 
 RECOMMENDATION: capture the post-VR ROUTE23 state headless (reliable) → set live
 → proceed to Elite Four; OR one more live attempt with the two fixes above.
+
+## 2026-07-13 — THROUGH VICTORY ROAD (live save advanced via headless traverse)
+
+The hand-authored 4-button traverse completes reliably HEADLESS (full2/3/4/6/7 —
+5 clean runs). LIVE (--live supervised) churns via a cascade: a transient early
+Pallet-fly (recovery) → re-trek skips Button 3 (var=100) → Strength not active
+at Button 4 (activate=False assumes Btn3 ran) → btn4 stall → Pallet-fly → loop.
+Also navigate_same_level intermittently stalls when the push tile is adjacent
+to a boulder. Both are live/non-determinism-sensitive; headless is deterministic
+and green.
+
+Per owner ("can run headless if that'll help"), ran the traverse headless from
+states/pre_vr_clean.ss1 and SAVED the result as the live save:
+  current_state.ss1 = ROUTE23 (18,30), dex owned=100, money 42344, party intact.
+Also fixtures: states/post_vr_route23.ss1.
+
+VICTORY ROAD IS DONE. Next: Route 23 → Indigo Plateau → Elite Four (live,
+wipe-risk — snapshot + headless-verify each battle).
+
+Deferred hardening (only if we ever re-run VR live): btn4 must activate Strength
+independent of Btn3 (activate on 3F entry, once, robustly) + navigate hardening
+for boulder-adjacent push tiles.
