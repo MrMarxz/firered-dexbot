@@ -2305,13 +2305,13 @@ def traverse_victory_road() -> Generator:
         yield from run_boulder_puzzle(F2, [(2, 19)])
         phase("b1_done")
 
-    # --- B2 switch (14,19): (34,19) is standable and directly EAST of boulder
-    #     (33,19); stand there and shove the boulder LEFT onto the switch ---
+    # --- B2 switch (14,19): with pristine boulders, run_boulder_puzzle picks
+    #     boulder (33,19) and shoves it LEFT onto the switch. (Needs Strength
+    #     re-activated: a fresh 2F visit or after crossing floors.) ---
     if here() == F2.value and get_event_var("MAP_SCENE_VICTORY_ROAD_2F_BOULDER2") != 100:
-        phase("b2_walk_to_push")
-        yield from _vr_stand(F2, (34, 19))
-        phase("b2_push")
-        yield from _vr_push_left_until(F2, (33, 19), (14, 19), "MAP_SCENE_VICTORY_ROAD_2F_BOULDER2")
+        phase("b2_start")
+        yield from _vr_step_off_ladder()
+        yield from run_boulder_puzzle(F2, [(14, 19)])
         phase("b2_done")
 
     # --- Exit: navigate to the Route 23 exit; the warp graph rides the east

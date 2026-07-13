@@ -206,8 +206,18 @@ def activate_strength(map_enum, boulder_xy: tuple[int, int]) -> Generator:
         yield from ensure_facing_direction(facing)
         context.emulator.press_button("A")
         yield
-        yield from wait_for_yes_no_question("Yes")  # "use STRENGTH?"
-        yield from wait_for_no_script_to_run("B")
+        # "use STRENGTH?" appears ONLY if Strength isn't active yet. If it's
+        # already active (another boulder pushed earlier this map-visit),
+        # pressing A does nothing — don't block on a prompt that won't come.
+        from modules.tasks import get_global_script_context
+
+        for _ in range(90):
+            script = get_global_script_context()
+            if script and script.is_active:
+                yield from wait_for_yes_no_question("Yes")
+                yield from wait_for_no_script_to_run("B")
+                break
+            yield
         yield from wait_for_player_avatar_to_be_controllable("B")
         return
     raise SkillError(f"activate_strength: no adjacent tile at {boulder_xy}")
