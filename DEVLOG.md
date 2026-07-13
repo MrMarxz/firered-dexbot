@@ -788,3 +788,28 @@ damaging moves" with the leftover Sevii catch-kit lead. `traverse_victory_road`
 must `assemble_party(gym-like)` + `ensure_healthy` + grind-to-level BEFORE the
 floors, and the E4 gauntlet (5 fights + champion) is a real wipe risk to build
 carefully (not brute-forced). This is the natural next work item.
+
+## 2026-07-12 (cont.) — Victory Road 2F: boulder auto-solver hits an architectural wall
+
+Pushed hard on the general boulder solver (owner: keep going). Real progress:
+navigate-to-push executor + template-seeded self-tracked boulder set +
+one-boulder-per-switch decomposition. **VR 1F fully solved & live-verified;
+VR 2F switch 1 (of 2) solves reliably (B1 var → 100).**
+
+**Root wall for multi-boulder floors:** `navigate_to` (the game pathfinder,
+used to walk the player to each push tile) builds its obstacle set from
+`get_map_objects`, which is RANGE-LIMITED — boulders far from the player
+aren't loaded, so navigate routes THROUGH their tiles, and with Strength
+active that shoves them off-course. Result: tracking drift + phantom boulder
+placements (e.g. a boulder ending at (33,19)), stranding switch 2. Same
+range limit that made the live boulder-read unreliable.
+
+**Fix options for a fresh pass (pick one):**
+1. Boulder-aware custom pathfinder for repositioning (route the player around
+   the self-tracked boulder set, don't trust navigate_to near boulders).
+2. Hand-authored push tapes per floor (VR 2F/3F, Seafoam, Mt Ember) from a
+   known-good walkthrough — like the Silph pads / Mansion statues. Most
+   reliable given each floor is a fixed puzzle.
+
+Recommend (2) for the fixed story dungeons; (1) if a general solver is wanted.
+Live save SAFE at VR 2F entrance; 1F clear banked; all committed.

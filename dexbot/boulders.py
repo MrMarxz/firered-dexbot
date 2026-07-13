@@ -219,12 +219,25 @@ def run_boulder_puzzle(map_enum, switches, activate_boulder=None) -> Generator:
         for _resolve in range(20):
             if switch in positions:
                 break
-            fixed = frozenset(b for b in positions if b in switch_set and b != switch)
             start = tuple(get_player_avatar().local_coordinates)
-            movable = [b for b in positions if b not in fixed]
-            moves = solve_boulder_puzzle(map_key, start, movable, [switch], fixed=fixed)
+            # Route exactly ONE boulder to this switch with every OTHER boulder
+            # held FIXED — each switch in these puzzles has a dedicated boulder,
+            # and freezing the rest stops switch 1 from scattering switch 2's
+            # boulders (and shrinks each search to a single movable boulder).
+            candidates = sorted(
+                (b for b in positions if b not in switch_set),
+                key=lambda b: abs(b[0] - switch[0]) + abs(b[1] - switch[1]),
+            )
+            moves = one = None
+            for cand in candidates:
+                fixed = frozenset(b for b in positions if b != cand)
+                moves = solve_boulder_puzzle(map_key, start, [cand], [switch], fixed=fixed)
+                if moves is not None:
+                    one = cand
+                    break
             if moves is None:
-                raise SkillError(f"switch {switch} unsolvable from {start} boulders={movable}")
+                raise SkillError(f"switch {switch} unsolvable from {start} (tried {len(candidates)} boulders)")
+            movable = [one]
             pushes = _pushes_from_moves(start, movable, moves)
             _log_event(skill="boulder_puzzle", status="executing", switch=switch, pushes=len(pushes), attempt=_resolve)
             diverged = False
