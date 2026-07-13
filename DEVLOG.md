@@ -868,3 +868,42 @@ navigate_to, no object-range issues). This is the Silph-pad / Mansion-statue
 pattern and is the reliable path for these fixed cooperative puzzles.
 
 Live save SAFE at VR 2F entrance; dex 100, 8 badges; all committed.
+
+## 2026-07-12 (cont.) — Victory Road FULLY RESEARCHED; efficient plan (option 2, right-sized)
+
+Deep fact-gathering settled the structure. KEY FINDINGS:
+- NO hole/fall tiles (tile_types: Cave/Ladder/Rock-Stairs/Strength-Button).
+  Boulders do NOT drop between floors. The "vanished boulders" earlier were
+  the get_map_objects RANGE LIMIT, not falls.
+- The floor is split into WALLED REGIONS connected only by LADDERS (the
+  warps to/from 3F). To cross regions you go up a ladder to 3F, across, and
+  back down a different ladder into a different 2F region.
+- Each switch is a SIMPLE straight push once you're in its region — NOT
+  cooperative sokoban:
+  * Switch (2,19) ← boulder (6,17), short push (already works).
+  * Switch (14,19) ← boulder (33,19), pushed straight LEFT along row 19
+    (x33→x14, all clear); requires standing at (34,19), reachable ONLY by
+    coming down the ladder from 3F.
+- So the hard part is MULTI-FLOOR NAVIGATION to each push site; the pushes
+  are trivial. This is the Silph-stair-spine problem, not sokoban.
+
+MODELING DONE (committed): VR barriers as var-doors (scene var==100=open);
+VR boulder spawns as pathfinder obstacles (so cross-region routes are
+realistic, not phantom-through-boulders).
+
+REMAINING GAP: navigate_to won't route "same map, different region via a
+ladder round-trip" — for a same-map dest it tries a direct A* and gives up
+instead of using warps. FIX = an explicit VR ladder spine (like Silph):
+  entrance region → ladder (2F 3,3 → 3F 5,2) → 3F traverse → ladder
+  (3F 34,18 → 2F 34,19) → push boulder (33,19) left onto (14,19).
+Each region reached by a scripted ladder hop + local navigate + local push,
+ordered so barriers open as needed.
+
+PLAN: implement `traverse_victory_road` as a region-spine:
+1. 1F: push (6-boulder) onto switch → barrier → up-stairs to 2F. [done/verified]
+2. 2F switch (2,19): local push (works).
+3. 2F switch (14,19): ladder up to 3F, cross 3F (mind its switch/boulders),
+   ladder down to (34,19), push (33,19) left. Re-plan per barrier state.
+4. Walk to the 2F R23-north exit (47-49,13) → Route 23 → Indigo → E4.
+Verify each leg headless on the floor fixtures; run live with GUI (added a
+[video] window-created log line to confirm the GUI actually opens).
