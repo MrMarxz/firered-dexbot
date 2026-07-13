@@ -967,3 +967,28 @@ REMAINING (well-scoped):
 - NOTE: cannot simulate a switch by set_event_var — setmetatile only runs on
   real press/map-reload, so the artificial-var tile stays a wall. Test by
   pressing for real (or reloading the map with the var set).
+
+## 2026-07-13 (cont.) — VR spine: 1F+B1 work live; B2/exit blocked by fixture + edge cases
+
+Live run of the explicit spine (GUI confirmed: "[video] window 'dexbot story'
+created"). Findings:
+- 1F→2F ride FAILED: live state sits ON the up-stairs (3,2); a stairs warp
+  fires on the STEP onto it, not while standing. `_vr_ride`'s nudge didn't
+  re-trigger it. → failure-recovery ran retry_heal, which flew the player to
+  PALLET_TOWN (money 35960 + party intact — NO whiteout). Restored 1F backup.
+- B2 push premise needs a FRESH 2F: in fixtures/m8_victory_road_2f the boulder
+  at (33,19) is NOT present (walked through row 19 freely; only (8,7),(6,17)
+  load) — that fixture was captured after (33,19) was already moved in a WIP
+  session. `_nearby_boulders` also counts items/trainers, not just boulders.
+  Confirmed the 3 real 2F StrengthBoulders are (8,7),(6,17),(33,19) (gfx=97,
+  EventScript_StrengthBoulder); (14,13)/(25,13) are item balls, (31,16) a
+  trainer.
+
+WHAT WORKS: var-door fix (doors open); 1F switch solve; B1 switch (2,19) solve
+(live, repeatedly). Spine phases + scene-var resume.
+
+NEXT: (1) spine 1F-start: if standing on the stairs, step DOWN off then walk
+back UP so the warp fires (or capture the live state one tile below the
+stairs). (2) capture a clean fresh-2F-entry fixture to verify the B2 push with
+boulder (33,19) actually present. (3) test the exit phase's 3F crossing
+((36,17)→3F(39,17)→(37,10)→(38,9)). (4) run live end-to-end.
