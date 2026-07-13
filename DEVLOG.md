@@ -1039,3 +1039,32 @@ LEFT). Then run traverse live from states/pre_vr_clean.ss1.
 Committed: clean-save infra, self-contained traverse, activate_strength bounded
 (no hang when Strength already active), wedge fix (step-off-ladder), var-name
 fix. Live state = clean pre-VR (dex 100, money 29912, party intact).
+
+## 2026-07-13 — VICTORY ROAD SOLVED (headless); live-mode nav hardening ongoing
+
+MILESTONE: the full VR boulder puzzle is SOLVED and verified END-TO-END HEADLESS
+3× from the clean pre-VR save (states/pre_vr_clean.ss1, dex 100 preserved):
+Vermilion → reach VR → Button 1 (1F 20,16) → Button 2 (2F 2,19) → Button 3
+(3F 7,7) → Button 4 (push 3F boulder (33,18) into Fall Warp (34,18) → drops to
+2F → push left onto (14,19)) → exit → ROUTE23 (18,30). vr_push "pressed" [14,19]
+confirmed. Solution is HAND-AUTHORED from Bulbapedia, reconciled to in-game
+coords (see _VR_BTN1..3 + btn4 in story.traverse_victory_road).
+
+Key mechanics discovered:
+- Cross ANY warp (ladder/Fall/Arrow) by navigate_to a tile PAST the landing
+  (target ROUTE23 18,30 not 18,28; 2F 34,20 not 34,19). [[navigate-wedges-on-warp-tile]]
+- (48,12) is a South Arrow Warp; (34,18) 3F is a Fall Warp (the "hole").
+- Boulder (33,19) only EXISTS on 2F after the 3F hole-drop (whole B2 mystery).
+
+LIVE-MODE FLAKINESS (headless is deterministic + reliable; --live is not):
+- "Route planning budget exceeded" on 1-tile moves during a push — a loaded
+  boulder splits the region into components so the warp planner searches for a
+  warp route to an adjacent tile and dies. FIX: _do_push uses navigate_same_level
+  (single-map), not the warp-route navigate_to.
+- Crash-resume mid-3F skips Button 3 (var=100) → Strength not re-armed → btn4
+  push no-ops → stall. FIX: btn4_drop activate=True (bounded).
+Both fixes applied; not yet live-verified (live runs ~15min + non-deterministic
+trainers/timing make each attempt costly). Headless remains green.
+
+RECOMMENDATION: capture the post-VR ROUTE23 state headless (reliable) → set live
+→ proceed to Elite Four; OR one more live attempt with the two fixes above.
