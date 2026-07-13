@@ -933,3 +933,37 @@ the window opens).
 
 Scope: real but bounded — ~3-4 switch-solves chained, reusing the push
 primitive + graph nav. Not a blind multi-floor sokoban search.
+
+## 2026-07-13 — Victory Road: ROOT-CAUSE FIXED (var-name typo) + full puzzle mapped
+
+BREAKTHROUGH: the reason NOTHING in VR routed all session — `_VAR_DOORS` used
+var names WITHOUT the `MAP_SCENE_` prefix ("VICTORY_ROAD_2F_BOULDER1" instead
+of "MAP_SCENE_VICTORY_ROAD_2F_BOULDER1"). `get_event_var` on the wrong name
+never returned 100, so `_flag_door_passable` returned False forever — every
+barrier stayed CLOSED to the pathfinder regardless of switch state. Fixed +
+graph rebuilt (committed). Verified: door(13,10) False→True at var=100;
+entrance→(14,19) routes once B1 pressed, →(36,17) ladder once B1+B2 pressed.
+
+FULL PUZZLE (definitive, ground-truthed):
+- 4 switches / 3 floors; each boulder-press runs a setmetatile that opens a
+  barrier PERMANENTLY. Dependency chain to the Route-23 exit (2F warps 47-49,13):
+  1. Switch (2,19)  [BOULDER1]: boulder (6,17), reachable from entrance. Opens
+     door (13,10)/(13,11) → unlocks (14,19).  [driver solves this live ✓]
+  2. Switch (14,19) [BOULDER2]: boulder (33,19) pushed LEFT 19 along row 19.
+     Push-position is (34,19) = the 3F ladder LANDING — you must come DOWN the
+     3F ladder (3F 34,18 → 2F 34,19) and push left on arrival. MULTI-FLOOR
+     COOPERATIVE step. Opens door (33,16)/(33,17) → unlocks (36,17) ladder.
+  3. (36,17) ladder → 3F(39,17) → walk to 3F(37,10) → 2F(38,9) → exit.
+     [3F switch (7,7) may gate the 3F crossing — TBD]
+
+REMAINING (well-scoped):
+- Flat `run_boulder_puzzle` can't do (14,19): picks manhattan-nearest boulder
+  (8,7), plans 36-push through-barrier scatter (its _access_grid ignores
+  var-doors), diverges 20×. Needs: (a) solver respects var-door barriers, and
+  (b) multi-floor push = navigate to ladder-landing (34,19) via 3F, then push
+  left. Best done as an explicit per-switch push spec, not the generic solver.
+- `_plan_via_graph` (navigation.py:448) infinite-loops (120s wedge) on some VR
+  route — separate perf/loop bug to fix.
+- NOTE: cannot simulate a switch by set_event_var — setmetatile only runs on
+  real press/map-reload, so the artificial-var tile stays a wall. Test by
+  pressing for real (or reloading the map with the var set).
