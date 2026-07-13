@@ -144,13 +144,17 @@ def _step(direction: str) -> Generator:
     return moved
 
 
-def run_boulder_puzzle(map_enum, switches, activate_boulder) -> Generator:
+def run_boulder_puzzle(map_enum, switches, activate_boulder=None) -> Generator:
     """Solve + execute a Strength-boulder puzzle, RE-SOLVING from live state
     whenever a step stalls (self-heals tape/reality divergence — boulder
-    physics timing makes a blind replay brittle). Activates Strength first."""
+    physics timing makes a blind replay brittle). Activates Strength first
+    (on `activate_boulder`, or the boulder nearest the player if None)."""
     from modules.player import get_player_avatar
 
     map_key = map_enum.value
+    if activate_boulder is None:
+        px, py = get_player_avatar().local_coordinates
+        activate_boulder = min(_live_boulders(map_key), key=lambda b: abs(b[0] - px) + abs(b[1] - py))
     yield from activate_strength(map_enum, activate_boulder)
 
     switch_set = set(switches)
