@@ -840,3 +840,31 @@ returns 3 legs. Once navigate_to executes the hole route, VR is traversed
 
 State: dex 100, 8 badges, live save SAFE at VR 2F entrance. Boulder solver
 (VR 1F verified) kept for Seafoam/Mt Ember legendaries + VR items.
+
+## 2026-07-12 (cont.) — CORRECTION: Victory Road boulders ARE mandatory
+
+Retracting the "boulders optional" note. Modeling the VR boulders as fixed
+obstacles (probe) made the graph return NO route from the 2F entrance to the
+R23-north exit — so the earlier "3-leg hole route" was a PHANTOM through
+distant unloaded boulder tiles (get_map_objects is range-limited; far
+boulders aren't obstacles to calculate_path from the entrance). The boulder
+puzzles are required to open the barriers. Probe reverted (it broke the
+solver's own walk onto vacated tiles); the barrier `_VAR_DOORS` fix is kept
+and correct.
+
+**Definitive state of the VR/E4 effort:**
+- VR 1F: solved & live-verified (single boulder → switch → barrier).
+- VR 2F: TWO switches; the auto-solver's one-boulder-per-switch (others
+  fixed) can place switch 1 (B1→100) but not switch 2 — this floor appears
+  to need COOPERATIVE multi-boulder maneuvering that the decomposition
+  can't express, and the full joint BFS is too large. This is the wall.
+- Barriers now visible to the pathfinder (var-doors), so once a switch is
+  pressed, routing past that barrier works.
+
+**Concrete next step (recommended): hand-authored push tapes** for VR 2F/3F
+(and Seafoam/Mt Ember) from a known-good walkthrough — a fixed directional
+sequence from a fixed entry tile, replayed raw (deterministic; no solver, no
+navigate_to, no object-range issues). This is the Silph-pad / Mansion-statue
+pattern and is the reliable path for these fixed cooperative puzzles.
+
+Live save SAFE at VR 2F entrance; dex 100, 8 badges; all committed.
