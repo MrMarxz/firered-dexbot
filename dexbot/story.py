@@ -2215,6 +2215,31 @@ def _vr_stand(map_enum, tile) -> Generator:
     yield from _walk_level(map_enum.value, tile)
 
 
+def _vr_fall_through(from_map_enum, warp_tile, dest_map_value) -> Generator:
+    """Step onto a Fall Warp tile (following a boulder we just pushed into it)
+    to drop to the floor below. Assumes we're at/adjacent to `warp_tile`; steps
+    toward it until the map changes to `dest_map_value`."""
+    from modules.context import context
+    from modules.player import get_player_avatar
+    from dexbot.runner import SkillError
+
+    def on_dest():
+        return tuple(get_player_avatar().map_group_and_number) == dest_map_value
+
+    for _ in range(60):
+        if on_dest():
+            return
+        px, py = get_player_avatar().local_coordinates
+        dx, dy = warp_tile[0] - px, warp_tile[1] - py
+        direction = "Right" if dx > 0 else "Left" if dx < 0 else "Down" if dy > 0 else "Up"
+        context.emulator.press_button(direction)
+        yield
+        for _ in range(4):
+            yield
+    if not on_dest():
+        raise SkillError(f"_vr_fall_through: did not drop to {dest_map_value} via {warp_tile}")
+
+
 def _vr_push_left_until(map_enum, boulder_xy, switch_xy, var_name) -> Generator:
     """Standing EAST of `boulder_xy`, ensure Strength is active, then shove the
     boulder LEFT until the switch var reads 100. Strength may already be active
@@ -2254,28 +2279,38 @@ def _vr_push_left_until(map_enum, boulder_xy, switch_xy, var_name) -> Generator:
         raise SkillError(f"_vr_push_left_until: {switch_xy} not pressed after 30 shoves")
 
 
-def traverse_victory_road() -> Generator:
-    """Traversal of Victory Road to the Route 23 exit. navigate_to rides ladders
-    fine as long as we don't PLAN from a ladder tile (that wedges the planner),
-    so _vr_goto/_vr_stand step off first. Skips phases already done (scene var
-    == 100) for clean crash-resume. Logs each phase.
+# Canonical Victory Road boulder pushes (Bulbapedia/StrategyWiki, reconciled to
+# in-game coords). Each: (boulder spawn, [(direction, tiles), ...]) → switch.
+_VR_BTN1 = ((7, 18), [("Down", 1), ("Right", 5), ("Up", 2), ("Right", 7), ("Up", 2), ("Right", 1), ("Down", 1)])
+_VR_BTN2 = ((6, 17), [("Left", 2), ("Down", 2), ("Left", 2)])
+_VR_BTN3 = ((32, 5), [("Up", 2), ("Left", 22), ("Down", 1), ("Left", 4), ("Down", 3), ("Right", 1)])
+# Button 4 is the hole drop: push boulder (33,18) RIGHT onto the 3F Fall Warp
+# (34,18); it drops to 2F (~(33,19)); follow it down; push it LEFT onto (14,19).
 
-    Route: 1F switch → up to 2F. 2F: press (2,19) [B1]. Stand at (34,19), shove
-    boulder (33,19) LEFT onto (14,19) [B2]. Then navigate_to the Route 23 exit
-    (the warp graph rides the east ladders once both barriers are open)."""
+
+def traverse_victory_road() -> Generator:
+    """Victory Road → Route 23 via the canonical 4-button boulder puzzle, each
+    push HAND-AUTHORED (the logic solver mis-models VR ledges/holes/spawns).
+    Buttons: 1F (20,16); 2F (2,19); 3F (7,7); then the hole-drop that presses
+    2F (14,19). Barriers (2,19)+(14,19) open the east-ladder route to the exit.
+    Phase-skips on scene var == 100 for crash-resume. navigate_to rides ladders
+    but wedges if planning from a ladder tile, so _vr_goto steps off first."""
     from modules.map_data import MapFRLG
     from modules.memory import get_event_var
     from modules.player import get_player_avatar
 
-    from dexbot.boulders import run_boulder_puzzle
+    from dexbot.boulders import push_boulder_sequence
     from dexbot.catching import ensure_healthy
     from dexbot.runner import _log_event
     from dexbot.team import make_lead
 
-    F1, F2 = MapFRLG.VICTORY_ROAD_1F, MapFRLG.VICTORY_ROAD_2F
+    F1, F2, F3 = MapFRLG.VICTORY_ROAD_1F, MapFRLG.VICTORY_ROAD_2F, MapFRLG.VICTORY_ROAD_3F
 
     def here():
         return tuple(get_player_avatar().map_group_and_number)
+
+    def var(n):
+        return get_event_var(n)
 
     def phase(name):
         av = get_player_avatar()
@@ -2286,36 +2321,56 @@ def traverse_victory_road() -> Generator:
     yield from ensure_healthy(minimum_fraction=0.8)
 
     # --- Reach Victory Road 1F if we're still out in Kanto ---
-    vr_maps = {F1.value, F2.value, MapFRLG.VICTORY_ROAD_3F.value}
-    if here() not in vr_maps:
+    if here() not in (F1.value, F2.value, F3.value):
         phase("reach_vr")
-        yield from navigate_to(F1, (11, 19))  # VR 1F entrance from Route 23
+        yield from navigate_to(F1, (11, 19))
 
-    # --- 1F: press switch (20,16), climb to 2F (navigate_to rides the ladder) ---
+    # --- Button 1 (1F switch 20,16), then climb to 2F ---
     if here() == F1.value:
-        phase("1f_start")
-        if get_event_var("MAP_SCENE_VICTORY_ROAD_1F") != 100:
-            yield from run_boulder_puzzle(F1, [(20, 16)])
+        phase("btn1")
+        if var("MAP_SCENE_VICTORY_ROAD_1F") != 100:
+            yield from push_boulder_sequence(F1, *_VR_BTN1)
         yield from _vr_goto(F2, (1, 9))
 
-    # --- 2F: press B1 switch (2,19) (boulder (6,17), reachable from entrance) ---
-    if here() == F2.value and get_event_var("MAP_SCENE_VICTORY_ROAD_2F_BOULDER1") != 100:
-        phase("b1_start")
-        yield from _vr_step_off_ladder()  # land tile (1,9) is a ladder → step off first
-        yield from run_boulder_puzzle(F2, [(2, 19)])
-        phase("b1_done")
-
-    # --- B2 switch (14,19): with pristine boulders, run_boulder_puzzle picks
-    #     boulder (33,19) and shoves it LEFT onto the switch. (Needs Strength
-    #     re-activated: a fresh 2F visit or after crossing floors.) ---
-    if here() == F2.value and get_event_var("MAP_SCENE_VICTORY_ROAD_2F_BOULDER2") != 100:
-        phase("b2_start")
+    # --- Button 2 (2F switch 2,19) ---
+    if here() == F2.value and var("MAP_SCENE_VICTORY_ROAD_2F_BOULDER1") != 100:
+        phase("btn2")
         yield from _vr_step_off_ladder()
-        yield from run_boulder_puzzle(F2, [(14, 19)])
-        phase("b2_done")
+        yield from push_boulder_sequence(F2, *_VR_BTN2)
+        phase("btn2_done")
 
-    # --- Exit: navigate to the Route 23 exit; the warp graph rides the east
-    #     ladders ((36,17)→3F→(37,10)→2F(38,9)) now that both barriers are open ---
+    # --- Button 3 (3F switch 7,7): go up a 2F east ladder, push (32,5) west.
+    #     Opens the 3F west barrier so 3F is freely traversable for Button 4. ---
+    if var("MAP_SCENE_VICTORY_ROAD_3F") != 100:
+        if here() == F2.value:
+            phase("btn3_to_3f")
+            yield from _vr_goto(F3, (34, 9))  # 2F(34,9) ladder → 3F(34,9)
+        if here() == F3.value:
+            phase("btn3")
+            yield from push_boulder_sequence(F3, *_VR_BTN3)
+            phase("btn3_done")
+
+    # --- Button 4 (hole drop → 2F switch 14,19) ---
+    if var("MAP_SCENE_VICTORY_ROAD_2F_BOULDER2") != 100:
+        if here() == F2.value:
+            phase("btn4_to_3f")
+            yield from _vr_goto(F3, (34, 9))
+        if here() == F3.value:
+            phase("btn4_drop")
+            # push boulder (33,18) RIGHT onto the (34,18) Fall Warp → it drops to
+            # 2F. Strength is already active from Button 3 (same 3F visit), so
+            # activate=False (re-activating wedges activate_strength's navigate).
+            yield from push_boulder_sequence(F3, (33, 18), [("Right", 1)], activate=False)
+            # follow the boulder down: step onto the Fall Warp (34,18)
+            yield from _vr_fall_through(F3, (34, 18), F2.value)
+        if here() == F2.value:
+            phase("btn4_push")
+            # the dropped boulder sits at ~(33,19); shove it LEFT onto (14,19)
+            yield from _vr_step_off_ladder()
+            yield from push_boulder_sequence(F2, (33, 19), [("Left", 19)])
+            phase("btn4_done")
+
+    # --- Exit: warp graph rides the east ladders to Route 23 (barriers now open) ---
     if here() == F2.value:
         phase("exit")
         yield from _vr_goto(MapFRLG.ROUTE_23, (18, 28))

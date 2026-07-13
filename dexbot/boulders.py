@@ -286,6 +286,28 @@ def _do_push(map_enum, boulder: tuple[int, int], direction: str) -> Generator:
         yield
 
 
+def push_boulder_sequence(map_enum, boulder_start, moves, activate=True) -> Generator:
+    """Execute an EXACT hand-authored push sequence (from the canonical
+    walkthrough) instead of searching. `moves` = [(direction, count), ...];
+    each unit shoves the tracked boulder one tile. Straight runs need no
+    repositioning (the player follows onto the boulder's old tile); at a
+    direction change _do_push walks the player behind the boulder for the new
+    direction. Returns the boulder's final tile.
+
+    This sidesteps the logic solver entirely — used for Victory Road, where the
+    pushes are known and the solver mis-models ledges/holes/spawn state."""
+    if activate:
+        yield from activate_strength(map_enum, boulder_start)
+    pos = tuple(boulder_start)
+    for direction, count in moves:
+        dx, dy = _DIR[direction]
+        for _ in range(count):
+            yield from _do_push(map_enum, pos, direction)
+            pos = (pos[0] + dx, pos[1] + dy)
+    _log_event(skill="push_sequence", status="done", map=str(map_enum.value), final=list(pos))
+    return pos
+
+
 def run_boulder_puzzle(map_enum, switches, activate_boulder=None, activate=True) -> Generator:
     """Solve + execute a Strength-boulder puzzle. Plan WHICH pushes with the
     sokoban solver; execute each by walking to the push tile via the game's
