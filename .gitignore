@@ -8,3 +8,17 @@ __pycache__/
 pokebot-gen3/
 vendor/
 .claude/
+
+# Emulator savestates + save files: derived from the copyrighted ROM, not redistributed.
+# Regenerate locally from your own ROM (see fixtures/README.md).
+*.ss1
+*.sav
+states/
+# Runtime/debug screenshots (game imagery)
+screenshots/
+fixtures/_stalls/
+# Verbatim Bulbapedia wiki text (CC-BY-NC-SA), not redistributed here.
+docs/bulbapedia/
+# Local editor / scratch dirs
+.cursor/
+.scratch/
