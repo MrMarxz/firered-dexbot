@@ -51,6 +51,13 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 os.environ.setdefault("DEXBOT_VIDEO", "0")
+# `claude -p` terminates a session whose BACKGROUND tasks (our seat sub-agents)
+# are still running after a default 600s ceiling — it prints "Background tasks
+# still running after 600s; terminating" and exits rc=0 with the event only
+# half-deliberated and NO log entry written. Seat B routinely exceeds 10min on
+# a repro-heavy stall, so the ceiling silently breaks the chain. 0 = wait
+# indefinitely; the operator Ctrl-Cs a wedged session (RUNBOOK Phase 1.2).
+os.environ.setdefault("CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS", "0")
 sys.path.insert(0, str(REPO))
 
 # Fields the LIVE _dump_stall records since dexbot-run's DRYRUN-003 commit
