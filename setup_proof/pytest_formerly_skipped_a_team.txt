@@ -1,0 +1,11 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\marku\OneDrive\Desktop\GIT\firered-dexbot\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\marku\OneDrive\Desktop\GIT\firered-dexbot
+collecting ... collected 3 items
+
+tests/test_a_team.py::test_enumerate_roster_reads_party_and_boxes PASSED [ 33%]
+tests/test_a_team.py::test_assemble_party_realizes_selection PASSED      [ 66%]
+tests/test_a_team_planner.py::test_planner_assembles_catch_team_not_solo PASSED [100%]
+
+============================== 3 passed in 6.77s ==============================

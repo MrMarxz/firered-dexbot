@@ -1,0 +1,22 @@
+The dry-run council event **DRYRUN-005 / stall_e** is complete. Summary of what I did and found:
+
+## Diagnosis
+This was a **BATTLE stall** (the first in the dry-run series — DRYRUN-001/002/003 were nav freezes, 004 a menu wedge) in **DIGLETTS_CAVE_B1F**. Loading the `.ss1` and reading battle RAM revealed:
+
+- Wild **Diglett L15, full HP, ability Arena Trap**; own lead **Snorlax L32 with no usable damaging move** (Headbutt 0 PP, Snore needs sleep).
+- The battle was pinned at `HandleTurnActionSelectionState` with controller callback `CompleteOnInactiveTextPrinter2` and the on-screen text **"Wild DIGLETT prevents escape with ARENA TRAP!"** pending.
+
+**Two chained code defects** (reproduced headlessly):
+1. **Proximate freeze (upstream):** `handle_battle_action_selection`'s `else: yield` branch (battle_action_selection.py:53-55) never presses a button, so the pending "prevents escape" message is never dismissed → silent 30k-frame spin. Confirmed: 20,000 buttonless frames stay pinned; a B-press clears it in ~60 frames. Strategy-independent — which is why the once-per-skill battle-rescue *and* both strategies all fail.
+2. **Trigger (dexbot):** `make_catch_decider` routes non-target wild encounters to bare upstream `RunAwayStrategy`, which blindly attempts a Run that Arena Trap permanently blocks. dexbot hardened its *catch/fight* strategies against "the Diglett Cave stall" but never this RunAway path.
+
+## Council outcome
+Three seats convened per protocol (one Codex thread, threadId recorded):
+- **Seat A** (claude-sonnet-5): two-defect classification, HIGH severity, bounded-but-recurring blast radius.
+- **Seat B** (claude-opus-4-8[1m] — the recorded §11 harness limitation): **PRIMARY** dexbot-local escape-aware flee strategy (resolves the event with a clean `BotModeError`, zero upstream edits) + **SECONDARY** separable upstream B-press. No Fable escalation.
+- **Seat C** (Codex GPT-5-class, cross-model gate satisfied): **PASS-WITH-CONCERNS**, with a valid §5 refutation (escape-item edge case) and a pret-decomp confirmation that a trap-blocked Run doesn't consume the turn.
+
+**Verdict: PASS-WITH-CONCERNS** on the written proposal.
+
+## Dry-run hygiene (all verified)
+Implemented nothing. Evidence `.ss1` byte-intact (md5 unchanged); `livingdex` profile dir removed (no `current_state.ss1` written); no telemetry/stall dumps; `git status` shows only the untracked `COUNCIL_LOG.dryrun.md`; STATE.md, COUNCIL_LOG.md, FINDINGS/DECISIONS/PARKED and the protocol files untouched. `Open event: none`. Event logged to `COUNCIL_LOG.dryrun.md` as DRYRUN-005.

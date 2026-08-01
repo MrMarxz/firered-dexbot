@@ -1,0 +1,63 @@
+{
+  "time": 1785538114.404,
+  "frame": 3129148,
+  "game_state": "OVERWORLD",
+  "game_started": true,
+  "player_name": "AA",
+  "money": 6446,
+  "map_group": 8,
+  "map_number": 0,
+  "coords": [
+    7,
+    4
+  ],
+  "facing": "Down",
+  "party": [
+    {
+      "species": "Blastoise",
+      "level": 48,
+      "hp": 142,
+      "max_hp": 142,
+      "status": "Healthy"
+    },
+    {
+      "species": "Paras",
+      "level": 10,
+      "hp": 28,
+      "max_hp": 28,
+      "status": "Healthy"
+    }
+  ],
+  "badges": {
+    "BADGE01_GET": true,
+    "BADGE02_GET": true,
+    "BADGE03_GET": true,
+    "BADGE04_GET": true,
+    "BADGE05_GET": false,
+    "BADGE06_GET": false,
+    "BADGE07_GET": false,
+    "BADGE08_GET": false
+  },
+  "flags": {
+    "SYS_POKEDEX_GET": true,
+    "BEAT_RIVAL_IN_OAKS_LAB": true,
+    "GOT_SS_TICKET": true,
+    "GOT_HM01": true,
+    "GOT_HM02": false,
+    "GOT_HM03": false,
+    "GOT_HM04": false,
+    "GOT_HM05": false,
+    "GOT_HM06": false,
+    "BADGE01_GET": true,
+    "BADGE02_GET": true,
+    "BADGE03_GET": true,
+    "BADGE04_GET": true,
+    "BADGE05_GET": false,
+    "BADGE06_GET": false,
+    "BADGE07_GET": false,
+    "BADGE08_GET": false
+  },
+  "dex_seen": 67,
+  "dex_owned": 30,
+  "in_battle": false
+}

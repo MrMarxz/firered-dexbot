@@ -1,0 +1,8 @@
+{
+  "rom_md5": "e26ee0d44e809351c8ce2d73c7400cdd",
+  "game": "Pok\u00e9mon FireRed (E)",
+  "frame_count": 818,
+  "callback2_symbol": "CB2_TITLESCREENRUN",
+  "gMain_address": "0x30030f0",
+  "gMain_first_16_bytes": "000000009d8b070800000000b58b0708"
+}

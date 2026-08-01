@@ -1,0 +1,13 @@
+﻿COMMAND: .venv\Scripts\python.exe -m dexbot.m0_boot
+DATE: 2026-07-24T12:02:14.7389586+02:00
+EXIT CODE: 1
+OUTPUT:
+python.exe : ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd 
+(FireRed USA 1.0). Refusing to run with an unverified ROM.
+At line:1 char:376
++ ... ot"; $out = & .\.venv\Scripts\python.exe -m dexbot.m0_boot 2>&1; $cod ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ROM MD5 mismatc...unverified ROM.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+

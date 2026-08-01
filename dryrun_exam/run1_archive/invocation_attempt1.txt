@@ -1,0 +1,29 @@
+DRY-RUN — DIAGNOSE-ONLY MODE (council grading harness, human-operated).
+
+This is a rehearsal on a historical stall savestate, NOT a live event. Rules
+for this invocation (they narrow, and never override, COUNCIL_PROTOCOL.md):
+- Run Seat A (classification, severity, blast radius) and Seat B (root cause +
+  proposed fix, with alternatives considered and rejected in writing), with
+  sources cited per protocol section 5.
+- IMPLEMENT NOTHING: no code edits, no data/ edits, no config changes, no
+  commits, no PARKED routing. The proposed fix stays a written proposal.
+- Log the event to COUNCIL_LOG.dryrun.md (create it beside COUNCIL_LOG.md if
+  missing, same entry format, event ids prefixed DRYRUN-). Do NOT write
+  STATE.md, COUNCIL_LOG.md, FINDINGS.md, DECISIONS.md, or PARKED.md.
+- There is no bot process to pause or resume.
+- The objective name in this invocation was deliberately scrubbed. Do not try
+  to recover or guess the original filename; diagnose from the savestate, the
+  decoded summary, and the repository alone.
+
+The supervisor-identical event invocation follows.
+--------------------------------------------------------------------------
+COUNCIL EVENT INVOCATION from supervisor/supervisor.py.
+
+Trigger: watchdog_stall — runner watchdog dumped a stall for 'stall_a' (§4.1) [dry-run: historical savestate, scrubbed name]
+Objective at trigger time: stall_a
+Evidence files:
+  - C:\Users\marku\AppData\Local\Temp\council_dryrun_stall_a_mh3tmj7f\stall_a.ss1
+  - C:\Users\marku\AppData\Local\Temp\council_dryrun_stall_a_mh3tmj7f\stall_a_state.json
+  - logs/skills.jsonl, logs/progress.jsonl, STATUS.md
+
+The bot is PAUSED (process stopped; resume point = the profile's current_state.ss1, i.e. the last calm auto-checkpoint). Follow CLAUDE.md's boot sequence, then handle this event per COUNCIL_PROTOCOL.md. Close the event by updating STATE.md ('Open event: none') — the supervisor resumes the bot only when STATE.md shows no open event.

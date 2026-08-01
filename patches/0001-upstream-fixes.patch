@@ -1,218 +1,499 @@
-modules/battle_action_selection.py   | 22 ++++++++++-
- modules/battle_handler.py            | 22 ++++++++++-
- modules/battle_move_replacing.py     |  6 +++
- modules/battle_strategies/default.py |  5 +++
- modules/map_path.py                  | 76 +++++++++++++++++++++++++++++++++++-
- modules/modes/util/items.py          |  2 +-
- 6 files changed, 127 insertions(+), 6 deletions(-)
-
---- Changes ---
-
-modules/battle_action_selection.py
-  @@ -171,11 +171,31 @@ def battle_action_use_item(battle_state: BattleState, item: Item, target_index:
-  +        from modules.pokemon_party import get_party_size
-  +
-  +        if in_battle_index >= get_party_size():
-  +            # The battle-party mapping can return a stale slot right after the
-  +            # party shrank (PC deposits); for item targeting fall back to the
-  +            # active battler's slot instead of crashing.
-  +            in_battle_index = 0
-           yield from scroll_to_party_menu_index(in_battle_index)
-           context.emulator.press_button("A")
-           yield
-  +        # Drive with slow A until the item is actually consumed (bag count
-  +        # drops), then hands-off: FRLG auto-returns to battle after the
-  +        # "restored" text (Task_ClosePartyMenuAfterText). A B-mash cancels the
-  +        # use (infinite potion loop); pressing past consumption double-uses.
-  +        from modules.items import get_item_bag
-  +
-  +        quantity_before = get_item_bag().quantity_of(item)
-  +        frame = 0
-           while get_game_state_symbol() != "BATTLEMAINCB2":
-  -            context.emulator.press_button("B")
-  +            frame += 1
-  +            consumed = get_item_bag().quantity_of(item) < quantity_before
-  +            if not consumed and frame % 32 == 16:
-  +                context.emulator.press_button("A")
-  +            elif consumed and frame > 1200 and frame % 128 == 0:
-  +                context.emulator.press_button("B")  # stray dialog fallback
-               yield
-   
-   
-  +21 -1
-
-modules/battle_handler.py
-  @@ -209,8 +209,15 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
-  -    if new_lead_index < 0 or new_lead_index >= get_party_size():
-  -        raise RuntimeError(f"Cannot send out party index #{new_lead_index} because that does not exist.")
-  +    if new_lead_index < 0 or new_lead_index >= get_party_size() or all(
-  +        p.is_egg or p.current_hp <= 0 for p in get_party()
-  +    ):
-  +        # No usable replacement (e.g. a solo party fainting): let the battle
-  +        # end in a whiteout instead of crashing on a bogus party index.
-  +        while battle_is_active():
-  +            context.emulator.press_button("B")
-  +            yield
-  +        return
-   
-       new_lead = get_party()[new_lead_index]
-       if new_lead.is_egg:
-  @@ -238,6 +245,17 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
-  +    # The battle-party mapping can produce a stale slot on a recently shrunk
-  +    # party; clamp to a real, usable party member rather than crashing.
-  +    if new_lead_index >= get_party_size():
-  +        fallback = next((i for i, p in enumerate(get_party()) if not p.is_egg and p.current_hp > 0), None)
-  +        if fallback is None:
-  +            while battle_is_active():
-  +                context.emulator.press_button("B")
-  +                yield
-  +            return
-  +        new_lead_index = fallback
-  +
-       yield from scroll_to_party_menu_index(new_lead_index)
-       while get_game_state() == GameState.PARTY_MENU:
-           context.emulator.press_button("A")
-  +20 -2
-
-modules/battle_move_replacing.py
-  @@ -104,6 +104,12 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
-  +            # The battle-party mapping can return a stale slot after the party
-  +            # shrank (e.g. PC deposits); clamp to a real member.
-  +            if party_index >= len(get_party()):
-  +                party_index = next(
-  +                    (i for i, p in enumerate(get_party()) if not p.is_egg), 0
-  +                )
-               pokemon = get_party()[party_index]
-               decision = strategy.which_move_should_be_replaced(pokemon, move_to_learn)
-   
-  +6 -0
-
-modules/battle_strategies/default.py
-  @@ -36,6 +36,11 @@ class DefaultBattleStrategy(BattleStrategy):
-  +        # A Pokémon with a free move slot can just learn into it.
-  +        for index, learned_move in enumerate(pokemon.moves):
-  +            if learned_move is None:
-  +                return index
-  +
-           move_choices = [*[move.move for move in pokemon.moves], new_move]
-   
-           # Get the effective power of each move
-  +5 -0
-
-modules/map_path.py
-  @@ -249,6 +249,51 @@ class PathMap:
-  +                elif tile.tile_type.startswith("Spin "):
-  +                    # FRLG spin arrows (Rocket Hideout, Viridian Gym): stepping
-  +                    # on slides you along the arrow chain until a non-spin tile.
-  +                    # Landing is approach-direction-independent.
-  +                    accessible_from_direction = [True, True, True, True]
-  +                    _spin_deltas = {
-  +                        "Spin Up": (0, -1),
-  +                        "Spin Down": (0, 1),
-  +                        "Spin Left": (-1, 0),
-  +                        "Spin Right": (1, 0),
-  +                    }
-  +                    # The slide continues across NORMAL tiles too — it ends
-  +                    # only on 'Stop Spinning', collision, or the map edge;
-  +                    # crossing another arrow changes the slide direction.
-  +                    destination = tile
-  +                    steps = 0
-  +                    slide_dx, slide_dy = _spin_deltas[tile.tile_type]
-  +                    _seen_spin = set()
-  +                    while steps < 64:
-  +                        state_key = (destination.local_position, (slide_dx, slide_dy))
-  +                        if state_key in _seen_spin:
-  +                            break  # arrow loop — give up where we are
-  +                        _seen_spin.add(state_key)
-  +                        if destination.tile_type in _spin_deltas:
-  +                            slide_dx, slide_dy = _spin_deltas[destination.tile_type]
-  +                        elif destination.tile_type == "Stop Spinning" and steps > 0:
-  +                            break
-  +                        elif steps > 0 and destination.tile_type not in _spin_deltas:
-  +                            # normal tile mid-slide: keep sliding same direction
-  +                            pass
-  +                        x, y = destination.local_position
-  +                        nx, ny = x + slide_dx, y + slide_dy
-  +                        if not (0 <= nx < map_data.map_size[0] and 0 <= ny < map_data.map_size[1]):
-  +                            break
-  +                        next_tile = all_tiles[tile_index(nx, ny)]
-  +                        if next_tile is None or next_tile.collision:
-  +                            break
-  +                        destination = next_tile
-  +                        steps += 1
-  +                    forced_movement_to = {
-  +                        Direction.North: (destination.map_group_and_number, destination.local_position, steps),
-  +                        Direction.East: (destination.map_group_and_number, destination.local_position, steps),
-  +                        Direction.South: (destination.map_group_and_number, destination.local_position, steps),
-  +                        Direction.West: (destination.map_group_and_number, destination.local_position, steps),
-  +                    }
-                   elif tile.tile_type == "Ice":
-                       accessible_from_direction = [True, True, True, True]
-                       forced_movement_to = {}
-  @@ -289,7 +334,7 @@ class PathMap:
-  -                        if tile.tile_type.endswith(" Arrow Warp"):
-  +                        if tile.tile_type.endswith(" Arrow Warp") or tile.tile_type.startswith("Stair Warp"):
-                               match tile.tile_type:
-                                   case "North Arrow Warp":
-                                       extra_warp_direction = Direction.North
-  @@ -299,6 +344,12 @@ class PathMap:
-  +                                # FRLG diagonal staircases: the warp fires when walking in the
-  +                                # stair's horizontal direction while standing on the tile.
-  +                                case "Stair Warp Up/Right" | "Stair Warp Down/Right":
-  +                                    extra_warp_direction = Direction.East
-  +                                case "Stair Warp Up/Left" | "Stair Warp Down/Left":
-  +                                    extra_warp_direction = Direction.West
-                           warps_to = (
-                               (destination.map_group, destination.map_number),
-                               destination.local_position,
-  @@ -373,12 +424,21 @@ class PathMap:
-  +        if context.rom.is_frlg:
-  +            # Rocket Hideout B1F: the map data marks x=20-21 rows 19-25 as an
-  +            # open north-south column, but the game blocks it (empirically
-  +            # verified — walking Down there never moves). Without this, the
-  +            # pathfinder routes through the phantom shortcut and the walker
-  +            # loops forever. "0x0" is a never-set flag => always blocked.
-  +            for _y in (19, 20):
-  +                blockers.append((MapFRLG.ROCKET_HIDEOUT_B1F, (20, _y), None))
-  +                blockers.append((MapFRLG.ROCKET_HIDEOUT_B1F, (21, _y), None))
-   
-           for blocker in blockers:
-               if (
-                   blocker[0].value == self.map_group_and_number
-                   and local_coordinates == blocker[1]
-  -                and not get_event_flag(blocker[2])
-  +                and (blocker[2] is None or not get_event_flag(blocker[2]))
-               ):
-                   return True
-   
-  @@ -625,6 +685,7 @@ def calculate_path(
-  +    max_nodes: int | None = None,
-   ) -> list[Waypoint]:
-       """
-       Attempts to calculate the best path from one tile to another.
-  @@ -815,7 +876,18 @@ def calculate_path(
-  +    expanded_nodes = 0
-       while not open_queue.empty():
-  +        # dexbot patch: a failed search otherwise exhausts the entire connected
-  +        # region (post-Snorlax Kanto is one huge level) — tens of seconds per
-  +        # call. Callers that only need a yes/no (reachability probes) pass a
-  +        # budget; pathfinding quality is unaffected for real paths, which
-  +        # expand far fewer nodes than the region size.
-  +        expanded_nodes += 1
-  +        if max_nodes is not None and expanded_nodes > max_nodes:
-  +            raise PathFindingError(
-  +                "Path search exceeded its node budget from (%SOURCE%) to (%DESTINATION%).", source, destination
-  +            )
-           node = open_queue.get()
-           tile = node.tile
-           coords = tile.global_coordinates
-  +74 -2
-
-modules/modes/util/items.py
-  @@ -193,7 +193,7 @@ def teach_hm_or_tm(hm_or_tm: Item, party_index: int, move_index_to_replace: int
-  -        elif learned_move.move.index == hm_or_tm.tm_hm_move_id:
-  +        elif learned_move is not None and learned_move.move.index == hm_or_tm.tm_hm_move_id:
-               raise BotModeError(f"{target.name} cannot learn move {learned_move.move.name} because it already knows it.")
-   
-       target_move: LearnedMove | None = target.moves[move_index_to_replace]
-  +1 -1
+diff --git a/modules/battle_action_selection.py b/modules/battle_action_selection.py
+index 36c61d8..a6e586f 100644
+--- a/modules/battle_action_selection.py
++++ b/modules/battle_action_selection.py
+@@ -96,6 +96,14 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
+                     raise RuntimeError(f"Cannot switch in {get_party()[index].name} because it is already in battle.")
+ 
+                 in_battle_index = battle_state.map_battle_party_index(index)
++                # After a mid-battle switch the internal battle-order array gets
++                # permuted into the 6-slot space, so map_battle_party_index can
++                # return a slot >= party size (e.g. 4 for a 4-mon party) — but the
++                # party MENU is displayed in regular order (cursor 0..size-1), so
++                # scrolling to that overflowed index can never land. Fall back to
++                # the regular party index, which the menu actually uses.
++                if in_battle_index >= get_party_size():
++                    in_battle_index = index
+ 
+                 yield from scroll_to_battle_action(2)
+                 # JP roms need a little delay
+@@ -161,21 +169,75 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
+ @debug.track
+ def battle_action_use_item(battle_state: BattleState, item: Item, target_index: int = 0):
+     yield from scroll_to_battle_action(1)
+-    context.emulator.press_button("A")
+-    yield
++    # open the bag and VERIFY it opened: a single unverified A press gets
++    # swallowed in some battle states, after which the blind bag-scrolling
++    # below spins forever on the still-closed action menu (deterministic
++    # "cursor frozen on BAG" stall).
++    frame = 0
++    while get_game_state_symbol() == "BATTLEMAINCB2":
++        if frame % 16 == 0:
++            context.emulator.press_button("A")
++        frame += 1
++        yield
++        if frame > 900:
++            break
++    for _ in range(10):
++        yield
+     yield from scroll_to_item_in_bag(item)
+     context.emulator.press_button("A")
+     for _ in range(4 if context.rom.is_rse else 5):
+         yield
+     context.emulator.press_button("A")
+     yield
++    # A STAT BOOSTER (X Attack/X Special/Guard Spec./X Accuracy/X Speed) applies to the mon
++    # that is already out and NEVER opens the party menu, so scrolling to a party index would
++    # wait forever on `while get_game_state() != PARTY_MENU` — an unbounded hang that took the
++    # X-item engine offline for a day (dexbot D020). Only items that pick a recipient (healing,
++    # PP) need the target step; the consume-verified drive loop below runs for BOTH, because
++    # without it an untargeted item just gets two blind A presses and leaves the bag list open
++    # (the original wedge). One guard, both callers.
++    needs_target = target_index is not None and item.battle_use != ItemBattleUse.StatIncrease
+     if target_index is not None:
+-        in_battle_index = battle_state.map_battle_party_index(target_index)
+-        yield from scroll_to_party_menu_index(in_battle_index)
+-        context.emulator.press_button("A")
+-        yield
++        if needs_target:
++            in_battle_index = battle_state.map_battle_party_index(target_index)
++            from modules.pokemon_party import get_party_size
++
++            if in_battle_index >= get_party_size():
++                # The battle-party mapping can return a stale slot right after the
++                # party shrank (PC deposits); for item targeting fall back to the
++                # active battler's slot instead of crashing.
++                in_battle_index = 0
++            yield from scroll_to_party_menu_index(in_battle_index)
++            context.emulator.press_button("A")
++            yield
++        # Drive with slow A until the item is actually consumed (bag count
++        # drops), then hands-off: FRLG auto-returns to battle after the
++        # "restored" text (Task_ClosePartyMenuAfterText). A B-mash cancels the
++        # use (infinite potion loop); pressing past consumption double-uses.
++        from modules.items import get_item_bag
++
++        quantity_before = get_item_bag().quantity_of(item)
++        frame = 0
+         while get_game_state_symbol() != "BATTLEMAINCB2":
+-            context.emulator.press_button("B")
++            frame += 1
++            consumed = get_item_bag().quantity_of(item) < quantity_before
++            if not consumed and frame % 32 == 16:
++                context.emulator.press_button("A")
++            elif consumed and item.battle_use == ItemBattleUse.StatIncrease and frame % 24 == 12:
++                # Stat boosters (X Attack/X Special/Guard Spec./...) print "<mon>'s SPECIAL
++                # rose!" and WAIT for A — B does not advance it, so the hands-off path below
++                # spun with the bag list still open until the caller's watchdog killed the
++                # battle (an X-item gym fight wedged in CB2_BAGMENURUN; 47 frames of A clears
++                # it). Healing items keep the hands-off behaviour on purpose: pressing A past
++                # a potion's consumption can double-use it.
++                context.emulator.press_button("A")
++            elif consumed and frame > 1200 and frame % 128 == 0:
++                context.emulator.press_button("B")  # stray dialog fallback
++            if frame > 3600:
++                # No unbounded in-battle wait: 60 s of an item that neither consumes nor
++                # returns to battle is a wedge, and a caller that sees the battle again can
++                # recover. Silent spinning cost a whole gym fight to a watchdog kill.
++                break
+             yield
+ 
+ 
+diff --git a/modules/battle_handler.py b/modules/battle_handler.py
+index 27fba9c..54bb994 100644
+--- a/modules/battle_handler.py
++++ b/modules/battle_handler.py
+@@ -209,8 +209,15 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
+         yield
+         return
+ 
+-    if new_lead_index < 0 or new_lead_index >= get_party_size():
+-        raise RuntimeError(f"Cannot send out party index #{new_lead_index} because that does not exist.")
++    if new_lead_index < 0 or new_lead_index >= get_party_size() or all(
++        p.is_egg or p.current_hp <= 0 for p in get_party()
++    ):
++        # No usable replacement (e.g. a solo party fainting): let the battle
++        # end in a whiteout instead of crashing on a bogus party index.
++        while battle_is_active():
++            context.emulator.press_button("B")
++            yield
++        return
+ 
+     new_lead = get_party()[new_lead_index]
+     if new_lead.is_egg:
+@@ -238,6 +245,17 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
+     if index_needs_mapping:
+         new_lead_index = battle_state.map_battle_party_index(new_lead_index)
+ 
++    # The battle-party mapping can produce a stale slot on a recently shrunk
++    # party; clamp to a real, usable party member rather than crashing.
++    if new_lead_index >= get_party_size():
++        fallback = next((i for i, p in enumerate(get_party()) if not p.is_egg and p.current_hp > 0), None)
++        if fallback is None:
++            while battle_is_active():
++                context.emulator.press_button("B")
++                yield
++            return
++        new_lead_index = fallback
++
+     yield from scroll_to_party_menu_index(new_lead_index)
+     while get_game_state() == GameState.PARTY_MENU:
+         context.emulator.press_button("A")
+diff --git a/modules/battle_move_replacing.py b/modules/battle_move_replacing.py
+index 451333a..d662069 100644
+--- a/modules/battle_move_replacing.py
++++ b/modules/battle_move_replacing.py
+@@ -104,6 +104,12 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
+                     party_index = read_symbol("gBattleStruct", 16, 1)[0]
+                 if context.rom.is_emerald or context.rom.is_frlg:
+                     party_index = get_battle_state().map_battle_party_index(party_index)
++            # The battle-party mapping can return a stale slot after the party
++            # shrank (e.g. PC deposits); clamp to a real member.
++            if party_index >= len(get_party()):
++                party_index = next(
++                    (i for i, p in enumerate(get_party()) if not p.is_egg), 0
++                )
+             pokemon = get_party()[party_index]
+             decision = strategy.which_move_should_be_replaced(pokemon, move_to_learn)
+ 
+diff --git a/modules/battle_strategies/default.py b/modules/battle_strategies/default.py
+index c77149f..dca5fb4 100644
+--- a/modules/battle_strategies/default.py
++++ b/modules/battle_strategies/default.py
+@@ -36,6 +36,11 @@ class DefaultBattleStrategy(BattleStrategy):
+             context.message = f"{new_move.name} is on the block list, so {pokemon.name} will skip learning it."
+             return 4
+ 
++        # A Pokémon with a free move slot can just learn into it.
++        for index, learned_move in enumerate(pokemon.moves):
++            if learned_move is None:
++                return index
++
+         move_choices = [*[move.move for move in pokemon.moves], new_move]
+ 
+         # Get the effective power of each move
+diff --git a/modules/map_data.py b/modules/map_data.py
+index 1b3fd82..ab5592c 100644
+--- a/modules/map_data.py
++++ b/modules/map_data.py
+@@ -1546,9 +1546,18 @@ class PokemonCenter(Enum):
+     Route10 = (MapFRLG.ROUTE10, (13, 20))
+     LavenderTown = (MapFRLG.LAVENDER_TOWN, (6, 5))
+     CeladonCity = (MapFRLG.CELADON_CITY, (48, 11))
+-    SaffronCity = (MapFRLG.SAFFRON_CITY, (24, 39))
++    # (24,38) is the actual door-warp mat (verified against the map's warp
++    # events); (24,39) was one tile south — standing there never warps, and
++    # Silph Co's exit deposits the player exactly on it, so every post-Silph
++    # heal resolved "interior" to Saffron outdoors and crashed on (7,4).
++    SaffronCity = (MapFRLG.SAFFRON_CITY, (24, 38))
+     FuchsiaCity = (MapFRLG.FUCHSIA_CITY, (25, 31))
+     CinnabarIsland = (MapFRLG.CINNABAR_ISLAND, (14, 11))
++    # Sevii Islands (door-warp mats verified against each center's exit warp).
++    OneIsland = (MapFRLG.ONE_ISLAND, (14, 5))
++    TwoIsland = (MapFRLG.TWO_ISLAND, (21, 7))
++    ThreeIsland = (MapFRLG.THREE_ISLAND, (14, 27))
++    FiveIsland = (MapFRLG.FIVE_ISLAND, (18, 6))
+ 
+     def __repr__(self) -> str:
+         return f"PokemonCenter.{self.name}"
+diff --git a/modules/map_path.py b/modules/map_path.py
+index 6135ac4..be28c8f 100644
+--- a/modules/map_path.py
++++ b/modules/map_path.py
+@@ -6,7 +6,7 @@ from typing import TypeAlias
+ from modules.context import context
+ from modules.map import MapLocation, get_map_all_tiles, get_map_data, get_map_objects
+ from modules.map_data import MapFRLG, MapRSE
+-from modules.memory import get_event_flag, get_event_flag_by_number, get_event_var_by_number
++from modules.memory import get_event_flag, get_event_flag_by_number, get_event_var, get_event_var_by_number
+ from modules.pokemon_party import get_party
+ 
+ LocationType: TypeAlias = MapLocation | tuple[tuple[int, int] | MapFRLG | MapRSE, tuple[int, int]]
+@@ -125,6 +125,40 @@ class PathMap:
+                         for direction in passable_directions.split("/"):
+                             dir = Direction[direction]
+                             accessible_from_direction[dir] = True
++                        # Ledges: entering a "Jump X" tile hops OVER it — the
++                        # player lands one tile past and can never stand on
++                        # the ledge itself. Without this, paths use ledge
++                        # tiles as standable corridor and the follower loops
++                        # forever (the waypoint is never reached). Model the
++                        # hop as forced movement so waypoints are LANDINGS.
++                        if tile.tile_type.startswith("Jump "):
++                            _jump_deltas = {
++                                Direction.North: (0, -1),
++                                Direction.South: (0, 1),
++                                Direction.East: (1, 0),
++                                Direction.West: (-1, 0),
++                            }
++                            forced_movement_to = {}
++                            for direction in passable_directions.split("/"):
++                                dir = Direction[direction]
++                                dx, dy = _jump_deltas[dir]
++                                lx = tile.local_position[0] + dx
++                                ly = tile.local_position[1] + dy
++                                if not (0 <= lx < map_data.map_size[0] and 0 <= ly < map_data.map_size[1]):
++                                    accessible_from_direction[dir] = False
++                                    continue
++                                landing = all_tiles[tile_index(lx, ly)]
++                                if landing is None or landing.collision:
++                                    # Blocked landing: the game refuses the hop.
++                                    accessible_from_direction[dir] = False
++                                    continue
++                                forced_movement_to[dir] = (
++                                    landing.map_group_and_number,
++                                    landing.local_position,
++                                    1,
++                                )
++                            if not forced_movement_to:
++                                forced_movement_to = None
+                 elif tile.tile_type.startswith("Impassable "):
+                     impassable_directions = tile.tile_type[11:].replace(" and ", "/").split("/")
+                     for direction in impassable_directions:
+@@ -249,6 +283,51 @@ class PathMap:
+                         Direction.South: (destination.map_group_and_number, destination.local_position, steps),
+                         Direction.West: (destination.map_group_and_number, destination.local_position, steps),
+                     }
++                elif tile.tile_type.startswith("Spin "):
++                    # FRLG spin arrows (Rocket Hideout, Viridian Gym): stepping
++                    # on slides you along the arrow chain until a non-spin tile.
++                    # Landing is approach-direction-independent.
++                    accessible_from_direction = [True, True, True, True]
++                    _spin_deltas = {
++                        "Spin Up": (0, -1),
++                        "Spin Down": (0, 1),
++                        "Spin Left": (-1, 0),
++                        "Spin Right": (1, 0),
++                    }
++                    # The slide continues across NORMAL tiles too — it ends
++                    # only on 'Stop Spinning', collision, or the map edge;
++                    # crossing another arrow changes the slide direction.
++                    destination = tile
++                    steps = 0
++                    slide_dx, slide_dy = _spin_deltas[tile.tile_type]
++                    _seen_spin = set()
++                    while steps < 64:
++                        state_key = (destination.local_position, (slide_dx, slide_dy))
++                        if state_key in _seen_spin:
++                            break  # arrow loop — give up where we are
++                        _seen_spin.add(state_key)
++                        if destination.tile_type in _spin_deltas:
++                            slide_dx, slide_dy = _spin_deltas[destination.tile_type]
++                        elif destination.tile_type == "Stop Spinning" and steps > 0:
++                            break
++                        elif steps > 0 and destination.tile_type not in _spin_deltas:
++                            # normal tile mid-slide: keep sliding same direction
++                            pass
++                        x, y = destination.local_position
++                        nx, ny = x + slide_dx, y + slide_dy
++                        if not (0 <= nx < map_data.map_size[0] and 0 <= ny < map_data.map_size[1]):
++                            break
++                        next_tile = all_tiles[tile_index(nx, ny)]
++                        if next_tile is None or next_tile.collision:
++                            break
++                        destination = next_tile
++                        steps += 1
++                    forced_movement_to = {
++                        Direction.North: (destination.map_group_and_number, destination.local_position, steps),
++                        Direction.East: (destination.map_group_and_number, destination.local_position, steps),
++                        Direction.South: (destination.map_group_and_number, destination.local_position, steps),
++                        Direction.West: (destination.map_group_and_number, destination.local_position, steps),
++                    }
+                 elif tile.tile_type == "Ice":
+                     accessible_from_direction = [True, True, True, True]
+                     forced_movement_to = {}
+@@ -289,7 +368,7 @@ class PathMap:
+                 if key in warp_cache:
+                     for destination in warp_cache[key]:
+                         extra_warp_direction = None
+-                        if tile.tile_type.endswith(" Arrow Warp"):
++                        if tile.tile_type.endswith(" Arrow Warp") or tile.tile_type.startswith("Stair Warp"):
+                             match tile.tile_type:
+                                 case "North Arrow Warp":
+                                     extra_warp_direction = Direction.North
+@@ -299,6 +378,12 @@ class PathMap:
+                                     extra_warp_direction = Direction.East
+                                 case "West Arrow Warp":
+                                     extra_warp_direction = Direction.West
++                                # FRLG diagonal staircases: the warp fires when walking in the
++                                # stair's horizontal direction while standing on the tile.
++                                case "Stair Warp Up/Right" | "Stair Warp Down/Right":
++                                    extra_warp_direction = Direction.East
++                                case "Stair Warp Up/Left" | "Stair Warp Down/Left":
++                                    extra_warp_direction = Direction.West
+                         warps_to = (
+                             (destination.map_group, destination.map_number),
+                             destination.local_position,
+@@ -373,12 +458,28 @@ class PathMap:
+                 (MapRSE.SHOAL_CAVE_LOW_TIDE_STAIRS_ROOM, (11, 11), "RECEIVED_SHOAL_SALT_3"),
+                 (MapRSE.SHOAL_CAVE_LOW_TIDE_LOWER_ROOM, (18, 2), "RECEIVED_SHOAL_SALT_4"),
+             ]
++        if context.rom.is_frlg:
++            # Rocket Hideout B1F: the map data marks x=20-21 rows 19-25 as an
++            # open north-south column, but the game blocks it (empirically
++            # verified — walking Down there never moves). Without this, the
++            # pathfinder routes through the phantom shortcut and the walker
++            # loops forever. "0x0" is a never-set flag => always blocked.
++            for _y in (19, 20):
++                blockers.append((MapFRLG.ROCKET_HIDEOUT_B1F, (20, _y), None))
++                blockers.append((MapFRLG.ROCKET_HIDEOUT_B1F, (21, _y), None))
++            # NOTE: no static VR Strength-boulder blockers here. They break
++            # run_boulder_puzzle (blocking a boulder tile makes the solver's
++            # navigation to push sites fail — "switch unsolvable"). The boulder
++            # solver tracks live positions itself; single-map walks toward a
++            # boulder tile stall harmlessly and re-plan. (The >120s VR planner
++            # wedge was NOT these — it was planning from a warp tile;
++            # story._vr_step_off_ladder handles that.)
+ 
+         for blocker in blockers:
+             if (
+                 blocker[0].value == self.map_group_and_number
+                 and local_coordinates == blocker[1]
+-                and not get_event_flag(blocker[2])
++                and (blocker[2] is None or not get_event_flag(blocker[2]))
+             ):
+                 return True
+ 
+@@ -387,6 +488,89 @@ class PathMap:
+ 
+ _maps: dict[str, dict[tuple[int, int], PathMap]] = {}
+ 
++# FRLG `setmetatile` door puzzles write the RAM map buffer, which the static
++# layout reads here never see. For these, passability is a pure function of an
++# event flag, so model it at path time. Tables derived from pret scripts
++# (pokemon_mansion.inc PressSwitch_*/ResetSwitch_*, CinnabarIsland_Gym
++# OpenDoor1-6); entry = tile -> (flag_name, passable_when_flag_set).
++_FLAG_DOORS: dict[tuple[int, int], dict[tuple[int, int], tuple[str, bool]]] = {
++    # Pokémon Mansion: one global switch toggled by the statues.
++    (1, 59): dict.fromkeys(
++        [(x, y) for x in (22, 23, 24) for y in (10, 11)]
++        + [(x, y) for x in (27, 28, 29, 32, 33, 34) for y in (25, 26)],
++        ("POKEMON_MANSION_SWITCH_STATE", True),
++    )
++    | dict.fromkeys([(x, y) for x in (31, 32, 33) for y in (18, 19)], ("POKEMON_MANSION_SWITCH_STATE", False)),
++    (1, 60): dict.fromkeys(
++        [(x, y) for x in (24, 25, 26) for y in (14, 15)] + [(10, 30), (10, 31), (10, 32)],
++        ("POKEMON_MANSION_SWITCH_STATE", True),
++    )
++    | dict.fromkeys([(12, y) for y in (6, 7, 8)], ("POKEMON_MANSION_SWITCH_STATE", False)),
++    (1, 61): dict.fromkeys(
++        [(x, y) for x in (17, 18, 19) for y in (11, 12)], ("POKEMON_MANSION_SWITCH_STATE", True)
++    )
++    | dict.fromkeys([(21, y) for y in (6, 7, 8)], ("POKEMON_MANSION_SWITCH_STATE", False)),
++    (1, 62): dict.fromkeys(
++        [(12, 10), (12, 11), (12, 12)] + [(x, y) for x in (20, 21, 22) for y in (22, 23)],
++        ("POKEMON_MANSION_SWITCH_STATE", True),
++    )
++    | dict.fromkeys(
++        [(x, y) for x in (33, 34, 35) for y in (20, 21)] + [(16, y) for y in (28, 29, 30)],
++        ("POKEMON_MANSION_SWITCH_STATE", False),
++    ),
++    # Cinnabar gym: each quiz flag opens its door permanently. Every tile
++    # the OpenDoorN script sets to collision 0 counts — the wall-band rows
++    # (y-2/y-1) are the actual walk-through gap, not just the floor row.
++    (12, 0): dict.fromkeys([(26, y) for y in (8, 9, 10)] + [(27, y) for y in (8, 9, 10)] + [(28, 10)],
++                           ("CINNABAR_GYM_QUIZ_1", True))
++    | dict.fromkeys([(17, y) for y in (8, 9, 10)] + [(18, y) for y in (8, 9, 10)] + [(19, 10)],
++                    ("CINNABAR_GYM_QUIZ_2", True))
++    | dict.fromkeys([(17, y) for y in (15, 16, 17)] + [(18, y) for y in (15, 16, 17)] + [(19, 17)],
++                    ("CINNABAR_GYM_QUIZ_3", True))
++    | dict.fromkeys([(11, 22), (11, 23)], ("CINNABAR_GYM_QUIZ_4", True))
++    | {(11, 21): ("CINNABAR_GYM_QUIZ_4", False)}
++    | dict.fromkeys([(5, y) for y in (16, 17, 18)] + [(6, y) for y in (16, 17, 18)] + [(7, 18)],
++                    ("CINNABAR_GYM_QUIZ_5", True))
++    | dict.fromkeys([(5, y) for y in (8, 9, 10)] + [(6, y) for y in (8, 9, 10)] + [(7, 10)],
++                    ("CINNABAR_GYM_QUIZ_6", True)),
++}
++
++
++# Victory Road Strength-boulder barriers: setmetatile RockBarrier walls
++# (invisible to the static layout, like the Mansion doors) that open — and
++# STAY open — when a boulder presses the floor switch (scene var → 100). Tile
++# -> (scene_var_name, value_that_means_OPEN). From pret VictoryRoad_*F scripts.
++_VAR_DOORS: dict[tuple[int, int], dict[tuple[int, int], tuple[str, int]]] = {
++    (1, 39): {(12, 14): ("MAP_SCENE_VICTORY_ROAD_1F", 100), (12, 15): ("MAP_SCENE_VICTORY_ROAD_1F", 100)},
++    (1, 40): {
++        (13, 10): ("MAP_SCENE_VICTORY_ROAD_2F_BOULDER1", 100),
++        (13, 11): ("MAP_SCENE_VICTORY_ROAD_2F_BOULDER1", 100),
++        (33, 16): ("MAP_SCENE_VICTORY_ROAD_2F_BOULDER2", 100),
++        (33, 17): ("MAP_SCENE_VICTORY_ROAD_2F_BOULDER2", 100),
++    },
++    (1, 41): {(12, 12): ("MAP_SCENE_VICTORY_ROAD_3F", 100), (12, 13): ("MAP_SCENE_VICTORY_ROAD_3F", 100)},
++}
++
++
++def _flag_door_passable(map_group_and_number: tuple[int, int], local_coordinates: tuple[int, int]) -> bool | None:
++    """True/False if this tile is a flag/var-conditioned door (passable right
++    now), None if it is not a door tile."""
++    if not context.rom.is_frlg:
++        return None
++    doors = _FLAG_DOORS.get(map_group_and_number)
++    if doors is not None:
++        entry = doors.get(local_coordinates)
++        if entry is not None:
++            flag_name, passable_when_set = entry
++            return get_event_flag(flag_name) == passable_when_set
++    var_doors = _VAR_DOORS.get(map_group_and_number)
++    if var_doors is not None:
++        entry = var_doors.get(local_coordinates)
++        if entry is not None:
++            var_name, open_value = entry
++            return get_event_var(var_name) == open_value
++    return None
++
+ 
+ def _get_connection_for_direction(map_data: MapLocation, direction: str) -> tuple[tuple[int, int], int] | None:
+     for connection in map_data.connections:
+@@ -625,6 +809,7 @@ def calculate_path(
+     no_surfing: bool = False,
+     has_acro_bike: bool = False,
+     has_mach_bike: bool = False,
++    max_nodes: int | None = None,
+ ) -> list[Waypoint]:
+     """
+     Attempts to calculate the best path from one tile to another.
+@@ -727,6 +912,11 @@ def calculate_path(
+         )
+ 
+     def is_tile_accessible(tile: PathTile, from_direction: Direction, from_elevation: int) -> bool:
++        door = _flag_door_passable(tile.map.map_group_and_number, tile.local_coordinates)
++        if door is not None:
++            # Static collision/accessibility is meaningless for switch doors;
++            # an open door is plain floor (but still respect live objects).
++            return door and tile.global_coordinates not in blocked_coordinates
+         if tile.waterfall_to is not None and from_direction is Direction.North and can_waterfall():
+             return True
+         elif tile.waterfall_to is not None and from_direction is Direction.South:
+@@ -815,7 +1005,18 @@ def calculate_path(
+     open_queue: PriorityQueue[PathNode] = PriorityQueue()
+     open_queue.put(PathNode(source_tile, source_tile.elevation, None, None, 0, cost_heuristic(source_tile)))
+ 
++    expanded_nodes = 0
+     while not open_queue.empty():
++        # dexbot patch: a failed search otherwise exhausts the entire connected
++        # region (post-Snorlax Kanto is one huge level) — tens of seconds per
++        # call. Callers that only need a yes/no (reachability probes) pass a
++        # budget; pathfinding quality is unaffected for real paths, which
++        # expand far fewer nodes than the region size.
++        expanded_nodes += 1
++        if max_nodes is not None and expanded_nodes > max_nodes:
++            raise PathFindingError(
++                "Path search exceeded its node budget from (%SOURCE%) to (%DESTINATION%).", source, destination
++            )
+         node = open_queue.get()
+         tile = node.tile
+         coords = tile.global_coordinates
+diff --git a/modules/modes/util/items.py b/modules/modes/util/items.py
+index a61ee51..624f081 100644
+--- a/modules/modes/util/items.py
++++ b/modules/modes/util/items.py
+@@ -193,7 +193,7 @@ def teach_hm_or_tm(hm_or_tm: Item, party_index: int, move_index_to_replace: int
+                 raise BotModeError(
+                     f"{target.name} cannot forget move #{move_index_to_replace} ({learned_move.move.name}) because it is an HM move."
+                 )
+-        elif learned_move.move.index == hm_or_tm.tm_hm_move_id:
++        elif learned_move is not None and learned_move.move.index == hm_or_tm.tm_hm_move_id:
+             raise BotModeError(f"{target.name} cannot learn move {learned_move.move.name} because it already knows it.")
+ 
+     target_move: LearnedMove | None = target.moves[move_index_to_replace]

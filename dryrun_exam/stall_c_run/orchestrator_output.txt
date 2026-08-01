@@ -1,0 +1,20 @@
+The dry-run council event **DRYRUN-003** is closed. Summary:
+
+## Event outcome
+
+**Trigger:** watchdog_stall (§4.1) — 30k-frame silent overworld freeze at `ROCKET_HIDEOUT_B1F (21,18)` facing Down, mid-`clear_rocket_hideout` (Lift Key held, Silph Scope pending).
+
+**Verdict: PASS-WITH-CONCERNS** on the written proposal (3/6 exchanges, no verdict disagreement, dissent none).
+
+**The three seats:**
+- **Seat A** (claude-sonnet-5, MATCH): **CODE DEFECT (navigation/control-flow) with an irreducible observation gap.** Not a spin-maze (B1F has zero spin tiles), not a geometric trap (only the barrier-blocked Down has no path). The exact wedge is **unrecoverable from the artifact**.
+- **Seat B** (claude-opus-4-8[1m] — §11 harness-limitation violation disclosed: claude-opus-5 doesn't exist in this harness): declined a false-precision point-fix. **Primary fix = enrich `_dump_stall`** with `controller_stack` qualnames + held-buttons (`is_button_held`, libmgba.py:485) + a nav-intent global — non-behavioral, closes the diagnostic gap. Subordinate per-leg no-progress guard staged as replay-gated follow-up. 4 alternatives rejected in writing.
+- **Seat C** (Codex GPT-5 — cross-model gate satisfied; threadId `019fbaa9…`): verified citations, refuted Seat B's "75×" raw-navigate count (~35 call sites actual), confirmed the observability change is soundly PASS-able independently of the guard, and confirmed Seat A's "unrecoverable from artifact" is a legitimate terminal conclusion, not a cop-out.
+
+**What I established via sandboxed headless repro (the decisive evidence):** every forward drive from the dump either escapes or fast-fails — the 30k freeze does **not** reconstruct from the `.ss1`, because it restores game memory only, not the live Python controller/held-button/generator state.
+
+**State / integrity:**
+- Logged to `COUNCIL_LOG.dryrun.md` (DRYRUN-003) only.
+- No writes to STATE.md / COUNCIL_LOG.md / FINDINGS.md / DECISIONS.md / PARKED.md (dry-run do-not-write list honored). STATE.md still reads `Open event: none` — no bot to resume.
+- Evidence `stall_c.ss1` byte-intact (md5 unchanged); `livingdex` profile dir created-then-removed; no telemetry/stall-dump writes; `git status` shows only the untracked dry-run log.
+- Saved memory `stall-ss1-omits-controller-state` for future council events.

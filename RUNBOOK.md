@@ -21,9 +21,9 @@ Operator: the human. After Phase 4 below, the human's job is to watch, not touch
    string and re-test.
 3. Codex: `codex` responds signed-in; `~/.codex/config.toml` still pins the intended
    GPT-5-class model; spend caps set on BOTH provider accounts. Record the cap values
-   here: Anthropic ____ / OpenAI ____.
-4. Windows: updates paused (date recorded: ____), power plan never sleeps, automatic
-   restart disabled. UPS status recorded honestly: ____.
+   here: Anthropic seat-limited / OpenAI seat-limited.
+4. Windows: updates paused (date recorded: 8/1/2026), power plan never sleeps, automatic
+   restart disabled. UPS status recorded honestly: laptop battery + wifi on UPS.
 5. Protocol §4.5 amended to the non-blocking strategic review (human edit, committed).
 6. Backup: `git bundle create ..\dexbot-run-prelaunch.bundle --all` inside dexbot-run,
    plus a plain zip of the folder. Cheap insurance before an autonomous agent gets

@@ -1,0 +1,13 @@
+DRYRUN-006 is complete and closed. Everything is clean.
+
+## Summary — DRYRUN-006 (`stall_f`), diagnose-only
+
+**Stall identified:** A silent 30k-frame OVERWORLD freeze on **Victory Road 3F (33,19)**, mid Strength-boulder puzzle. Unlike the DRYRUN-001/002/003 nav freezes, this one is **fully reconstructible from the `.ss1`** — the wedge is an undismissed field-script message box (`EventScript_AlreadyUsedStrength` / *"STRENGTH made it possible to move boulders around."*) living in game RAM, which I reproduced deterministically.
+
+**Root cause (CODE DEFECT, HIGH, defect-class):** `dexbot/boulders.py:activate_strength` (and its verbatim twin `story.py:_vr_push_left_until`) press A on a boulder and then unconditionally call `wait_for_yes_no_question("Yes")` — an unbounded `while True` that only exits on a Yes/No task. When `SYS_USE_STRENGTH` is already set, the A-press yields a plain `Std_MsgboxSign` that spawns *no* Yes/No task → structurally non-terminating loop → watchdog dump. The demonstrated (33,18) instance is guarded in the current mainline (`btn4_drop` uses `activate=False` with a comment documenting the hang), but the class is live at btn1/2/3 and both `run_boulder_puzzle` sites.
+
+**Proposed fix (written only):** a flag-gated, bounded, non-navigating `confirm_strength_if_prompted()` helper — early-return on `get_event_flag("SYS_USE_STRENGTH")` (the game's own per-map branch predicate), else answer a real prompt within a 120-frame budget — with `activate_strength` and `_vr_push_left_until` collapsed onto it. No Fable escalation; baseline 74/2 expected unchanged.
+
+**Council:** Seat A `claude-sonnet-5` (MATCH) · Seat B `claude-opus-4-8[1m]` (disclosed §3 violation — `claude-opus-5` absent from harness) · Seat C Codex GPT-5-class (cross-model gate satisfied, thread `019fbb08-…`). 3/6 exchanges. **Verdict: PASS-WITH-CONCERNS** — Codex verified every load-bearing citation and independently confirmed Seat B's per-map-flag correction from pret sources; sole concern was an under-cited (but correct) citation trail.
+
+**Integrity:** entry appended to `COUNCIL_LOG.dryrun.md` (event `DRYRUN-006`); STATE.md/COUNCIL_LOG.md/FINDINGS/DECISIONS/PARKED untouched; `Open event: none`; evidence `stall_f.ss1` byte-intact (md5 unchanged); `livingdex` profile created-and-removed (no `current_state.ss1` written); no stray telemetry; `git status` shows only the untracked dryrun log. Nothing implemented, per dry-run rules.

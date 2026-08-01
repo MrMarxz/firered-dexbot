@@ -1,0 +1,40 @@
+tests/test_m9_llm_planner.py::test_garbage_falls_back_to_queue_head[] PASSED [ 92%]
+tests/test_m9_llm_planner.py::test_garbage_falls_back_to_queue_head[{broken json] PASSED [ 93%]
+tests/test_m9_llm_planner.py::test_llm_exception_falls_back PASSED       [ 94%]
+tests/test_m9_llm_planner.py::test_failure_boundary_valid_choice_is_used PASSED [ 96%]
+tests/test_m9_llm_planner.py::test_failure_boundary_garbage_defers PASSED [ 97%]
+tests/test_m9_llm_planner.py::test_failure_boundary_disabled_defers PASSED [ 98%]
+tests/test_m9_llm_planner.py::test_failure_context_reaches_the_model PASSED [100%]
+
+================================== FAILURES ===================================
+_________________ test_planner_queue_covers_pre_brock_species _________________
+tests\test_m6_planner.py:28: in test_planner_queue_covers_pre_brock_species
+    assert {species for species, *_ in queue} == PRE_BROCK_SPECIES
+E   AssertionError: assert {'Caterpie', ...Pikachu', ...} == {'Caterpie', ...Pikachu', ...}
+E     
+E     Extra items in the left set:
+E     'Psyduck'
+E     
+E     Full diff:
+E       {
+E           'Caterpie',...
+E     
+E     ...Full output truncated (10 lines hidden), use '-vv' to show
+_________________________ test_pre_brock_dex_complete _________________________
+tests\test_m6_planner.py:46: in test_pre_brock_dex_complete
+    assert missing_catchable() == []  # queue is drained
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: assert [('Psyduck', ...11]}, 'surf')] == []
+E     
+E     Left contains one more item: ('Psyduck', (3, 41), 100, {'requires': [], 'safe_tile': [38, 11]}, 'surf')
+E     
+E     Full diff:
+E     - []
+E     + [
+E     +     (...
+E     
+E     ...Full output truncated (16 lines hidden), use '-vv' to show
+=========================== short test summary info ===========================
+FAILED tests/test_m6_planner.py::test_planner_queue_covers_pre_brock_species
+FAILED tests/test_m6_planner.py::test_pre_brock_dex_complete - AssertionError...
+======================== 2 failed, 74 passed in 43.86s ========================

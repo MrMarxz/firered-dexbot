@@ -1,0 +1,80 @@
+tests/test_c_catch_action.py::test_playbook_derivation_from_kb PASSED    [ 39%]
+tests/test_m0_boot.py::test_title_screen_fixture PASSED                  [ 40%]
+tests/test_m1_telemetry.py::test_telemetry_log_matches_known_state PASSED [ 42%]
+tests/test_m2_kb.py::test_pikachu_in_viridian_forest PASSED              [ 43%]
+tests/test_m2_kb.py::test_abra_rates_on_route_24 PASSED                  [ 44%]
+tests/test_m2_kb.py::test_route_4_surf_and_fishing_present PASSED        [ 46%]
+tests/test_m2_kb.py::test_brocks_party PASSED                            [ 47%]
+tests/test_m2_kb.py::test_tmhm_moves PASSED                              [ 48%]
+tests/test_m2_kb.py::test_species_data_squirtle_line PASSED              [ 50%]
+tests/test_m2_kb.py::test_dependency_graph_is_acyclic_and_closed PASSED  [ 51%]
+tests/test_m3_navigation.py::test_navigate_pallet_town_to_viridian_mart PASSED [ 52%]
+tests/test_m3_navigation.py::test_navigate_bedroom_to_oaks_lab PASSED    [ 53%]
+tests/test_m3_navigation.py::test_plan_cross_region_via_nav_graph PASSED [ 55%]
+tests/test_m4_openings.py::test_post_opening_state PASSED                [ 56%]
+tests/test_m5_catching.py::test_five_species_caught PASSED               [ 57%]
+tests/test_m5_catching.py::test_kb_best_encounter_map PASSED             [ 59%]
+tests/test_m6_planner.py::test_planner_queue_covers_pre_brock_species FAILED [ 60%]
+tests/test_m6_planner.py::test_pre_brock_dex_complete FAILED             [ 61%]
+tests/test_m7_blaine.py::test_blaine_defeated PASSED                     [ 63%]
+tests/test_m7_bridge.py::test_nugget_bridge_cleared PASSED               [ 64%]
+tests/test_m7_erika.py::test_erika_defeated PASSED                       [ 65%]
+tests/test_m7_giovanni.py::test_giovanni_defeated PASSED                 [ 67%]
+tests/test_m7_gyms.py::test_brock_defeated PASSED                        [ 68%]
+tests/test_m7_gyms.py::test_badge_unlocks_more_maps PASSED               [ 69%]
+tests/test_m7_hm_cut.py::test_hm_cut_obtained_and_taught PASSED          [ 71%]
+tests/test_m7_koga.py::test_koga_defeated PASSED                         [ 72%]
+tests/test_m7_misty.py::test_misty_defeated PASSED                       [ 73%]
+tests/test_m7_sabrina.py::test_sabrina_defeated PASSED                   [ 75%]
+tests/test_m7_ss_ticket.py::test_ss_ticket_obtained PASSED               [ 76%]
+tests/test_m7_surge.py::test_surge_defeated PASSED                       [ 77%]
+tests/test_m7_sweep.py::test_sweep_progress PASSED                       [ 78%]
+tests/test_m7_sweep.py::test_post_surge_sweep_progress PASSED            [ 80%]
+tests/test_m7_sweep.py::test_west_sweep_progress PASSED                  [ 81%]
+tests/test_m7_sweep.py::test_rock_tunnel_sweep_progress PASSED           [ 82%]
+tests/test_m8_secret_key.py::test_secret_key_obtained PASSED             [ 84%]
+tests/test_m9_llm_planner.py::test_disabled_uses_queue_head PASSED       [ 85%]
+tests/test_m9_llm_planner.py::test_valid_response_is_used PASSED         [ 86%]
+tests/test_m9_llm_planner.py::test_garbage_falls_back_to_queue_head[I think you should catch Mewtwo!] PASSED [ 88%]
+tests/test_m9_llm_planner.py::test_garbage_falls_back_to_queue_head[{"objective": "catch_Mewtwo", "rationale": "hallucinated"}] PASSED [ 89%]
+tests/test_m9_llm_planner.py::test_garbage_falls_back_to_queue_head[{"wrong_key": true}] PASSED [ 90%]
+tests/test_m9_llm_planner.py::test_garbage_falls_back_to_queue_head[] PASSED [ 92%]
+tests/test_m9_llm_planner.py::test_garbage_falls_back_to_queue_head[{broken json] PASSED [ 93%]
+tests/test_m9_llm_planner.py::test_llm_exception_falls_back PASSED       [ 94%]
+tests/test_m9_llm_planner.py::test_failure_boundary_valid_choice_is_used PASSED [ 96%]
+tests/test_m9_llm_planner.py::test_failure_boundary_garbage_defers PASSED [ 97%]
+tests/test_m9_llm_planner.py::test_failure_boundary_disabled_defers PASSED [ 98%]
+tests/test_m9_llm_planner.py::test_failure_context_reaches_the_model PASSED [100%]
+
+================================== FAILURES ===================================
+_________________ test_planner_queue_covers_pre_brock_species _________________
+tests\test_m6_planner.py:28: in test_planner_queue_covers_pre_brock_species
+    assert {species for species, *_ in queue} == PRE_BROCK_SPECIES
+E   AssertionError: assert {'Caterpie', ...Pikachu', ...} == {'Caterpie', ...Pikachu', ...}
+E     
+E     Extra items in the left set:
+E     'Psyduck'
+E     
+E     Full diff:
+E       {
+E           'Caterpie',...
+E     
+E     ...Full output truncated (10 lines hidden), use '-vv' to show
+_________________________ test_pre_brock_dex_complete _________________________
+tests\test_m6_planner.py:46: in test_pre_brock_dex_complete
+    assert missing_catchable() == []  # queue is drained
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: assert [('Psyduck', ...11]}, 'surf')] == []
+E     
+E     Left contains one more item: ('Psyduck', (3, 41), 100, {'requires': [], 'safe_tile': [38, 11]}, 'surf')
+E     
+E     Full diff:
+E     - []
+E     + [
+E     +     (...
+E     
+E     ...Full output truncated (16 lines hidden), use '-vv' to show
+=========================== short test summary info ===========================
+FAILED tests/test_m6_planner.py::test_planner_queue_covers_pre_brock_species
+FAILED tests/test_m6_planner.py::test_pre_brock_dex_complete - AssertionError...
+======================== 2 failed, 74 passed in 46.14s ========================

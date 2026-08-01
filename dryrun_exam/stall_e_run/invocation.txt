@@ -1,0 +1,50 @@
+DRY-RUN — DIAGNOSE-ONLY MODE (council grading harness, human-operated).
+
+This is a rehearsal on a historical stall savestate, NOT a live event. Rules
+for this invocation (they narrow, and never override, COUNCIL_PROTOCOL.md):
+- Convene ALL THREE seats per protocol: Seat A (classification, severity,
+  blast radius), Seat B (root cause + proposed fix, with alternatives
+  considered and rejected in writing), and Seat C (Codex over MCP — ONE
+  thread for the whole event, threadId recorded in the log entry, the
+  continuation tool for every subsequent turn), with sources cited per
+  protocol section 5.
+- Seat model discipline (protocol sections 3 and 11): spawn each Claude seat
+  passing the model EXPLICITLY as the full ID from the section 3 table —
+  Seat A claude-sonnet-5, Seat B claude-opus-5 (default) — never a bare
+  alias like "opus" (aliases have resolved to non-section-3 models in this
+  harness). If the spawn interface rejects a full ID, use the closest alias,
+  then check the sub-agent's self-reported model against section 3 and treat
+  a mismatch as section 11 requires: redo with correct occupancy, or, if no
+  spawn parameter can produce the section-3 model, record the violation
+  prominently in the Model check lines.
+- IMPLEMENT NOTHING: no code edits, no data/ edits, no config changes, no
+  commits, no PARKED routing. The proposed fix stays a written proposal.
+  Because nothing is implemented, section 9's replay/regression evidence
+  gate is inapplicable: Seat C instead judges the WRITTEN PROPOSAL —
+  classification soundness, citation quality (section 5), diagnosis-to-fix
+  coherence, alternatives — and renders PASS / FAIL / PASS-WITH-CONCERNS on
+  the proposal. The section 3 cross-model gate applies to this judgment.
+- Diagnostic reproductions (headless) are allowed, but leave the repository
+  AND the emulator profile state exactly as found; if a tool writes anywhere
+  (e.g. pokebot-gen3/profiles/), restore it and disclose the side effect in
+  the log entry.
+- Log the event to COUNCIL_LOG.dryrun.md (create it beside COUNCIL_LOG.md if
+  missing, same entry format, event ids prefixed DRYRUN-). Do NOT write
+  STATE.md, COUNCIL_LOG.md, FINDINGS.md, DECISIONS.md, or PARKED.md.
+- There is no bot process to pause or resume.
+- The objective name in this invocation was deliberately scrubbed. Do not try
+  to recover or guess the original filename; diagnose from the savestate, the
+  decoded summary, and the repository alone.
+
+The supervisor-identical event invocation follows.
+--------------------------------------------------------------------------
+COUNCIL EVENT INVOCATION from supervisor/supervisor.py.
+
+Trigger: watchdog_stall — runner watchdog dumped a stall for 'stall_e' (§4.1) [dry-run: historical savestate, scrubbed name]
+Objective at trigger time: stall_e
+Evidence files:
+  - C:\Users\marku\AppData\Local\Temp\council_dryrun_stall_e_btqmn2aa\stall_e.ss1
+  - C:\Users\marku\AppData\Local\Temp\council_dryrun_stall_e_btqmn2aa\stall_e_state.json
+  - logs/skills.jsonl, logs/progress.jsonl, STATUS.md
+
+The bot is PAUSED (process stopped; resume point = the profile's current_state.ss1, i.e. the last calm auto-checkpoint). Follow CLAUDE.md's boot sequence, then handle this event per COUNCIL_PROTOCOL.md. Close the event by updating STATE.md ('Open event: none') — the supervisor resumes the bot only when STATE.md shows no open event.

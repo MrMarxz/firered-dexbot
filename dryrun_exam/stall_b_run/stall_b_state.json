@@ -1,0 +1,91 @@
+{
+  "time": 1785539679.631,
+  "frame": 1583519,
+  "game_state": "OVERWORLD",
+  "game_started": true,
+  "player_name": "AA",
+  "money": 136,
+  "map_group": 3,
+  "map_number": 5,
+  "coords": [
+    20,
+    24
+  ],
+  "facing": "Left",
+  "party": [
+    {
+      "species": "Blastoise",
+      "level": 100,
+      "hp": 286,
+      "max_hp": 286,
+      "status": "Healthy"
+    },
+    {
+      "species": "Jynx",
+      "level": 20,
+      "hp": 59,
+      "max_hp": 59,
+      "status": "Healthy"
+    },
+    {
+      "species": "Zapdos",
+      "level": 82,
+      "hp": 251,
+      "max_hp": 251,
+      "status": "Healthy"
+    },
+    {
+      "species": "Mewtwo",
+      "level": 92,
+      "hp": 328,
+      "max_hp": 328,
+      "status": "Healthy"
+    },
+    {
+      "species": "Porygon",
+      "level": 26,
+      "hp": 77,
+      "max_hp": 77,
+      "status": "Healthy"
+    },
+    {
+      "species": "Koffing",
+      "level": 28,
+      "hp": 64,
+      "max_hp": 64,
+      "status": "Healthy"
+    }
+  ],
+  "badges": {
+    "BADGE01_GET": true,
+    "BADGE02_GET": true,
+    "BADGE03_GET": true,
+    "BADGE04_GET": true,
+    "BADGE05_GET": true,
+    "BADGE06_GET": true,
+    "BADGE07_GET": true,
+    "BADGE08_GET": true
+  },
+  "flags": {
+    "SYS_POKEDEX_GET": true,
+    "BEAT_RIVAL_IN_OAKS_LAB": true,
+    "GOT_SS_TICKET": true,
+    "GOT_HM01": true,
+    "GOT_HM02": true,
+    "GOT_HM03": true,
+    "GOT_HM04": true,
+    "GOT_HM05": false,
+    "GOT_HM06": true,
+    "BADGE01_GET": true,
+    "BADGE02_GET": true,
+    "BADGE03_GET": true,
+    "BADGE04_GET": true,
+    "BADGE05_GET": true,
+    "BADGE06_GET": true,
+    "BADGE07_GET": true,
+    "BADGE08_GET": true
+  },
+  "dex_seen": 161,
+  "dex_owned": 122,
+  "in_battle": false
+}

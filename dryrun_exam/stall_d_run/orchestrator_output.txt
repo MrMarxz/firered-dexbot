@@ -1,0 +1,19 @@
+Event **DRYRUN-004** is complete. Summary:
+
+## Diagnosis: `evolve_stones` wedged in the Celadon Dept-4F buy menu
+
+**What happened.** The watchdog dumped a stall for `evolve_stones` while the bot sat in the FireRed department-store buy menu. Unlike the prior three dry-runs (30k-frame *overworld* nav freezes), this fired under the **6,000-frame MENU budget** — the tell was `game_state: "UNKNOWN"`, which is `CB2_BUYMENU` (unmapped in `get_game_state`, so it defaults to `UNKNOWN` and selects the tighter menu budget).
+
+**Root cause (reconstructed from RAM — a menu stall *is* carried by the `.ss1`).** The skill needed 2 Leaf Stones (Gloom→Vileplume + Exeggcute→Exeggutor, bag had 0), but ₽3084 only affords 1×₽2100. FRLG clamps the buy-quantity selector at the affordable max (×01), so a loop waiting for ×02 has an **unreachable predicate** → it spun to the watchdog. Confirmed by memory-state reproduction (TEST 1: selector never leaves ×01; TEST 2: the current-code path completes the clamped 1× buy).
+
+**Key finding: already remediated.** The current repo's wallet clamp (`openings.py:176-177`, whose comment names this exact ₽3084 scenario) plus the bounded `press_until` already fix it — the savestate predates the guard. The residual is three *unbounded* `wait_until_task_is_active` waits in `buy_items` (openings.py:159/187/196).
+
+## Council verdict: **PASS-WITH-CONCERNS**
+
+| Seat | Model | Result |
+|------|-------|--------|
+| A — Diagnostician | claude-sonnet-5 (MATCH) | Code defect, "unbounded menu-actuation loop"; demonstrated instance already remediated; residual waits latent |
+| B — Fix Designer | claude-opus-4-8[1m] (§3 violation: claude-opus-5 unavailable — disclosed) | **No code change** for the demonstrated (passing) stall; scoped `wait_for_task` defense-in-depth for the three residual waits; deferred 2nd evolution is self-healing; no Fable escalation |
+| C — Quality Gate | Codex GPT-5 (cross-provider gate SATISFIED) | **PASS-WITH-CONCERNS**; one wording concern (caller-set understated — driver-verified as ~19 sites, which *strengthens* the proposal) |
+
+**Bookkeeping (dry-run rules honored):** logged to `COUNCIL_LOG.dryrun.md` only; **no** writes to STATE.md/COUNCIL_LOG.md/FINDINGS.md/DECISIONS.md/PARKED.md; nothing implemented. Reproductions left everything as-found — evidence `stall_d.ss1` byte-intact (md5 `edc25d75…`), `livingdex` profile removed, `git status` shows only the untracked dry-run log. STATE.md already reads `Open event: none`; no bot to resume.

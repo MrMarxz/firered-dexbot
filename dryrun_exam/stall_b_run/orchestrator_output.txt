@@ -1,0 +1,15 @@
+Event **DRYRUN-002 (stall_b)** is closed. Summary for the supervisor:
+
+## Outcome — PASS-WITH-CONCERNS (on the written proposal, diagnose-only)
+
+**What the stall was.** The bot was **surfing** in Vermilion City's harbor at `(20,24)`, facing Left toward the Sand dismount tile `(19,24)`, frozen for the full 30k-frame budget. I reproduced it headlessly and read-only: holding **Left** (the dismount) moves the avatar **zero tiles**, while Up/Down/Right all move freely on water — so upstream `calculate_path` emits a "1-step Left" that is a game-engine no-op while surfing, and the held-direction walker holds it forever until the watchdog dumps the stall.
+
+**Council classification — two layered code defects:**
+1. **Proximate freeze (patch-scope):** upstream `walking.py` `navigate_to` is a `while True:` that swallows the waypoint timeout and never raises, so dexbot's re-plan handler never fires. Seat B's fix: a `_walk_leg_guarded` per-leg no-progress guard (reusing `walk_carefully.settle()`'s idiom) that converts the silent freeze into a fast `SkillError` the existing handler already catches.
+2. **Strategic ferry gate (Fable-escalation, new subsystem):** the entire remaining dex (~28 species) is **Sevii-Islands/Johto** natives reachable only via the scripted Seagallop ferry, which the warp graph doesn't model — so `missing_catchable()` is **empty from Kanto** and the planner is blind to dex completion. Seat B designed a runtime scripted-transit edge class wired to `story.py`'s existing-but-unwired `sail_to`/`sevii_accept` primitives.
+
+**Seat C (Codex) verdict + confirmed concern.** PASS-WITH-CONCERNS. It refuted one Seat B claim — "every navigate-bearing skill funnels through `navigate_to`" is overbroad; I verified the gap is larger still (~50 direct upstream-walker call sites across `story.py`/`gyms.py`/`safari.py`/`boulders.py`/`openings.py`/`perform_cut` that the two-site guard wouldn't cover). The reproduced freeze *does* go through the wrapped sites, so the immediate fix holds; the blast-radius claim just narrows. Defect-1 is safe to ship independently of Defect-2.
+
+**Seat model discipline (§11):** A `claude-sonnet-5` (MATCH); B alias `opus`→`claude-opus-4-8` (§3 `claude-opus-5` doesn't exist in this harness — disclosed violation, provider correct); C Codex `gpt-5-codex`, cross-model gate satisfied, one thread `019fba8d-…`. Explicit `gpt-5.2-codex` override rejected by the ChatGPT-account Codex (same as DRYRUN-001).
+
+**Nothing implemented.** Logged to `COUNCIL_LOG.dryrun.md` (DRYRUN-002). STATE.md untouched (`Open event: none`). All five headless reproductions were sandboxed; `git status` shows only the untracked dry-run log, the `livingdex` profile dir was removed, and the evidence savestate is byte-intact.

@@ -1,0 +1,91 @@
+{
+  "time": 1785543587.765,
+  "frame": 12101643,
+  "game_state": "UNKNOWN",
+  "game_started": true,
+  "player_name": "AA",
+  "money": 3084,
+  "map_group": 10,
+  "map_number": 3,
+  "coords": [
+    3,
+    11
+  ],
+  "facing": "Down",
+  "party": [
+    {
+      "species": "Magneton",
+      "level": 35,
+      "hp": 84,
+      "max_hp": 84,
+      "status": "Healthy"
+    },
+    {
+      "species": "Parasect",
+      "level": 33,
+      "hp": 86,
+      "max_hp": 86,
+      "status": "Healthy"
+    },
+    {
+      "species": "Electabuzz",
+      "level": 37,
+      "hp": 101,
+      "max_hp": 101,
+      "status": "Healthy"
+    },
+    {
+      "species": "Marowak",
+      "level": 33,
+      "hp": 83,
+      "max_hp": 83,
+      "status": "Healthy"
+    },
+    {
+      "species": "Snorlax",
+      "level": 38,
+      "hp": 173,
+      "max_hp": 173,
+      "status": "Healthy"
+    },
+    {
+      "species": "Blastoise",
+      "level": 67,
+      "hp": 194,
+      "max_hp": 194,
+      "status": "Healthy"
+    }
+  ],
+  "badges": {
+    "BADGE01_GET": true,
+    "BADGE02_GET": true,
+    "BADGE03_GET": true,
+    "BADGE04_GET": true,
+    "BADGE05_GET": true,
+    "BADGE06_GET": true,
+    "BADGE07_GET": true,
+    "BADGE08_GET": false
+  },
+  "flags": {
+    "SYS_POKEDEX_GET": true,
+    "BEAT_RIVAL_IN_OAKS_LAB": true,
+    "GOT_SS_TICKET": true,
+    "GOT_HM01": true,
+    "GOT_HM02": false,
+    "GOT_HM03": true,
+    "GOT_HM04": true,
+    "GOT_HM05": false,
+    "GOT_HM06": false,
+    "BADGE01_GET": true,
+    "BADGE02_GET": true,
+    "BADGE03_GET": true,
+    "BADGE04_GET": true,
+    "BADGE05_GET": true,
+    "BADGE06_GET": true,
+    "BADGE07_GET": true,
+    "BADGE08_GET": false
+  },
+  "dex_seen": 117,
+  "dex_owned": 78,
+  "in_battle": false
+}

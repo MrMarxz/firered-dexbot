@@ -1,0 +1,35 @@
+Phase 2 patch validation — patches/0001-upstream-fixes.patch (replacement placed 2026-07-31 13:18)
+Target: pokebot-gen3 @ 5dd898f8 (pristine), original repo clone.
+File: 11,535 bytes, LF endings. Content-identical (after line-ending normalization)
+to the Phase-1 summary artifact preserved at ..\dexbot-run\patches\0001-upstream-fixes.patch
+(11,753 bytes, CRLF). `git diff HEAD -- patches/0001-upstream-fixes.patch` reports no
+content change; the `M` in git status is line-endings only.
+
+Structural check: no `diff --git`, `--- a/`, or `+++ b/` headers anywhere in the file.
+The only line matching /^(diff --git|--- |\+\+\+ )/ is line 9: `--- Changes ---`
+(the summary divider). Format is: diffstat block, `--- Changes ---`, annotated hunk
+excerpts terminated by `+N -M` counters — same artifact class documented in
+SETUP_REPORT.md §3.
+
+Attempt 1: git apply --check --verbose ..\patches\0001-upstream-fixes.patch
+  (run inside pokebot-gen3/)
+  -> error: No valid patches in input (allow with "--allow-empty")
+  exit code 128
+
+Attempt 2: patch -p1 --dry-run < ../patches/0001-upstream-fixes.patch
+  (GNU patch, Git Bash, inside pokebot-gen3/)
+  -> (Patch is indented 2 spaces.)
+     can't find file to patch at input line 12
+     Perhaps you used the wrong -p or --strip option?
+     [diffstat block parsed as garbage]
+     Skipping patch.
+     patch: **** malformed patch at line 44: modules/battle_handler.py
+  exit code 2
+
+Attempt 3: git apply --check -p0 ..\patches\0001-upstream-fixes.patch
+  -> error: No valid patches in input (allow with "--allow-empty")
+  exit code 128
+
+Verdict: still the summary-format artifact; not machine-applyable. Per task step 6:
+not reconstructed, not hand-merged; Phase C skipped; both pokebot-gen3 clones remain
+pristine at 5dd898f8.

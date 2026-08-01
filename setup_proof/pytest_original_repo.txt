@@ -1,0 +1,397 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\marku\OneDrive\Desktop\GIT\firered-dexbot\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\marku\OneDrive\Desktop\GIT\firered-dexbot
+collecting ... collected 76 items
+
+tests/test_a_team.py::test_enumerate_roster_reads_party_and_boxes SKIPPED [  1%]
+tests/test_a_team.py::test_assemble_party_realizes_selection SKIPPED     [  2%]
+tests/test_a_team_planner.py::test_planner_assembles_catch_team_not_solo SKIPPED [  3%]
+tests/test_a_team_select.py::test_hm_mule_always_kept PASSED             [  5%]
+tests/test_a_team_select.py::test_catch_kit_guarantees_sleep_and_false_swipe_roles PASSED [  6%]
+tests/test_a_team_select.py::test_type_diversity_prefers_spread PASSED   [  7%]
+tests/test_a_team_select.py::test_deterministic PASSED                   [  9%]
+tests/test_b_battle_action.py::test_potion_at_low_hp PASSED              [ 10%]
+tests/test_b_battle_action.py::test_no_potion_low_hp_fights_on PASSED    [ 11%]
+tests/test_b_battle_action.py::test_rotate_on_type_disadvantage PASSED   [ 13%]
+tests/test_b_battle_action.py::test_no_rotate_without_better_matchup PASSED [ 14%]
+tests/test_b_battle_action.py::test_no_rotate_to_self PASSED             [ 15%]
+tests/test_b_battle_action.py::test_best_move_default PASSED             [ 17%]
+tests/test_b_battle_action.py::test_move_zero_fallback_when_no_scored_move PASSED [ 18%]
+tests/test_b_battle_action.py::test_potion_beats_rotate_priority PASSED  [ 19%]
+tests/test_c_catch_action.py::test_high_odds_just_throws PASSED          [ 21%]
+tests/test_c_catch_action.py::test_rotates_to_weakener_when_active_is_not_one PASSED [ 22%]
+tests/test_c_catch_action.py::test_no_rotate_when_active_is_the_weakener PASSED [ 23%]
+tests/test_c_catch_action.py::test_status_before_false_swipe PASSED      [ 25%]
+tests/test_c_catch_action.py::test_false_swipe_when_statused_and_hp_high PASSED [ 26%]
+tests/test_c_catch_action.py::test_false_swipe_stops_at_one_hp PASSED    [ 27%]
+tests/test_c_catch_action.py::test_safe_chip_when_no_false_swipe_and_hp_high PASSED [ 28%]
+tests/test_c_catch_action.py::test_ball_at_low_hp_without_false_swipe PASSED [ 30%]
+tests/test_c_catch_action.py::test_ghost_never_rotates_to_false_swiper_or_swipes PASSED [ 31%]
+tests/test_c_catch_action.py::test_ghost_still_sleeps_first PASSED       [ 32%]
+tests/test_c_catch_action.py::test_boomer_awake_is_never_chipped PASSED  [ 34%]
+tests/test_c_catch_action.py::test_boomer_asleep_proceeds_normally PASSED [ 35%]
+tests/test_c_catch_action.py::test_teleporter_gets_status_immediately PASSED [ 36%]
+tests/test_c_catch_action.py::test_teleporter_without_status_just_throws PASSED [ 38%]
+tests/test_c_catch_action.py::test_playbook_derivation_from_kb PASSED    [ 39%]
+tests/test_m0_boot.py::test_title_screen_fixture FAILED                  [ 40%]
+tests/test_m1_telemetry.py::test_telemetry_log_matches_known_state FAILED [ 42%]
+tests/test_m2_kb.py::test_pikachu_in_viridian_forest PASSED              [ 43%]
+tests/test_m2_kb.py::test_abra_rates_on_route_24 PASSED                  [ 44%]
+tests/test_m2_kb.py::test_route_4_surf_and_fishing_present PASSED        [ 46%]
+tests/test_m2_kb.py::test_brocks_party PASSED                            [ 47%]
+tests/test_m2_kb.py::test_tmhm_moves PASSED                              [ 48%]
+tests/test_m2_kb.py::test_species_data_squirtle_line PASSED              [ 50%]
+tests/test_m2_kb.py::test_dependency_graph_is_acyclic_and_closed PASSED  [ 51%]
+tests/test_m3_navigation.py::test_navigate_pallet_town_to_viridian_mart FAILED [ 52%]
+tests/test_m3_navigation.py::test_navigate_bedroom_to_oaks_lab FAILED    [ 53%]
+tests/test_m3_navigation.py::test_plan_cross_region_via_nav_graph FAILED [ 55%]
+tests/test_m4_openings.py::test_post_opening_state FAILED                [ 56%]
+tests/test_m5_catching.py::test_five_species_caught FAILED               [ 57%]
+tests/test_m5_catching.py::test_kb_best_encounter_map PASSED             [ 59%]
+tests/test_m6_planner.py::test_planner_queue_covers_pre_brock_species FAILED [ 60%]
+tests/test_m6_planner.py::test_pre_brock_dex_complete FAILED             [ 61%]
+tests/test_m7_blaine.py::test_blaine_defeated FAILED                     [ 63%]
+tests/test_m7_bridge.py::test_nugget_bridge_cleared FAILED               [ 64%]
+tests/test_m7_erika.py::test_erika_defeated FAILED                       [ 65%]
+tests/test_m7_giovanni.py::test_giovanni_defeated FAILED                 [ 67%]
+tests/test_m7_gyms.py::test_brock_defeated FAILED                        [ 68%]
+tests/test_m7_gyms.py::test_badge_unlocks_more_maps FAILED               [ 69%]
+tests/test_m7_hm_cut.py::test_hm_cut_obtained_and_taught FAILED          [ 71%]
+tests/test_m7_koga.py::test_koga_defeated FAILED                         [ 72%]
+tests/test_m7_misty.py::test_misty_defeated FAILED                       [ 73%]
+tests/test_m7_sabrina.py::test_sabrina_defeated FAILED                   [ 75%]
+tests/test_m7_ss_ticket.py::test_ss_ticket_obtained FAILED               [ 76%]
+tests/test_m7_surge.py::test_surge_defeated FAILED                       [ 77%]
+tests/test_m7_sweep.py::test_sweep_progress FAILED                       [ 78%]
+tests/test_m7_sweep.py::test_post_surge_sweep_progress FAILED            [ 80%]
+tests/test_m7_sweep.py::test_west_sweep_progress FAILED                  [ 81%]
+tests/test_m7_sweep.py::test_rock_tunnel_sweep_progress FAILED           [ 82%]
+tests/test_m8_secret_key.py::test_secret_key_obtained FAILED             [ 84%]
+tests/test_m9_llm_planner.py::test_disabled_uses_queue_head PASSED       [ 85%]
+tests/test_m9_llm_planner.py::test_valid_response_is_used PASSED         [ 86%]
+tests/test_m9_llm_planner.py::test_garbage_falls_back_to_queue_head[I think you should catch Mewtwo!] PASSED [ 88%]
+tests/test_m9_llm_planner.py::test_garbage_falls_back_to_queue_head[{"objective": "catch_Mewtwo", "rationale": "hallucinated"}] PASSED [ 89%]
+tests/test_m9_llm_planner.py::test_garbage_falls_back_to_queue_head[{"wrong_key": true}] PASSED [ 90%]
+tests/test_m9_llm_planner.py::test_garbage_falls_back_to_queue_head[] PASSED [ 92%]
+tests/test_m9_llm_planner.py::test_garbage_falls_back_to_queue_head[{broken json] PASSED [ 93%]
+tests/test_m9_llm_planner.py::test_llm_exception_falls_back PASSED       [ 94%]
+tests/test_m9_llm_planner.py::test_failure_boundary_valid_choice_is_used PASSED [ 96%]
+tests/test_m9_llm_planner.py::test_failure_boundary_garbage_defers PASSED [ 97%]
+tests/test_m9_llm_planner.py::test_failure_boundary_disabled_defers PASSED [ 98%]
+tests/test_m9_llm_planner.py::test_failure_context_reaches_the_model PASSED [100%]
+
+================================== FAILURES ===================================
+__________________________ test_title_screen_fixture __________________________
+tests\test_m0_boot.py:9: in test_title_screen_fixture
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+___________________ test_telemetry_log_matches_known_state ____________________
+tests\test_m1_telemetry.py:12: in test_telemetry_log_matches_known_state
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+_________________ test_navigate_pallet_town_to_viridian_mart __________________
+tests\test_m3_navigation.py:18: in test_navigate_pallet_town_to_viridian_mart
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+______________________ test_navigate_bedroom_to_oaks_lab ______________________
+tests\test_m3_navigation.py:37: in test_navigate_bedroom_to_oaks_lab
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+____________________ test_plan_cross_region_via_nav_graph _____________________
+tests\test_m3_navigation.py:58: in test_plan_cross_region_via_nav_graph
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+___________________________ test_post_opening_state ___________________________
+tests\test_m4_openings.py:13: in test_post_opening_state
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+__________________________ test_five_species_caught ___________________________
+tests\test_m5_catching.py:12: in test_five_species_caught
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+_________________ test_planner_queue_covers_pre_brock_species _________________
+tests\test_m6_planner.py:21: in test_planner_queue_covers_pre_brock_species
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+_________________________ test_pre_brock_dex_complete _________________________
+tests\test_m6_planner.py:37: in test_pre_brock_dex_complete
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+____________________________ test_blaine_defeated _____________________________
+tests\test_m7_blaine.py:12: in test_blaine_defeated
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+_________________________ test_nugget_bridge_cleared __________________________
+tests\test_m7_bridge.py:12: in test_nugget_bridge_cleared
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+_____________________________ test_erika_defeated _____________________________
+tests\test_m7_erika.py:12: in test_erika_defeated
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+___________________________ test_giovanni_defeated ____________________________
+tests\test_m7_giovanni.py:12: in test_giovanni_defeated
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+_____________________________ test_brock_defeated _____________________________
+tests\test_m7_gyms.py:12: in test_brock_defeated
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+________________________ test_badge_unlocks_more_maps _________________________
+tests\test_m7_gyms.py:26: in test_badge_unlocks_more_maps
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+_______________________ test_hm_cut_obtained_and_taught _______________________
+tests\test_m7_hm_cut.py:12: in test_hm_cut_obtained_and_taught
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+_____________________________ test_koga_defeated ______________________________
+tests\test_m7_koga.py:12: in test_koga_defeated
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+_____________________________ test_misty_defeated _____________________________
+tests\test_m7_misty.py:12: in test_misty_defeated
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+____________________________ test_sabrina_defeated ____________________________
+tests\test_m7_sabrina.py:12: in test_sabrina_defeated
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+___________________________ test_ss_ticket_obtained ___________________________
+tests\test_m7_ss_ticket.py:12: in test_ss_ticket_obtained
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+_____________________________ test_surge_defeated _____________________________
+tests\test_m7_surge.py:13: in test_surge_defeated
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+_____________________________ test_sweep_progress _____________________________
+tests\test_m7_sweep.py:14: in test_sweep_progress
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+_______________________ test_post_surge_sweep_progress ________________________
+tests\test_m7_sweep.py:31: in test_post_surge_sweep_progress
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+__________________________ test_west_sweep_progress ___________________________
+tests\test_m7_sweep.py:47: in test_west_sweep_progress
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+_______________________ test_rock_tunnel_sweep_progress _______________________
+tests\test_m7_sweep.py:64: in test_rock_tunnel_sweep_progress
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+__________________________ test_secret_key_obtained ___________________________
+tests\test_m8_secret_key.py:12: in test_secret_key_obtained
+    context = setup_headless_emulator(is_test_run=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dexbot\emulator.py:26: in setup_headless_emulator
+    verify_rom()
+dexbot\__init__.py:44: in verify_rom
+    sys.exit(
+E   SystemExit: ROM MD5 mismatch: got ba45ff6f83fe4a734584ca778088954b, expected e26ee0d44e809351c8ce2d73c7400cdd (FireRed USA 1.0). Refusing to run with an unverified ROM.
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED tests/test_a_team_select.py::test_hm_mule_always_kept
+PASSED tests/test_a_team_select.py::test_catch_kit_guarantees_sleep_and_false_swipe_roles
+PASSED tests/test_a_team_select.py::test_type_diversity_prefers_spread
+PASSED tests/test_a_team_select.py::test_deterministic
+PASSED tests/test_b_battle_action.py::test_potion_at_low_hp
+PASSED tests/test_b_battle_action.py::test_no_potion_low_hp_fights_on
+PASSED tests/test_b_battle_action.py::test_rotate_on_type_disadvantage
+PASSED tests/test_b_battle_action.py::test_no_rotate_without_better_matchup
+PASSED tests/test_b_battle_action.py::test_no_rotate_to_self
+PASSED tests/test_b_battle_action.py::test_best_move_default
+PASSED tests/test_b_battle_action.py::test_move_zero_fallback_when_no_scored_move
+PASSED tests/test_b_battle_action.py::test_potion_beats_rotate_priority
+PASSED tests/test_c_catch_action.py::test_high_odds_just_throws
+PASSED tests/test_c_catch_action.py::test_rotates_to_weakener_when_active_is_not_one
+PASSED tests/test_c_catch_action.py::test_no_rotate_when_active_is_the_weakener
+PASSED tests/test_c_catch_action.py::test_status_before_false_swipe
+PASSED tests/test_c_catch_action.py::test_false_swipe_when_statused_and_hp_high
+PASSED tests/test_c_catch_action.py::test_false_swipe_stops_at_one_hp
+PASSED tests/test_c_catch_action.py::test_safe_chip_when_no_false_swipe_and_hp_high
+PASSED tests/test_c_catch_action.py::test_ball_at_low_hp_without_false_swipe
+PASSED tests/test_c_catch_action.py::test_ghost_never_rotates_to_false_swiper_or_swipes
+PASSED tests/test_c_catch_action.py::test_ghost_still_sleeps_first
+PASSED tests/test_c_catch_action.py::test_boomer_awake_is_never_chipped
+PASSED tests/test_c_catch_action.py::test_boomer_asleep_proceeds_normally
+PASSED tests/test_c_catch_action.py::test_teleporter_gets_status_immediately
+PASSED tests/test_c_catch_action.py::test_teleporter_without_status_just_throws
+PASSED tests/test_c_catch_action.py::test_playbook_derivation_from_kb
+PASSED tests/test_m2_kb.py::test_pikachu_in_viridian_forest
+PASSED tests/test_m2_kb.py::test_abra_rates_on_route_24
+PASSED tests/test_m2_kb.py::test_route_4_surf_and_fishing_present
+PASSED tests/test_m2_kb.py::test_brocks_party
+PASSED tests/test_m2_kb.py::test_tmhm_moves
+PASSED tests/test_m2_kb.py::test_species_data_squirtle_line
+PASSED tests/test_m2_kb.py::test_dependency_graph_is_acyclic_and_closed
+PASSED tests/test_m5_catching.py::test_kb_best_encounter_map
+PASSED tests/test_m9_llm_planner.py::test_disabled_uses_queue_head
+PASSED tests/test_m9_llm_planner.py::test_valid_response_is_used
+PASSED tests/test_m9_llm_planner.py::test_garbage_falls_back_to_queue_head[I think you should catch Mewtwo!]
+PASSED tests/test_m9_llm_planner.py::test_garbage_falls_back_to_queue_head[{"objective": "catch_Mewtwo", "rationale": "hallucinated"}]
+PASSED tests/test_m9_llm_planner.py::test_garbage_falls_back_to_queue_head[{"wrong_key": true}]
+PASSED tests/test_m9_llm_planner.py::test_garbage_falls_back_to_queue_head[]
+PASSED tests/test_m9_llm_planner.py::test_garbage_falls_back_to_queue_head[{broken json]
+PASSED tests/test_m9_llm_planner.py::test_llm_exception_falls_back
+PASSED tests/test_m9_llm_planner.py::test_failure_boundary_valid_choice_is_used
+PASSED tests/test_m9_llm_planner.py::test_failure_boundary_garbage_defers
+PASSED tests/test_m9_llm_planner.py::test_failure_boundary_disabled_defers
+PASSED tests/test_m9_llm_planner.py::test_failure_context_reaches_the_model
+SKIPPED [1] tests\test_a_team.py:29: a_team_solo.ss1 not captured
+SKIPPED [1] tests\test_a_team.py:43: a_team_solo.ss1 not captured
+SKIPPED [1] tests\test_a_team_planner.py:14: needs a_team_solo.ss1
+FAILED tests/test_m0_boot.py::test_title_screen_fixture - SystemExit: ROM MD5...
+FAILED tests/test_m1_telemetry.py::test_telemetry_log_matches_known_state - S...
+FAILED tests/test_m3_navigation.py::test_navigate_pallet_town_to_viridian_mart
+FAILED tests/test_m3_navigation.py::test_navigate_bedroom_to_oaks_lab - Syste...
+FAILED tests/test_m3_navigation.py::test_plan_cross_region_via_nav_graph - Sy...
+FAILED tests/test_m4_openings.py::test_post_opening_state - SystemExit: ROM M...
+FAILED tests/test_m5_catching.py::test_five_species_caught - SystemExit: ROM ...
+FAILED tests/test_m6_planner.py::test_planner_queue_covers_pre_brock_species
+FAILED tests/test_m6_planner.py::test_pre_brock_dex_complete - SystemExit: RO...
+FAILED tests/test_m7_blaine.py::test_blaine_defeated - SystemExit: ROM MD5 mi...
+FAILED tests/test_m7_bridge.py::test_nugget_bridge_cleared - SystemExit: ROM ...
+FAILED tests/test_m7_erika.py::test_erika_defeated - SystemExit: ROM MD5 mism...
+FAILED tests/test_m7_giovanni.py::test_giovanni_defeated - SystemExit: ROM MD...
+FAILED tests/test_m7_gyms.py::test_brock_defeated - SystemExit: ROM MD5 misma...
+FAILED tests/test_m7_gyms.py::test_badge_unlocks_more_maps - SystemExit: ROM ...
+FAILED tests/test_m7_hm_cut.py::test_hm_cut_obtained_and_taught - SystemExit:...
+FAILED tests/test_m7_koga.py::test_koga_defeated - SystemExit: ROM MD5 mismat...
+FAILED tests/test_m7_misty.py::test_misty_defeated - SystemExit: ROM MD5 mism...
+FAILED tests/test_m7_sabrina.py::test_sabrina_defeated - SystemExit: ROM MD5 ...
+FAILED tests/test_m7_ss_ticket.py::test_ss_ticket_obtained - SystemExit: ROM ...
+FAILED tests/test_m7_surge.py::test_surge_defeated - SystemExit: ROM MD5 mism...
+FAILED tests/test_m7_sweep.py::test_sweep_progress - SystemExit: ROM MD5 mism...
+FAILED tests/test_m7_sweep.py::test_post_surge_sweep_progress - SystemExit: R...
+FAILED tests/test_m7_sweep.py::test_west_sweep_progress - SystemExit: ROM MD5...
+FAILED tests/test_m7_sweep.py::test_rock_tunnel_sweep_progress - SystemExit: ...
+FAILED tests/test_m8_secret_key.py::test_secret_key_obtained - SystemExit: RO...
+================== 26 failed, 47 passed, 3 skipped in 2.02s ===================

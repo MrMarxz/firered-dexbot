@@ -1,0 +1,20 @@
+The dry-run council event is complete. Summary:
+
+## DRYRUN-001 — `stall_a` — Verdict: PASS-WITH-CONCERNS
+
+**The stall.** The bot froze for 30k frames (~8 game-min) at tile (7,4) facing Down inside the **Lavender Town Pokémon Center**, mid-`assemble_party` (party was still {Blastoise, Paras}; 3 withdrawals never happened). (7,4)-facing-Down is the *first southward step* of a needless walk toward the center's single-tile south exit warp (7,8).
+
+**Root cause (code defect).** `enter_center()` (dexbot/navigation.py) unconditionally navigates to the *outdoor* door coordinate — even when the avatar is **already inside** the target center — routing the bot back **out** the narrow exit corridor and back in. `_pick_reachable_center()` already has the "already-inside" short-circuit; `enter_center` lacks the mirror. Blast radius is wide: **four** callers hit this on every center visit for team assembly.
+
+**Why it didn't reproduce.** Reloading the `.ss1` and re-running `assemble_party` *succeeds* — because a savestate restores game memory but **not** the Python navigation-controller state where the one-time wedge lived. No NPC ever enters the corridor, ruling out a world-collision block. Honest limitation, disclosed.
+
+**Proposed fix (written only).** A guard at the top of `enter_center` that returns immediately when already inside the target center (mirroring `_pick_reachable_center`'s name-prefix idiom). **Validated headlessly:** the guarded run goes (7,4)→(11,2) straight to the PC — never entering the corridor, never leaving the interior — and completes the full 5-mon assembly. Safe for all four callers.
+
+**Seat discipline / §11.**
+- Seat A = **claude-sonnet-5** ✓ (matches §3).
+- Seat B = **claude-opus-4-8[1m]** — ⚠️ §3 nominates `claude-opus-5`, which **does not exist in this harness**; closest available is Opus 4.8. Recorded prominently per the invocation's fallback.
+- Seat C = **Codex GPT-5-class** (thread `019fba6f-…`); explicit `gpt-5.2-codex` override was rejected by the account, so the account-default Codex model was used. Cross-model gate (Codex ≠ Claude) satisfied.
+
+**Concerns (intact).** Seat C flagged incomplete caller review — I verified all four callers and it *strengthens* the proposal; and a docstring-citation nit for implementation time.
+
+**Integrity.** Nothing implemented (diagnose-only). Only write is `COUNCIL_LOG.dryrun.md`. Three headless reproductions ran with all writes redirected to scratch; `fixtures/_phases/*.ss1` + `logs/skills.jsonl` are md5-identical to pre-run backups; the auto-created `livingdex` profile was removed. `git status` shows only the untracked dry-run log. STATE.md untouched (`Open event: none`).

@@ -1,0 +1,23 @@
+Dry-run council event **DRYRUN-001** complete. Summary:
+
+## Diagnosis (reproduced)
+
+**Trigger:** `watchdog_stall` — a single skill (`catch_Psyduck`, name scrubbed to `stall_a`) made zero observable progress for 30,000 frames inside the **Lavender Town Pokémon Center** (map (8,0)).
+
+**Root cause (verified by headless reproduction from `stall_a.ss1`):** `dexbot/planner.py::missing_catchable()` emits **surf-method encounters without any Surf-capability gate**. Rod methods are skipped when the rod isn't owned (planner.py:123); surf has no equivalent check — only *land* reachability. So **Psyduck on Route 22 (surf-only, 100% slot rate)** sorts to the **queue head**, but the bot can't surf (no HM03, `BADGE05_GET=False`). `catch_Psyduck` then freezes 30k frames (its surf path lacks the fast-fail guard the fishing path has, so it loops `navigate_to` over unreachable water tiles instead of deferring cleanly). This blocks the run: the reproduction showed that the moment Psyduck is removed from the queue, **`catch_Gastly` and `catch_Doduo` immediately succeed** — 6 of the 8 queue entries are genuinely catchable now (Silph Scope is owned, unlocking the tower).
+
+This is the **first live manifestation** of the exact defect the two BASELINE test failures already encode.
+
+## Council (Seat A → Seat B, 2/6 exchanges, in agreement)
+
+- **Seat A (claude-sonnet-5):** KB error compounded by a code defect; **High** severity; **systemic** blast radius (~50 maps carry surf encounters; recurs for the whole pre-Badge-5 era). Not a rediscovery.
+- **Seat B (claude-opus-4-8[1m], not escalated — it's a patch, not a new subsystem):** combination fix — (1) gate the surf *method* in `missing_catchable()` using the **existing** `data/dependencies.json → hm_field_requirements` table (`Surf → BADGE05_GET`), leaving land encounters ungated so Route 22's pre-Brock targets survive; (2) defense-in-depth fail-fast in `catch_species` so an impossible surf attempt *defers* instead of freezing. Predicted: replay unblocks the reachable catches; regression **74→76 passed, 0 failed** (flips both BASELINE tests); diff limited to `planner.py` + `catching.py`. Four alternatives rejected in writing (per-map `requires` edit, skill-guard-only, new capability subsystem, KB deletion).
+
+No verdict was voted — Seat C's §9 evidence gate needs an implementation, which the diagnose-only rules forbid. Recommended real-run disposition: implement Seat B's fix (expected PASS).
+
+## Artifacts & integrity
+
+- Wrote **only** `COUNCIL_LOG.dryrun.md` (event DRYRUN-001, full deliberation). STATE.md, COUNCIL_LOG.md, FINDINGS.md, DECISIONS.md, PARKED.md **untouched** (original 21:39 mtimes); `git status` clean apart from the new dry-run log.
+- **Disclosure:** my headless reproduction called `plan_and_catch_all`, which writes savestates to the gitignored emulator profile dir (not sandboxed by the `PROJECT_ROOT` patch). It created 3 stray `states/*_caught.ss1` and overwrote `current_state.ss1`. **Remediated:** restored `current_state.ss1` to the exact `stall_a.ss1` calm-checkpoint bytes (gbAs chunk verified byte-identical, 397312 B), deleted the 3 stray states. Residual: the gitignored `stats.db` encounter counters advanced (inconsequential). Saved a memory so future reproductions sandbox the profile dir.
+
+There is no bot process to resume (dry-run), and STATE.md is deliberately left unchanged per the invocation's override.

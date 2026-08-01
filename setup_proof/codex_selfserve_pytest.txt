@@ -1,0 +1,210 @@
+==============================================================================
+CODEX SELF-SERVE PYTEST PROOF — dexbot-run Seat C regression evidence (§9.2)
+==============================================================================
+
+Wiring: identical to the council's (dexbot-run/.mcp.json): a `codex mcp-server`
+stdio MCP server spawned via `cmd /c codex mcp-server` with cwd = dexbot-run,
+driven over JSON-RPC with a tools/call of the `codex` tool. Full raw traffic
+log (every JSON-RPC message) retained by the operator; this file renders it.
+
+------------------------------------------------------------------------------
+[2026-08-01T21:38:17Z] TOOLS/CALL -> codex
+  prompt: |
+    You are Seat C (Quality Gate) of the dexbot-run council, performing the COUNCIL_PROTOCOL.md section 9.2 regression check SELF-SERVE: you must run the test suite yourself in your own shell and report what YOU observed. Do not accept or reference any driver-provided results. Do not modify any files.
+    
+    1. From the repository root, execute exactly:
+    
+       tools\run_tests.cmd
+    
+       (This is the documented Seat C regression command. It runs the repo's own interpreter, .venv\Scripts\python.exe, with `-m pytest tests/ -q`.)
+    
+    2. Report, verbatim and untruncated, the last 15 lines of the command's output, including the final summary line.
+    
+    3. Read BASELINE.md and state:
+       a. the exact passed/failed counts from YOUR run;
+       b. the node IDs of the failed tests from YOUR run;
+       c. whether the failures are exactly the two failures named in BASELINE.md's "The two baseline failures" section (quote those two node IDs from BASELINE.md);
+       d. whether any NEW failure appeared relative to that baseline (yes/no).
+    
+    4. Confirm explicitly, in one sentence, that the pytest run was executed by you in your own shell during this session, not accepted from the driver.
+  cwd: C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run
+  sandbox: workspace-write
+  approval-policy: never
+  model: gpt-5.5
+------------------------------------------------------------------------------
+[2026-08-01T21:38:17Z] SESSION CONFIGURED
+  thread_id: 019fbf43-778f-7282-885a-3bfb1e317649
+  model: gpt-5.5 (provider: openai)
+  approval_policy: never
+  sandbox: managed/restricted (see permission_profile in raw log)
+
+[2026-08-01T21:38:31Z] CODEX AGENT MESSAGE (commentary)
+  > I’ll run the documented Seat C command from the repository root now, then inspect `BASELINE.md` and compare only against what this run produces.
+
+[2026-08-01T21:38:36Z] CODEX SHELL EXEC BEGIN (call call_1K01iWQ26wQ3wOWXj9yzzBR9)
+  cwd: file:///C:/Users/marku/OneDrive/Desktop/GIT/dexbot-run
+  command: ["C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "-Command", "tools\\run_tests.cmd"]
+[2026-08-01T21:39:13Z] CODEX SHELL EXEC END (call call_1K01iWQ26wQ3wOWXj9yzzBR9)
+  exit_code: 1
+  --- output ---
+  | ........................................................................ [ 59%]
+  | .....FF...........................................                       [100%]
+  | ================================== FAILURES ===================================
+  | _________________ test_planner_queue_covers_pre_brock_species _________________
+  | 
+  |     def test_planner_queue_covers_pre_brock_species():
+  |         from dexbot.emulator import setup_headless_emulator
+  |     
+  |         context = setup_headless_emulator(is_test_run=True)
+  |         context.emulator.load_save_state((PROJECT_ROOT / "fixtures" / "m4_pokedex.ss1").read_bytes())
+  |         context.emulator.run_single_frame()
+  |     
+  |         from dexbot.planner import missing_catchable
+  |     
+  |         queue = missing_catchable()
+  | >       assert {species for species, *_ in queue} == PRE_BROCK_SPECIES
+  | E       AssertionError: assert {'Caterpie', ...Pikachu', ...} == {'Caterpie', ...Pikachu', ...}
+  | E         
+  | E         Extra items in the left set:
+  | E         'Psyduck'
+  | E         Use -v to get more diff
+  | 
+  | tests\test_m6_planner.py:28: AssertionError
+  | _________________________ test_pre_brock_dex_complete _________________________
+  | 
+  |     def test_pre_brock_dex_complete():
+  |         from dexbot.emulator import setup_headless_emulator
+  |     
+  |         context = setup_headless_emulator(is_test_run=True)
+  |         context.emulator.load_save_state((PROJECT_ROOT / "fixtures" / "m6_pre_brock_dex.ss1").read_bytes())
+  |         context.emulator.run_single_frame()
+  |     
+  |         from dexbot.planner import missing_catchable
+  |         from modules.pokedex import get_pokedex
+  |     
+  |         owned = {s.name for s in get_pokedex().owned_species}
+  |         assert PRE_BROCK_SPECIES <= owned
+  | >       assert missing_catchable() == []  # queue is drained
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  | E       AssertionError: assert [('Psyduck', ...11]}, 'surf')] == []
+  | E         
+  | E         Left contains one more item: ('Psyduck', (3, 41), 100, {'requires': [], 'safe_tile': [38, 11]}, 'surf')
+  | E         Use -v to get more diff
+  | 
+  | tests\test_m6_planner.py:46: AssertionError
+  | =========================== short test summary info ===========================
+  | FAILED tests/test_m6_planner.py::test_planner_queue_covers_pre_brock_species
+  | FAILED tests/test_m6_planner.py::test_pre_brock_dex_complete - AssertionError...
+  | 2 failed, 120 passed in 35.67s
+
+[2026-08-01T21:39:16Z] CODEX AGENT MESSAGE (commentary)
+  > The regression command completed in my shell with exit code 1. I’m reading `BASELINE.md` now to compare the failed node IDs against the recorded baseline.
+
+[2026-08-01T21:39:18Z] CODEX SHELL EXEC BEGIN (call call_I4JYNbiO7Lsum4lHpl1O0ymN)
+  cwd: file:///C:/Users/marku/OneDrive/Desktop/GIT/dexbot-run
+  command: ["C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "-Command", "Get-Content -Raw BASELINE.md"]
+[2026-08-01T21:39:19Z] CODEX SHELL EXEC END (call call_I4JYNbiO7Lsum4lHpl1O0ymN)
+  exit_code: 0
+  --- output ---
+  | # BASELINE.md â€” recorded pytest baseline (READ ONLY to models)
+  | 
+  | The Quality Gate (COUNCIL_PROTOCOL.md Â§9.2) diffs every fix's regression run
+  | against this baseline. Recorded by the setup instance.
+  | 
+  | - Suite: `.venv\Scripts\python.exe -m pytest tests/ -q` from the repository root
+  |   (the dexbot suite; `pokebot-gen3/tests/` is upstream's own suite, requires
+  |   upstream test states not present here, and is NOT part of the baseline).
+  | - Seat C self-serve equivalent: `tools\run_tests.cmd` from the repo root â€” same suite, same interpreter, callable from any shell including Codex's sandbox (see supervisor/README.md Â§ Regression suite).
+  | - Result: **74 passed, 2 failed, 0 skipped** (33.63s)
+  | - Verified at dexbot-run HEAD: `fc606761f9c2adae5fe4191793a9974e150f0e53`
+  | - Recorded: 2026-07-31T19:41:56Z (UTC)
+  | 
+  | ## The two baseline failures (pre-existing, allowed)
+  | 
+  | 1. `tests/test_m6_planner.py::test_planner_queue_covers_pre_brock_species`
+  | 2. `tests/test_m6_planner.py::test_pre_brock_dex_complete`
+  | 
+  | Both are the same pre-existing planner/KB drift: `missing_catchable()` emits
+  | `('Psyduck', (3, 41), 100, {'requires': [], 'safe_tile': [38, 11]}, 'surf')` â€” a
+  | surf encounter with an empty `requires` list, so the planner counts Psyduck as
+  | pre-Brock catchable; the tests' expected set (correctly) excludes it. Surf
+  | requires HM03 + Soul Badge, so the `requires` list for that encounter is wrong
+  | in data/. Fixing these two tests is allowed and welcome (Â§9.2); breaking any of
+  | the 74 passing tests is a regression and a mandatory FAIL.
+  | 
+
+[2026-08-01T21:40:13Z] CODEX AGENT MESSAGE (final_answer)
+  > **Last 15 Lines**
+  > 
+  > The first line below is blank, matching the command output.
+  > 
+  > ```text
+  > 
+  >         owned = {s.name for s in get_pokedex().owned_species}
+  >         assert PRE_BROCK_SPECIES <= owned
+  > >       assert missing_catchable() == []  # queue is drained
+  >         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  > E       AssertionError: assert [('Psyduck', ...11]}, 'surf')] == []
+  > E         
+  > E         Left contains one more item: ('Psyduck', (3, 41), 100, {'requires': [], 'safe_tile': [38, 11]}, 'surf')
+  > E         Use -v to get more diff
+  > 
+  > tests\test_m6_planner.py:46: AssertionError
+  > =========================== short test summary info ===========================
+  > FAILED tests/test_m6_planner.py::test_planner_queue_covers_pre_brock_species
+  > FAILED tests/test_m6_planner.py::test_pre_brock_dex_complete - AssertionError...
+  > 2 failed, 120 passed in 35.67s
+  > ```
+  > 
+  > From my run: **2 failed, 120 passed**.
+  > 
+  > Failed node IDs from my run:
+  > - `tests/test_m6_planner.py::test_planner_queue_covers_pre_brock_species`
+  > - `tests/test_m6_planner.py::test_pre_brock_dex_complete`
+  > 
+  > BASELINE.md names these two baseline failures:
+  > - `tests/test_m6_planner.py::test_planner_queue_covers_pre_brock_species`
+  > - `tests/test_m6_planner.py::test_pre_brock_dex_complete`
+  > 
+  > The failures are exactly the two failures named in BASELINE.md. Any new failure relative to that baseline: **no**.
+  > 
+  > I executed `tools\run_tests.cmd` myself in my own shell during this session, not accepted from the driver.
+
+==============================================================================
+[2026-08-01T21:40:13Z] FINAL CODEX RESPONSE (tools/call result)
+==============================================================================
+**Last 15 Lines**
+
+The first line below is blank, matching the command output.
+
+```text
+
+        owned = {s.name for s in get_pokedex().owned_species}
+        assert PRE_BROCK_SPECIES <= owned
+>       assert missing_catchable() == []  # queue is drained
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert [('Psyduck', ...11]}, 'surf')] == []
+E         
+E         Left contains one more item: ('Psyduck', (3, 41), 100, {'requires': [], 'safe_tile': [38, 11]}, 'surf')
+E         Use -v to get more diff
+
+tests\test_m6_planner.py:46: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_m6_planner.py::test_planner_queue_covers_pre_brock_species
+FAILED tests/test_m6_planner.py::test_pre_brock_dex_complete - AssertionError...
+2 failed, 120 passed in 35.67s
+```
+
+From my run: **2 failed, 120 passed**.
+
+Failed node IDs from my run:
+- `tests/test_m6_planner.py::test_planner_queue_covers_pre_brock_species`
+- `tests/test_m6_planner.py::test_pre_brock_dex_complete`
+
+BASELINE.md names these two baseline failures:
+- `tests/test_m6_planner.py::test_planner_queue_covers_pre_brock_species`
+- `tests/test_m6_planner.py::test_pre_brock_dex_complete`
+
+The failures are exactly the two failures named in BASELINE.md. Any new failure relative to that baseline: **no**.
+
+I executed `tools\run_tests.cmd` myself in my own shell during this session, not accepted from the driver.

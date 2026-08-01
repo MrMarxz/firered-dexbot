@@ -1,0 +1,91 @@
+{
+  "time": 1785547625.863,
+  "frame": 14187160,
+  "game_state": "OVERWORLD",
+  "game_started": true,
+  "player_name": "AA",
+  "money": 38024,
+  "map_group": 1,
+  "map_number": 41,
+  "coords": [
+    33,
+    19
+  ],
+  "facing": "Up",
+  "party": [
+    {
+      "species": "Blastoise",
+      "level": 77,
+      "hp": 222,
+      "max_hp": 222,
+      "status": "Healthy"
+    },
+    {
+      "species": "Parasect",
+      "level": 34,
+      "hp": 89,
+      "max_hp": 89,
+      "status": "Healthy"
+    },
+    {
+      "species": "Zapdos",
+      "level": 50,
+      "hp": 152,
+      "max_hp": 152,
+      "status": "Healthy"
+    },
+    {
+      "species": "Arbok",
+      "level": 44,
+      "hp": 119,
+      "max_hp": 119,
+      "status": "Healthy"
+    },
+    {
+      "species": "Primeape",
+      "level": 42,
+      "hp": 119,
+      "max_hp": 119,
+      "status": "Healthy"
+    },
+    {
+      "species": "Machoke",
+      "level": 28,
+      "hp": 85,
+      "max_hp": 85,
+      "status": "Healthy"
+    }
+  ],
+  "badges": {
+    "BADGE01_GET": true,
+    "BADGE02_GET": true,
+    "BADGE03_GET": true,
+    "BADGE04_GET": true,
+    "BADGE05_GET": true,
+    "BADGE06_GET": true,
+    "BADGE07_GET": true,
+    "BADGE08_GET": true
+  },
+  "flags": {
+    "SYS_POKEDEX_GET": true,
+    "BEAT_RIVAL_IN_OAKS_LAB": true,
+    "GOT_SS_TICKET": true,
+    "GOT_HM01": true,
+    "GOT_HM02": false,
+    "GOT_HM03": true,
+    "GOT_HM04": true,
+    "GOT_HM05": false,
+    "GOT_HM06": false,
+    "BADGE01_GET": true,
+    "BADGE02_GET": true,
+    "BADGE03_GET": true,
+    "BADGE04_GET": true,
+    "BADGE05_GET": true,
+    "BADGE06_GET": true,
+    "BADGE07_GET": true,
+    "BADGE08_GET": true
+  },
+  "dex_seen": 129,
+  "dex_owned": 100,
+  "in_battle": false
+}
