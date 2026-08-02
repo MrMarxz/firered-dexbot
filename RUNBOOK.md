@@ -204,3 +204,7 @@ refused to read the dump count as a recurrence signature. Adding those record
 types would raise fidelity further. (2) The scrub is leaky wherever dexbot-run's
 own source comments name historical stalls by objective (`beat_koga` here);
 grep the run repo for the original label before selecting a stall.
+
+### Attempt 1
+
+Attempt 1 terminated at T+8.7h, reason: silent stall undetectable due to frame-denominated triggers plus verdictless reviews; EVENT 1 resolved autonomously; dex 6.
