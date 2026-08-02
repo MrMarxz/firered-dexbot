@@ -22,3 +22,12 @@ docs/bulbapedia/
 # Local editor / scratch dirs
 .cursor/
 .scratch/
+
+# Attempt archives: preserved run evidence IS tracked (logs, reports, profile
+# metadata), but ROM-derived binaries stay out per the release policy above —
+# they are archived on disk only. Order matters: the re-include must follow
+# the general excludes, and the binary excludes must follow the re-include.
+!run1_archive/
+!run1_archive/**
+run1_archive/**/*.ss1
+run1_archive/**/*.sav

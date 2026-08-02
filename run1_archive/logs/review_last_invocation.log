@@ -1,0 +1,19 @@
+## §4.5 Scheduled Strategic Review — outcome
+
+**Boot sequence:** COUNCIL_PROTOCOL.md read in full; GOAL.md, STATE.md, the FINDINGS/DECISIONS indexes and PARKED.md read; COUNCIL_LOG.md tail confirms EVENT 1 closed with a Verdict line (PASS-WITH-CONCERNS, 4/6) — no interrupted event, no resume needed.
+
+**Seat A** (`claude-sonnet-5`, per §3) ran alone and read-only. The bot was never paused, no repo file was written, no fix or commit was made, and no Seat B or C was convened.
+
+**Finding: the run is dead in the water and has been for 7 h 47 m.**
+
+Every file the bot writes froze at the same instant, `2026-08-02T00:16:52Z` — `bot.log`, `skills.jsonl`, `telemetry_20260802_021249.jsonl`, and `current_state.ss1`. Only `progress.jsonl` still moves, because the supervisor keeps re-reading that same stale telemetry file. `logs/skills.jsonl` ends mid-flight: an `assemble_party` error (`No PC tile found on map (4, 0)`, frame 103147), then `catch_Metapod status=start frame=109589`, then nothing — no success, no error, no deferral.
+
+The healthy-looking dashboard is an artifact. "Snapshot age: 0 min" comes from `tools/status_write.py:123` reading the supervisor's own poll timestamp rather than `telemetry_time`; `tools/progress_snapshot.py:60-63` re-emits the frozen tail with a fresh outer clock every 15 minutes. And the supervisor's `bot.poll() is None` liveness check (`supervisor/supervisor.py:548-552`) watches pid 25724, which is only a venv shim — the real worker, pid 16244, is burning ~99% of a core and has logged 28,028 s of CPU while producing zero output. So: a hot spin loop, not an idle deadlock, and categorically distinct from F1 (which crashed with rc=1; this one never dies).
+
+The 0.00 rate is materially degraded **and** unexplained. The EVENT 1 pause accounts for roughly the first 50 minutes; the freeze began about 4 minutes after the bot resumed and has run ~9× longer than that explanation covers. Both the 1 h and 6 h windows sit entirely inside it, and it exceeds the §4.3 threshold by more than 5×. Blast radius is the whole run, not just `catch_Metapod`. Nothing is being corrupted — the savestate froze with everything else, so the resume point is intact at the moment of the hang.
+
+`catch_Metapod` itself is a sane objective (Metapod is a direct Viridian Forest grass encounter, and Route 1's table is Pidgey/Rattata only per `data/encounters.json:11271-11284`), so this is not objective drift — the objective simply never got underway.
+
+Two items for whoever convenes the council: the `assemble_party` PC-tile failure immediately preceding the hang is implicated but *not* diagnosed, and it is adjacent to but not identical with STATE.md carried concern 1. Also note STATE.md:20's "`current_state.ss1` still does not exist" is now stale — the bot resumed at `00:12:47Z` and wrote savestates for ~4 minutes before hanging.
+
+REVIEW VERDICT: STALL — bot worker pid 16244 has spun at ~99% CPU producing zero telemetry, log, skill, or savestate output for 7h47m since 2026-08-02T00:16:52Z, right after an `assemble_party` "No PC tile found on map (4, 0)" error and an incomplete `catch_Metapod` start; STATUS.md's healthy freshness and heartbeat are artifacts of a re-timestamped stale telemetry file and a liveness check watching a venv shim.

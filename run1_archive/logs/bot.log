@@ -1,0 +1,1177 @@
+Running mGBA 0.10.2
+[run] fresh save � playing the intro
+[run] running scripted opening (starter/rival/parcel/Pok�dex)
++---------------------- Traceback (most recent call last):
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\run.py", line 111, in <module>
+    main()
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\run.py", line 90, in main
+    run_skill(scripted_opening(), "scripted_opening", timeout_frames=600_000)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\dexbot\runner.py", line 387, in run_skill
+    _with_step_watchdog(context.controller_stack[-1])
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\dexbot\runner.py", line 226, in _with_step_watchdog
+    next(controller)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\modules\modes\_listeners.py", line 189, in report_visible
+    log_encounter(self._active_wild_encounter)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\modules\encounter.py", line 175, in log_encounter
+    print_stats(context.stats.get_global_stats(), encounter_info)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\modules\console.py", line 214, in print_stats
+    console.print(
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 1673, in print
+    with self:
+         ^^^^
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 865, in __exit__
+    self._exit_buffer()
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 823, in _exit_buffer
+    self._check_buffer()
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 2027, in _check_buffer
+    legacy_windows_render(buffer, LegacyWindowsTerm(self.file))
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_windows_renderer.py", line 17, in legacy_windows_render
+    term.write_styled(text, style)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_win32_console.py", line 442, in write_styled
+    self.write_text(text)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_win32_console.py", line 403, in write_text
+    self.write(text)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\base\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2640' in position 7: character maps to <undefined>
++---------------------- Exception ignored in atexit callback: <bound method LibmgbaEmulator.shutdown of <modules.libmgba.LibmgbaEmulator object at 0x000002C33D163F20>>
+Traceback (most recent call last):
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\modules\libmgba.py", line 239, in shutdown
+    console.print("[yellow]Shutting down...[/]")
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 1673, in print
+    with self:
+         ^^^^
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 865, in __exit__
+    self._exit_buffer()
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 823, in _exit_buffer
+    self._check_buffer()
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 2027, in _check_buffer
+    legacy_windows_render(buffer, LegacyWindowsTerm(self.file))
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_windows_renderer.py", line 17, in legacy_windows_render
+    term.write_styled(text, style)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_win32_console.py", line 442, in write_styled
+    self.write_text(text)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_win32_console.py", line 403, in write_text
+    self.write(text)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\base\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2640' in position 7: character maps to <undefined>
+Running mGBA 0.10.2
+[run] fresh save � playing the intro
+[run] running scripted opening (starter/rival/parcel/Pok�dex)
++---------------------- Traceback (most recent call last):
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\run.py", line 111, in <module>
+    main()
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\run.py", line 90, in main
+    run_skill(scripted_opening(), "scripted_opening", timeout_frames=600_000)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\dexbot\runner.py", line 387, in run_skill
+    _with_step_watchdog(context.controller_stack[-1])
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\dexbot\runner.py", line 226, in _with_step_watchdog
+    next(controller)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\modules\modes\_listeners.py", line 189, in report_visible
+    log_encounter(self._active_wild_encounter)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\modules\encounter.py", line 175, in log_encounter
+    print_stats(context.stats.get_global_stats(), encounter_info)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\modules\console.py", line 214, in print_stats
+    console.print(
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 1673, in print
+    with self:
+         ^^^^
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 865, in __exit__
+    self._exit_buffer()
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 823, in _exit_buffer
+    self._check_buffer()
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 2027, in _check_buffer
+    legacy_windows_render(buffer, LegacyWindowsTerm(self.file))
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_windows_renderer.py", line 17, in legacy_windows_render
+    term.write_styled(text, style)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_win32_console.py", line 442, in write_styled
+    self.write_text(text)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_win32_console.py", line 403, in write_text
+    self.write(text)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\base\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2640' in position 7: character maps to <undefined>
++---------------------- Exception ignored in atexit callback: <bound method LibmgbaEmulator.shutdown of <modules.libmgba.LibmgbaEmulator object at 0x000001AC7C7F42F0>>
+Traceback (most recent call last):
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\modules\libmgba.py", line 239, in shutdown
+    console.print("[yellow]Shutting down...[/]")
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 1673, in print
+    with self:
+         ^^^^
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 865, in __exit__
+    self._exit_buffer()
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 823, in _exit_buffer
+    self._check_buffer()
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 2027, in _check_buffer
+    legacy_windows_render(buffer, LegacyWindowsTerm(self.file))
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_windows_renderer.py", line 17, in legacy_windows_render
+    term.write_styled(text, style)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_win32_console.py", line 442, in write_styled
+    self.write_text(text)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_win32_console.py", line 403, in write_text
+    self.write(text)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\base\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2640' in position 7: character maps to <undefined>
+Running mGBA 0.10.2
+[run] fresh save � playing the intro
+[run] running scripted opening (starter/rival/parcel/Pok�dex)
++---------------------- Traceback (most recent call last):
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\run.py", line 111, in <module>
+    main()
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\run.py", line 90, in main
+    run_skill(scripted_opening(), "scripted_opening", timeout_frames=600_000)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\dexbot\runner.py", line 387, in run_skill
+    _with_step_watchdog(context.controller_stack[-1])
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\dexbot\runner.py", line 226, in _with_step_watchdog
+    next(controller)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\modules\modes\_listeners.py", line 189, in report_visible
+    log_encounter(self._active_wild_encounter)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\modules\encounter.py", line 175, in log_encounter
+    print_stats(context.stats.get_global_stats(), encounter_info)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\modules\console.py", line 214, in print_stats
+    console.print(
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 1673, in print
+    with self:
+         ^^^^
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 865, in __exit__
+    self._exit_buffer()
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 823, in _exit_buffer
+    self._check_buffer()
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 2027, in _check_buffer
+    legacy_windows_render(buffer, LegacyWindowsTerm(self.file))
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_windows_renderer.py", line 17, in legacy_windows_render
+    term.write_styled(text, style)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_win32_console.py", line 442, in write_styled
+    self.write_text(text)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_win32_console.py", line 403, in write_text
+    self.write(text)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\base\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2640' in position 7: character maps to <undefined>
++---------------------- Exception ignored in atexit callback: <bound method LibmgbaEmulator.shutdown of <modules.libmgba.LibmgbaEmulator object at 0x00000165D54A4290>>
+Traceback (most recent call last):
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\modules\libmgba.py", line 239, in shutdown
+    console.print("[yellow]Shutting down...[/]")
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 1673, in print
+    with self:
+         ^^^^
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 865, in __exit__
+    self._exit_buffer()
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 823, in _exit_buffer
+    self._check_buffer()
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\console.py", line 2027, in _check_buffer
+    legacy_windows_render(buffer, LegacyWindowsTerm(self.file))
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_windows_renderer.py", line 17, in legacy_windows_render
+    term.write_styled(text, style)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_win32_console.py", line 442, in write_styled
+    self.write_text(text)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\Lib\site-packages\rich\_win32_console.py", line 403, in write_text
+    self.write(text)
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\.venv\base\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2640' in position 7: character maps to <undefined>
+[run] stdio: {'stdout': 'reconfigured', 'stderr': 'reconfigured'} encoding=utf-8
+Running mGBA 0.10.2
+[run] fresh save — playing the intro
+[run] running scripted opening (starter/rival/parcel/Pokédex)
+┌────────────────────── Rattata♀ encountered at Route 1 ──────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 795C494D        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 3               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 28  │ 15  │ 12  │ 30↓ │ 6  │ 23↑ │ 1… │ │
+│ │       Nature │ Jolly           │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Guts            │                                          │
+│ │ Hidden Power │ Poison (66)     │Moves: Tackle, Tail Whip                  │
+│ │  Shiny Value │ 60,184          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Ratta… │ 114 /  │  60,184 /   │     4 │ 100.0… │     0 │      4 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Total  │ 114 /  │  60,184 /   │     4 │   100% │     0 │      4 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+Save state 
+C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\profiles\livingdex\
+states\2026-08-02_02-13-10_auto.ss1 created!
+Updated `current_state.ss1`!
+┌────────────────────── Pidgey♂ encountered at Route 1 ───────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 91559DA4        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 3               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  9  │ 12  │ 18↓ │  5  │ 9  │ 29↑ │ 82 │ │
+│ │       Nature │ Hasty           │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Keen Eye        │                                          │
+│ │ Hidden Power │ Ice (32)        │Moves: Tackle                             │
+│ │  Shiny Value │ 55,288          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Pidgey │  82 /  │  55,288 /   │     1 │ 20.00% │     0 │      1 │   N/A │ │
+│ │        │   82   │   55,288    │       │        │       │        │       │ │
+│ │ Ratta… │ 114 /  │  60,184 /   │     4 │ 80.00% │     0 │      4 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Total  │  82 /  │  55,288 /   │     5 │   100% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────── Pidgey♀ encountered at Route 1 ───────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 69A9D83B        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 2               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  5  │  1  │ 15  │ 4↑  │ 2… │ 22  │ 69 │ │
+│ │       Nature │ Rash            │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Keen Eye        │                                          │
+│ │ Hidden Power │ Flying (57)     │Moves: Tackle                             │
+│ │  Shiny Value │ 27,291          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Pidgey │  69 /  │  27,291 /   │     2 │ 33.33% │     0 │      2 │   N/A │ │
+│ │        │   82   │   55,288    │       │        │       │        │       │ │
+│ │ Ratta… │ 114 /  │  60,184 /   │     4 │ 66.67% │     0 │      4 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │  27,291 /   │     6 │   100% │     0 │      6 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────── Rattata♀ encountered at Route 1 ──────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 62803F64        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 3               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  0  │ 22↑ │ 15  │ 28  │ 7↓ │ 21  │ 93 │ │
+│ │       Nature │ Naughty         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Run Away        │                                          │
+│ │ Hidden Power │ Grass (54)      │Moves: Tackle, Tail Whip                  │
+│ │  Shiny Value │ 34,541          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Pidgey │  69 /  │  27,291 /   │     2 │ 28.57% │     0 │      2 │   N/A │ │
+│ │        │   82   │   55,288    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 71.43% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │  27,291 /   │     7 │   100% │     0 │      7 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+[run] entering planner loop
+[planner] objective catch_Pidgey: Pidgey is one of the most common early-route encounters near Pallet/Viridian and is easy to catch at this low level, adding a new Pokédex entry (dex_owned is still just 1) while doubling as a future Fly/Cut HM slave. (method spin)
+┌────────────────────── Pidgey♂ encountered at Route 1 ───────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 2A9A2FEF        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 4               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 22  │ 18  │ 15  │ 11  │ 8  │ 25  │ 99 │ │
+│ │       Nature │ Serious         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Keen Eye        │                                          │
+│ │ Hidden Power │ Ghost (44)      │Moves: Tackle                             │
+│ │  Shiny Value │ 56,956          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Pidgey │  69 /  │  27,291 /   │     3 │ 37.50% │     0 │      3 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 62.50% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │  27,291 /   │     8 │   100% │     0 │      8 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+[planner] caught Pidgey (50% on (3, 19))
+Save state 
+C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\profiles\livingdex\
+states\2026-08-02_02-13-50_caught.ss1 created!
+Updated `current_state.ss1`!
+┌────────────────────── Pidgey♀ encountered at Route 1 ───────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 604E2877        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 3               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 14  │ 14↑ │  7  │ 2↓  │ 30 │  3  │ 70 │ │
+│ │       Nature │ Adamant         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Keen Eye        │                                          │
+│ │ Hidden Power │ Poison (70)     │Moves: Tackle                             │
+│ │  Shiny Value │ 37,680          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 44.44% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 55.56% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │  27,291 /   │     9 │   100% │     0 │      9 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+Save state 
+C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\profiles\livingdex\
+states\2026-08-02_02-13-52_auto.ss1 created!
+Updated `current_state.ss1`!
+[planner] objective catch_Pikachu: Pikachu is a rare, low-encounter-rate species only available in this early area (Viridian Forest/Route 2) and is much harder to obtain later, whereas the other options (Rattata, Caterpie, Weedle, Kakuna, Metapod, Spearow, etc.) remain common and easy to backfill afterward. Prioritizing the rare catch now while still in range maximizes living-dex progress before moving on. (method spin)
+┌───────────────── Caterpie♂ encountered at Viridian Forest ──────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ EF1F619D        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 4               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 17  │ 7↑  │ 19  │  1  │ 2… │  3  │ 76 │ │
+│ │       Nature │ Naughty         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Dark (38)       │Moves: Tackle, String Shot                │
+│ │  Shiny Value │ 21,899          │EV Yield: 1 HP                            │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │  21,899 /   │     1 │ 10.00% │     0 │      1 │   N/A │ │
+│ │        │   76   │   21,899    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 40.00% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 50.00% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │  21,899 /   │    10 │   100% │     0 │     10 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌────────────────── Pikachu♀ encountered at Viridian Forest ──────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 45F8C22F        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 3               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 15  │ 14  │ 28  │ 29  │ 23 │ 22  │ 1… │ │
+│ │       Nature │ Bashful         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Static          │                                          │
+│ │ Hidden Power │ Electric (57)   │Moves: Thundershock, Growl                │
+│ │  Shiny Value │ 23,774          │EV Yield: 2 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │  21,899 /   │     1 │  9.09% │     0 │      1 │   N/A │ │
+│ │        │   76   │   21,899    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 36.36% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  9.09% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 45.45% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │  21,899 /   │    11 │   100% │     0 │     11 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+[planner] caught Pikachu (5% on (1, 0))
+Save state 
+C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\profiles\livingdex\
+states\2026-08-02_02-14-25_caught.ss1 created!
+Updated `current_state.ss1`!
+[planner] objective catch_Caterpie: Player is still in the early Route 1/Viridian Forest area with a low-level party (levels 3-6), so Caterpie is a common, easy wild encounter reachable right now that adds a new species to the dex without requiring travel to later-game areas where Psyduck/Mankey are found. (method spin)
+┌────────────────── Weedle♂ encountered at Viridian Forest ───────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 0965DCBE        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 4               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  1  │ 6↓  │  8  │ 30↑ │ 26 │ 10  │ 81 │ │
+│ │       Nature │ Modest          │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Fighting (66)   │Moves: Poison Sting, String Shot          │
+│ │  Shiny Value │ 3,794           │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │  21,899 /   │     1 │  8.33% │     0 │      1 │   N/A │ │
+│ │        │   76   │   21,899    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 33.33% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  8.33% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 41.67% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  81 /  │   3,794 /   │     1 │  8.33% │     0 │      1 │   N/A │ │
+│ │        │   81   │    3,794    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │   3,794 /   │    12 │   100% │     0 │     12 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌────────────────── Metapod♂ encountered at Viridian Forest ──────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ E1B7A487        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 5               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  4  │ 21  │ 20↑ │ 27  │ 13 │ 26↓ │ 1… │ │
+│ │       Nature │ Relaxed         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shed Skin       │                                          │
+│ │ Hidden Power │ Electric (45)   │Moves: Harden                             │
+│ │  Shiny Value │ 40,505          │EV Yield: 2 Defence                       │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │  21,899 /   │     1 │  7.69% │     0 │      1 │   N/A │ │
+│ │        │   76   │   21,899    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  7.69% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 30.77% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  7.69% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 38.46% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  81 /  │   3,794 /   │     1 │  7.69% │     0 │      1 │   N/A │ │
+│ │        │   81   │    3,794    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │   3,794 /   │    13 │   100% │     0 │     13 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌────────────────── Weedle♀ encountered at Viridian Forest ───────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ FFD50E74        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 3               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 17  │  0  │ 15  │ 13↓ │ 2… │  8  │ 81 │ │
+│ │       Nature │ Careful         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Bug (32)        │Moves: Poison Sting, String Shot          │
+│ │  Shiny Value │ 10,920          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │  21,899 /   │     1 │  7.14% │     0 │      1 │   N/A │ │
+│ │        │   76   │   21,899    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  7.14% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 28.57% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  7.14% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 35.71% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  81 /  │   3,794 /   │     2 │ 14.29% │     0 │      2 │   N/A │ │
+│ │        │   81   │   10,920    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │   3,794 /   │    14 │   100% │     0 │     14 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌───────────────── Caterpie♂ encountered at Viridian Forest ──────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 145FEC8D        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 4               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 21  │ 17  │ 18  │ 27  │ 1… │ 22↓ │ 1… │ │
+│ │       Nature │ Sassy           │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Psychic (68)    │Moves: Tackle, String Shot                │
+│ │  Shiny Value │ 9,179           │EV Yield: 1 HP                            │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │   9,179 /   │     2 │ 13.33% │     0 │      2 │   N/A │ │
+│ │        │  116   │   21,899    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  6.67% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 26.67% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  6.67% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 33.33% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  81 /  │   3,794 /   │     2 │ 13.33% │     0 │      2 │   N/A │ │
+│ │        │   81   │   10,920    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │   3,794 /   │    15 │   100% │     0 │     15 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+[planner] caught Caterpie (40% on (1, 0))
+Save state 
+C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\profiles\livingdex\
+states\2026-08-02_02-14-51_caught.ss1 created!
+Updated `current_state.ss1`!
+[planner] objective catch_Weedle: Caterpie's line is already owned; Weedle is the other common Viridian Forest encounter and represents a new species line for the living dex, fitting the party's early-game levels and current route. (method spin)
+┌───────────────── Caterpie♀ encountered at Viridian Forest ──────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ AD42D746        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 4               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  7  │ 21↑ │ 31  │  2  │ 8↓ │ 22  │ 91 │ │
+│ │       Nature │ Naughty         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Flying (48)     │Moves: Tackle, String Shot                │
+│ │  Shiny Value │ 41,229          │EV Yield: 1 HP                            │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │   9,179 /   │     3 │ 18.75% │     0 │      3 │   N/A │ │
+│ │        │  116   │   41,229    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  6.25% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 25.00% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  6.25% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 31.25% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  81 /  │   3,794 /   │     2 │ 12.50% │     0 │      2 │   N/A │ │
+│ │        │   81   │   10,920    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │   3,794 /   │    16 │   100% │     0 │     16 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌───────────────── Caterpie♂ encountered at Viridian Forest ──────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 1B82B787        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 4               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  8  │ 22↓ │ 15  │ 13  │ 3… │  2  │ 90 │ │
+│ │       Nature │ Calm            │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Rock (59)       │Moves: Tackle, String Shot                │
+│ │  Shiny Value │ 30,476          │EV Yield: 1 HP                            │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │   9,179 /   │     4 │ 23.53% │     0 │      4 │   N/A │ │
+│ │        │  116   │   41,229    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  5.88% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 23.53% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  5.88% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 29.41% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  81 /  │   3,794 /   │     2 │ 11.76% │     0 │      2 │   N/A │ │
+│ │        │   81   │   10,920    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │   3,794 /   │    17 │   100% │     0 │     17 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+Save state 
+C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\profiles\livingdex\
+states\2026-08-02_02-15-10_auto.ss1 created!
+Updated `current_state.ss1`!
+┌────────────────── Weedle♀ encountered at Viridian Forest ───────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ F49E1904        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 4               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  9  │  7  │ 6↓  │  3  │ 1… │ 23  │ 65 │ │
+│ │       Nature │ Gentle          │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Dragon (49)     │Moves: Poison Sting, String Shot          │
+│ │  Shiny Value │ 13,971          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │   9,179 /   │     4 │ 22.22% │     0 │      4 │   N/A │ │
+│ │        │  116   │   41,229    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  5.56% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 22.22% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  5.56% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 27.78% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  65 /  │   3,794 /   │     3 │ 16.67% │     0 │      3 │   N/A │ │
+│ │        │   81   │   13,971    │       │        │       │        │       │ │
+│ │ Total  │  65 /  │   3,794 /   │    18 │   100% │     0 │     18 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+[planner] caught Weedle (40% on (1, 0))
+Save state 
+C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\profiles\livingdex\
+states\2026-08-02_02-15-13_caught.ss1 created!
+Updated `current_state.ss1`!
+[planner] objective catch_Kakuna: Player already owns Caterpie and Weedle from this area, so Kakuna (Weedle's evolution) is likely available nearby and would add a new species to the living dex without needing to travel to a new route yet. (method spin)
+┌────────────────── Weedle♀ encountered at Viridian Forest ───────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ E7F7F76B        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 4               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 15  │ 27↑ │ 13  │ 19  │ 5  │ 6↓  │ 85 │ │
+│ │       Nature │ Brave           │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Ice (47)        │Moves: Poison Sting, String Shot          │
+│ │  Shiny Value │ 52,117          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │   9,179 /   │     4 │ 21.05% │     0 │      4 │   N/A │ │
+│ │        │  116   │   41,229    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  5.26% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 21.05% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  5.26% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 26.32% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  65 /  │   3,794 /   │     4 │ 21.05% │     0 │      4 │   N/A │ │
+│ │        │   85   │   52,117    │       │        │       │        │       │ │
+│ │ Total  │  65 /  │   3,794 /   │    19 │   100% │     0 │     19 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌────────────────── Weedle♂ encountered at Viridian Forest ───────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 083EFEBB        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 4               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 13  │ 27  │ 29↓ │ 27  │ 1… │ 10  │ 1… │ │
+│ │       Nature │ Gentle          │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Bug (66)        │Moves: Poison Sting, String Shot          │
+│ │  Shiny Value │ 11,660          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │   9,179 /   │     4 │ 20.00% │     0 │      4 │   N/A │ │
+│ │        │  116   │   41,229    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  5.00% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 20.00% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  5.00% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 25.00% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  65 /  │   3,794 /   │     5 │ 25.00% │     0 │      5 │   N/A │ │
+│ │        │  116   │   52,117    │       │        │       │        │       │ │
+│ │ Total  │  65 /  │   3,794 /   │    20 │   100% │     0 │     20 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌───────────────── Caterpie♂ encountered at Viridian Forest ──────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ F3DF71AA        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 5               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 30  │ 12  │ 13  │ 18  │ 7↓ │ 3↑  │ 83 │ │
+│ │       Nature │ Naive           │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Grass (66)      │Moves: Tackle, String Shot                │
+│ │  Shiny Value │ 22,908          │EV Yield: 1 HP                            │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │   9,179 /   │     5 │ 23.81% │     0 │      5 │   N/A │ │
+│ │        │  116   │   41,229    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  4.76% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 19.05% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  4.76% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 23.81% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  65 /  │   3,794 /   │     5 │ 23.81% │     0 │      5 │   N/A │ │
+│ │        │  116   │   52,117    │       │        │       │        │       │ │
+│ │ Total  │  65 /  │   3,794 /   │    21 │   100% │     0 │     21 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌────────────────── Weedle♂ encountered at Viridian Forest ───────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 9BC19998        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 3               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 25  │ 15  │  9  │ 3↓  │ 1… │ 18  │ 83 │ │
+│ │       Nature │ Careful         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Ice (46)        │Moves: Poison Sting, String Shot          │
+│ │  Shiny Value │ 55,632          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │   9,179 /   │     5 │ 22.73% │     0 │      5 │   N/A │ │
+│ │        │  116   │   41,229    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  4.55% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 18.18% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  4.55% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 22.73% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  65 /  │   3,794 /   │     6 │ 27.27% │     0 │      6 │   N/A │ │
+│ │        │  116   │   55,632    │       │        │       │        │       │ │
+│ │ Total  │  65 /  │   3,794 /   │    22 │   100% │     0 │     22 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌────────────────── Weedle♂ encountered at Viridian Forest ───────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 65E08989        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 4               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 26  │ 15  │ 31  │ 17  │ 2… │ 19↑ │ 1… │ │
+│ │       Nature │ Naive           │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Dragon (39)     │Moves: Poison Sting, String Shot          │
+│ │  Shiny Value │ 14,176          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │   9,179 /   │     5 │ 21.74% │     0 │      5 │   N/A │ │
+│ │        │  116   │   41,229    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  4.35% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 17.39% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  4.35% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 21.74% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  65 /  │   3,794 /   │     7 │ 30.43% │     0 │      7 │   N/A │ │
+│ │        │  129   │   55,632    │       │        │       │        │       │ │
+│ │ Total  │  65 /  │   3,794 /   │    23 │   100% │     0 │     23 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌────────────────── Kakuna♂ encountered at Viridian Forest ───────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 5A34C8F6        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 5               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  7  │ 11  │ 25↑ │ 2↓  │ 2  │ 17  │ 64 │ │
+│ │       Nature │ Impish          │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shed Skin       │                                          │
+│ │ Hidden Power │ Ground (62)     │Moves: Harden                             │
+│ │  Shiny Value │ 18,891          │EV Yield: 2 Defence                       │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │   9,179 /   │     5 │ 20.83% │     0 │      5 │   N/A │ │
+│ │        │  116   │   41,229    │       │        │       │        │       │ │
+│ │ Kakuna │  64 /  │  18,891 /   │     1 │  4.17% │     0 │      1 │   N/A │ │
+│ │        │   64   │   18,891    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  4.17% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 16.67% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  4.17% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 20.83% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  65 /  │   3,794 /   │     7 │ 29.17% │     0 │      7 │   N/A │ │
+│ │        │  129   │   55,632    │       │        │       │        │       │ │
+│ │ Total  │  64 /  │   3,794 /   │    24 │   100% │     0 │     24 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+[planner] caught Kakuna (10% on (1, 0))
+Save state 
+C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\profiles\livingdex\
+states\2026-08-02_02-15-46_caught.ss1 created!
+Updated `current_state.ss1`!
+┌────────────────── Weedle♀ encountered at Viridian Forest ───────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 98BCEF0F        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 3               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  9  │ 18  │ 23  │ 15  │ 25 │ 30  │ 1… │ │
+│ │       Nature │ Quirky          │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Psychic (49)    │Moves: Poison Sting, String Shot          │
+│ │  Shiny Value │ 44,218          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │   9,179 /   │     5 │ 20.00% │     0 │      5 │   N/A │ │
+│ │        │  116   │   41,229    │       │        │       │        │       │ │
+│ │ Kakuna │  64 /  │  18,891 /   │     1 │  4.00% │     0 │      1 │   N/A │ │
+│ │        │   64   │   18,891    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  4.00% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 16.00% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  4.00% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 20.00% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  65 /  │   3,794 /   │     8 │ 32.00% │     0 │      8 │   N/A │ │
+│ │        │  129   │   55,632    │       │        │       │        │       │ │
+│ │ Total  │  64 /  │   3,794 /   │    25 │   100% │     0 │     25 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌────────────────── Kakuna♀ encountered at Viridian Forest ───────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ E51EB84F        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 5               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  7  │ 25↑ │ 27  │ 20  │ 22 │ 17↓ │ 1… │ │
+│ │       Nature │ Brave           │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shed Skin       │                                          │
+│ │ Hidden Power │ Ground (53)     │Moves: Harden                             │
+│ │  Shiny Value │ 34,392          │EV Yield: 2 Defence                       │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │   9,179 /   │     5 │ 19.23% │     0 │      5 │   N/A │ │
+│ │        │  116   │   41,229    │       │        │       │        │       │ │
+│ │ Kakuna │  64 /  │  18,891 /   │     2 │  7.69% │     0 │      2 │   N/A │ │
+│ │        │  118   │   34,392    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  3.85% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 15.38% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  3.85% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 19.23% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  65 /  │   3,794 /   │     8 │ 30.77% │     0 │      8 │   N/A │ │
+│ │        │  129   │   55,632    │       │        │       │        │       │ │
+│ │ Total  │  64 /  │   3,794 /   │    26 │   100% │     0 │     26 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+Save state 
+C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\profiles\livingdex\
+states\2026-08-02_02-15-51_auto.ss1 created!
+Updated `current_state.ss1`!
+┌────────────────── Weedle♂ encountered at Viridian Forest ───────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 1B064DAC        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 5               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 28  │ 18  │ 27↑ │ 28  │ 4  │ 21↓ │ 1… │ │
+│ │       Nature │ Relaxed         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Poison (33)     │Moves: Poison Sting, String Shot          │
+│ │  Shiny Value │ 36,259          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │   9,179 /   │     5 │ 18.52% │     0 │      5 │   N/A │ │
+│ │        │  116   │   41,229    │       │        │       │        │       │ │
+│ │ Kakuna │  64 /  │  18,891 /   │     2 │  7.41% │     0 │      2 │   N/A │ │
+│ │        │  118   │   34,392    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  3.70% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 14.81% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  3.70% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 18.52% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  65 /  │   3,794 /   │     9 │ 33.33% │     0 │      9 │   N/A │ │
+│ │        │  129   │   55,632    │       │        │       │        │       │ │
+│ │ Total  │  64 /  │   3,794 /   │    27 │   100% │     0 │     27 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌────────────────── Kakuna♀ encountered at Viridian Forest ───────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 8CFD607A        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 4               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 25  │ 12  │ 28↓ │ 19  │ 1… │  6  │ 1… │ │
+│ │       Nature │ Gentle          │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shed Skin       │                                          │
+│ │ Hidden Power │ Rock (45)       │Moves: Harden                             │
+│ │  Shiny Value │ 14,222          │EV Yield: 2 Defence                       │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │   9,179 /   │     5 │ 17.86% │     0 │      5 │   N/A │ │
+│ │        │  116   │   41,229    │       │        │       │        │       │ │
+│ │ Kakuna │  64 /  │  14,222 /   │     3 │ 10.71% │     0 │      3 │   N/A │ │
+│ │        │  118   │   34,392    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  3.57% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 14.29% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  3.57% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 17.86% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  65 /  │   3,794 /   │     9 │ 32.14% │     0 │      9 │   N/A │ │
+│ │        │  129   │   55,632    │       │        │       │        │       │ │
+│ │ Total  │  64 /  │   3,794 /   │    28 │   100% │     0 │     28 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+Save state 
+C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\profiles\livingdex\
+states\2026-08-02_02-16-11_auto.ss1 created!
+Updated `current_state.ss1`!
+┌───────────────── Caterpie♂ encountered at Viridian Forest ──────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ EF3D9EC2        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 4               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 11  │ 19  │ 13  │  6  │ 5  │ 31  │ 85 │ │
+│ │       Nature │ Serious         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Electric (47)   │Moves: Tackle, String Shot                │
+│ │  Shiny Value │ 43,766          │EV Yield: 1 HP                            │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │   9,179 /   │     6 │ 20.69% │     0 │      6 │   N/A │ │
+│ │        │  116   │   43,766    │       │        │       │        │       │ │
+│ │ Kakuna │  64 /  │  14,222 /   │     3 │ 10.34% │     0 │      3 │   N/A │ │
+│ │        │  118   │   34,392    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  3.45% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 13.79% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  3.45% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 17.24% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  65 /  │   3,794 /   │     9 │ 31.03% │     0 │      9 │   N/A │ │
+│ │        │  129   │   55,632    │       │        │       │        │       │ │
+│ │ Total  │  64 /  │   3,794 /   │    29 │   100% │     0 │     29 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌───────────────── Caterpie♂ encountered at Viridian Forest ──────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 5138FADD        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 4               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 25  │ 27  │ 18↑ │ 16↓ │ 27 │ 12  │ 1… │ │
+│ │       Nature │ Impish          │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Fire (54)       │Moves: Tackle, String Shot                │
+│ │  Shiny Value │ 28,908          │EV Yield: 1 HP                            │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │   9,179 /   │     7 │ 23.33% │     0 │      7 │   N/A │ │
+│ │        │  125   │   43,766    │       │        │       │        │       │ │
+│ │ Kakuna │  64 /  │  14,222 /   │     3 │ 10.00% │     0 │      3 │   N/A │ │
+│ │        │  118   │   34,392    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  3.33% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 13.33% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  3.33% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 16.67% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  65 /  │   3,794 /   │     9 │ 30.00% │     0 │      9 │   N/A │ │
+│ │        │  129   │   55,632    │       │        │       │        │       │ │
+│ │ Total  │  64 /  │   3,794 /   │    30 │   100% │     0 │     30 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+[planner] objective catch_Metapod: Party already includes Caterpie, Weedle, and Kakuna, indicating the player is in/near Viridian Forest where Metapod is a common encounter alongside those species. It's a new, easily accessible species for the dex (owned=6 vs seen=9) with minimal detour, unlike Psyduck (water routes) or Mankey/Spearow/Rattata (Route 3/22, further from current position). (method spin)
+┌───────────────── Caterpie♂ encountered at Viridian Forest ──────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 7FFC3FD5        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 4               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  7  │ 19↓ │  6  │ 29  │ 2… │ 24  │ 1… │ │
+│ │       Nature │ Calm            │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Psychic (54)    │Moves: Tackle, String Shot                │
+│ │  Shiny Value │ 39,712          │EV Yield: 1 HP                            │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │   9,179 /   │     8 │ 25.81% │     0 │      8 │   N/A │ │
+│ │        │  125   │   43,766    │       │        │       │        │       │ │
+│ │ Kakuna │  64 /  │  14,222 /   │     3 │  9.68% │     0 │      3 │   N/A │ │
+│ │        │  118   │   34,392    │       │        │       │        │       │ │
+│ │ Metap… │ 111 /  │  40,505 /   │     1 │  3.23% │     0 │      1 │   N/A │ │
+│ │        │  111   │   40,505    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 12.90% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  3.23% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 16.13% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Weedle │  65 /  │   3,794 /   │     9 │ 29.03% │     0 │      9 │   N/A │ │
+│ │        │  129   │   55,632    │       │        │       │        │       │ │
+│ │ Total  │  64 /  │   3,794 /   │    31 │   100% │     0 │     31 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+Save state 
+C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\profiles\livingdex\
+states\2026-08-02_02-16-51_auto.ss1 created!
+Updated `current_state.ss1`!
+[planner] team assembly deferred: No PC tile found on map (4, 0)
+Traceback (most recent call last):
+  File "C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\run.py", line 116, in <module>

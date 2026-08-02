@@ -1,0 +1,105 @@
+planner shim listening on http://127.0.0.1:8763/v1 (cli timeout 90s, scratch cwd C:\Users\marku\AppData\Local\Temp\planner_shim_cwd_ifjftet7)
+[2026-08-01T23:56:34Z] completion ok: model=claude-sonnet-5 prompt_msgs=1 out_chars=236 9.9s
+[2026-08-01T23:56:34Z] "POST /v1/chat/completions HTTP/1.1" 200 -
+[2026-08-01T23:56:53Z] completion ok: model=claude-sonnet-5 prompt_msgs=1 out_chars=378 7.8s
+[2026-08-01T23:56:53Z] "POST /v1/chat/completions HTTP/1.1" 200 -
+[2026-08-01T23:57:26Z] completion ok: model=claude-sonnet-5 prompt_msgs=1 out_chars=276 18.7s
+[2026-08-01T23:57:26Z] "POST /v1/chat/completions HTTP/1.1" 200 -
+[2026-08-02T00:13:02Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T00:13:45Z] completion ok: model=claude-sonnet-5 prompt_msgs=1 out_chars=262 12.7s
+[2026-08-02T00:13:45Z] "POST /v1/chat/completions HTTP/1.1" 200 -
+[2026-08-02T00:14:12Z] completion ok: model=claude-sonnet-5 prompt_msgs=1 out_chars=421 16.3s
+[2026-08-02T00:14:12Z] "POST /v1/chat/completions HTTP/1.1" 200 -
+[2026-08-02T00:14:44Z] completion ok: model=claude-sonnet-5 prompt_msgs=1 out_chars=319 17.2s
+[2026-08-02T00:14:44Z] "POST /v1/chat/completions HTTP/1.1" 200 -
+[2026-08-02T00:15:08Z] completion ok: model=claude-sonnet-5 prompt_msgs=1 out_chars=243 14.7s
+[2026-08-02T00:15:08Z] "POST /v1/chat/completions HTTP/1.1" 200 -
+[2026-08-02T00:15:32Z] completion ok: model=claude-sonnet-5 prompt_msgs=1 out_chars=251 16.6s
+[2026-08-02T00:15:32Z] "POST /v1/chat/completions HTTP/1.1" 200 -
+[2026-08-02T00:16:45Z] completion ok: model=claude-sonnet-5 prompt_msgs=1 out_chars=401 15.7s
+[2026-08-02T00:16:45Z] "POST /v1/chat/completions HTTP/1.1" 200 -
+[2026-08-02T00:18:03Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T00:23:03Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T00:28:03Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T00:33:03Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T00:38:03Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T00:43:03Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T00:48:03Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T00:53:03Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T00:58:04Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T01:03:04Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T01:08:04Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T01:18:34Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T01:23:34Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T01:28:34Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T01:33:34Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T01:38:34Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T01:43:35Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T01:48:35Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T01:53:35Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T01:58:35Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T02:03:35Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T02:08:35Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T02:13:35Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T02:23:46Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T02:28:46Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T02:33:46Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T02:38:46Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T02:43:46Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T02:48:47Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T02:53:47Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T02:58:47Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T03:03:47Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T03:08:47Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T03:13:47Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T03:18:47Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T03:31:08Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T03:36:08Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T03:41:08Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T03:46:08Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T03:51:08Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T03:56:08Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T04:01:09Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T04:06:09Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T04:11:09Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T04:16:09Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T04:21:09Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T04:26:09Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T04:43:20Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T04:48:20Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T04:53:20Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T04:58:20Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T05:03:20Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T05:08:20Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T05:13:20Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T05:18:21Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T05:23:21Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T05:28:21Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T05:33:22Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T05:38:22Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T05:51:42Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T05:56:42Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T06:01:42Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T06:06:42Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T06:11:43Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T06:16:43Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T06:21:43Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T06:26:43Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T06:31:43Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T06:36:43Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T06:41:43Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T06:46:44Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T06:57:54Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T07:02:54Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T07:07:54Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T07:12:54Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T07:17:54Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T07:22:55Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T07:27:55Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T07:32:55Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T07:37:55Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T07:42:55Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T07:47:55Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T07:52:56Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T08:05:56Z] "GET /health HTTP/1.1" 200 -
+[2026-08-02T08:10:56Z] "GET /health HTTP/1.1" 200 -

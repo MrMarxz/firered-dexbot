@@ -1,6 +1,45 @@
 # DEVLOG
 
-## 2026-07-11 — ALL 8 BADGES, Zapdos, dex 72→85; the detection-stack revisit
+## 2026-08-02 — Attempt 1 terminated at T+8.85h: forensics, archive, and the two supervisor detection fixes
+
+**What happened** — the live run (dexbot-run, started 23:22Z) caught 5 species in
+its first 4 post-council minutes, then wedged at ~99% CPU inside a single
+controller step of `catch_Metapod` for 7h57m. No trigger fired; the human pulled
+the plug at 08:13:29Z. Full post-mortem: `RUN1_FORENSICS.md`; complete evidence
+archive: `run1_archive/` (dexbot-run logs, wedged profile, STATUS/STATE/COUNCIL_LOG
+copies; ROM-derived .ss1/.sav archived on disk but untracked per release policy).
+
+**Root causes (detection side, both fixed in dexbot-run + 17 unit tests)**
+- **Defect A — the review pipeline was deaf**: all seven hourly §4.5 reviews were
+  discarded as "no verdict line". The sink is UTF-8; `invoke_claude` read it back
+  in cp1252, so the em-dash the prompt itself demands (`REVIEW VERDICT: STALL —`)
+  mojibaked and the separator class `[—–:-]` failed the line. Review #7 contained
+  a complete correct STALL diagnosis (spinning worker pid, frozen outputs,
+  dashboard artifacts) — thrown away over one missing `encoding=`. Fixed: UTF-8
+  read, mojibake-tolerant verdict regex, every review preserved to
+  `logs/reviews/` (the truncating sink destroyed reviews #1–6), and §4 item 7:
+  three consecutive verdictless reviews = stall event → pause + full council.
+- **Defect B — frame-denominated blindness**: §4.3 measures "frames stalled";
+  the wedge froze the frame counter, so the measure read 0 for eight hours while
+  the snapshot tool re-stamped stale telemetry with a fresh clock ("Snapshot
+  age: 0 min" all night). Fixed: §4 item 6 wall-clock trigger (dex unchanged
+  120 running-minutes → stall) + an emulation-rate line in every heartbeat
+  (`emu=<N> frames/min telemetry_age=<M>min`) read from the telemetry tail, not
+  the re-stamped progress.jsonl.
+
+**The wedge itself is NOT fixed** (owner: council's job in attempt 2, operator
+fixes detection only). Archive-derived facts for the council: entered via
+`ensure_healthy()`'s pre-first-yield planning (`_pick_reachable_center` →
+`navigate_to`) with 4/6 party fainted after `assemble_party` failed `No PC tile
+found on map (4, 0)`; on Windows there is no SIGALRM so the step watchdog is a
+no-op, and every other defense is frame-denominated. The Ctrl+C forensic gem:
+`str(KeyboardInterrupt()) == ""` explains the empty `catch_Metapod` error record
+at kill time, proving the main thread was alive and spinning the whole while.
+
+**State** — dexbot-run logs/ + profile cleaned; STATE.md reset to pre-run
+no-open-event (carried concerns kept; concern 10's rc≠0 premise annotated as
+falsified). Suite 2 failed / 153 passed — the 2 are the BASELINE.md pre-existing
+pair; no new failures. Attempt 2 is launch-ready pending the human's go.
 
 **Done**
 - **Badge 8 (Giovanni)** — Water sweep, spinner maze inbound via native

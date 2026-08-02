@@ -1,0 +1,137 @@
+[2026-08-01T23:22:16Z] supervisor starting (pid 20212, root C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run)
+[2026-08-01T23:22:16Z] bot started pid=25836
+[2026-08-01T23:22:16Z] planner shim started pid=8372 port=8763
+[2026-08-01T23:22:16Z] heartbeat: bot=running pid=25836 objective=unknown
+[2026-08-01T23:22:46Z] bot crashed rc=1
+[2026-08-01T23:22:46Z] bot started pid=22052
+[2026-08-01T23:23:16Z] bot crashed rc=1
+[2026-08-01T23:23:16Z] bot started pid=14844
+[2026-08-01T23:23:47Z] bot crashed rc=1
+[2026-08-01T23:23:47Z] TRIGGER crash_loop: bot process crashed 3 times during objective 'scripted_opening' (§4.4)
+[2026-08-01T23:23:47Z] bot paused (hard stop by design; resume point = last calm auto-checkpoint)
+[2026-08-01T23:23:47Z] orchestrator invoked pid=9016 (output -> council_last_invocation.log)
+[2026-08-01T23:27:17Z] heartbeat: bot=stopped objective=scripted_opening
+[2026-08-01T23:32:17Z] heartbeat: bot=stopped objective=scripted_opening
+[2026-08-01T23:37:17Z] heartbeat: bot=stopped objective=scripted_opening
+[2026-08-01T23:42:17Z] heartbeat: bot=stopped objective=scripted_opening
+[2026-08-01T23:47:17Z] heartbeat: bot=stopped objective=scripted_opening
+[2026-08-01T23:52:17Z] heartbeat: bot=stopped objective=scripted_opening
+[2026-08-01T23:57:17Z] heartbeat: bot=stopped objective=scripted_opening
+[2026-08-02T00:02:17Z] heartbeat: bot=stopped objective=scripted_opening
+[2026-08-02T00:07:17Z] heartbeat: bot=stopped objective=scripted_opening
+[2026-08-02T00:12:17Z] heartbeat: bot=stopped objective=scripted_opening
+[2026-08-02T00:12:47Z] council event closed (trigger crash_loop)
+[2026-08-02T00:12:47Z] bot started pid=25724
+[2026-08-02T00:17:18Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T00:22:18Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T00:27:18Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T00:32:18Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T00:37:18Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T00:42:18Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T00:47:18Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T00:52:18Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T00:57:18Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T01:02:19Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T01:07:19Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T01:12:19Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T01:12:49Z] orchestrator invoked pid=4508 (output -> review_last_invocation.log)
+[2026-08-02T01:17:19Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T01:18:19Z] §4.5 review returned no verdict line (rc=0) — review skipped, bot keeps running
+[2026-08-02T01:22:19Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T01:27:19Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T01:32:19Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T01:37:19Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T01:42:19Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T01:47:20Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T01:52:20Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T01:57:20Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T02:02:20Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T02:07:20Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T02:12:20Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T02:17:20Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T02:18:21Z] orchestrator invoked pid=24988 (output -> review_last_invocation.log)
+[2026-08-02T02:22:21Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T02:23:31Z] §4.5 review returned no verdict line (rc=0) — review skipped, bot keeps running
+[2026-08-02T02:27:31Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T02:32:31Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T02:37:31Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T02:42:31Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T02:47:31Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T02:52:32Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T02:57:32Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T03:02:32Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T03:07:32Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T03:12:32Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T03:17:32Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T03:22:32Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T03:23:33Z] orchestrator invoked pid=14072 (output -> review_last_invocation.log)
+[2026-08-02T03:27:33Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T03:30:53Z] §4.5 review returned no verdict line (rc=0) — review skipped, bot keeps running
+[2026-08-02T03:32:38Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T03:37:38Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T03:42:38Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T03:47:38Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T03:52:38Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T03:57:38Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T04:02:39Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T04:07:39Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T04:12:39Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T04:17:39Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T04:22:39Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T04:27:39Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T04:30:54Z] orchestrator invoked pid=7220 (output -> review_last_invocation.log)
+[2026-08-02T04:32:44Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T04:37:44Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T04:42:44Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T04:43:05Z] §4.5 review returned no verdict line (rc=0) — review skipped, bot keeps running
+[2026-08-02T04:47:50Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T04:52:50Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T04:57:50Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T05:02:50Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T05:07:50Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T05:12:50Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T05:17:51Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T05:22:51Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T05:27:51Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T05:32:52Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T05:37:52Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T05:42:52Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T05:43:07Z] orchestrator invoked pid=23464 (output -> review_last_invocation.log)
+[2026-08-02T05:47:57Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T05:51:27Z] §4.5 review returned no verdict line (rc=0) — review skipped, bot keeps running
+[2026-08-02T05:52:57Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T05:57:57Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T06:02:57Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T06:07:57Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T06:12:58Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T06:17:58Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T06:22:58Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T06:27:58Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T06:32:58Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T06:37:58Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T06:42:58Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T06:47:59Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T06:51:29Z] orchestrator invoked pid=16556 (output -> review_last_invocation.log)
+[2026-08-02T06:52:59Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T06:57:39Z] §4.5 review returned no verdict line (rc=0) — review skipped, bot keeps running
+[2026-08-02T06:58:09Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T07:03:09Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T07:08:09Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T07:13:09Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T07:18:09Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T07:23:10Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T07:28:10Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T07:33:10Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T07:38:10Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T07:43:10Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T07:48:10Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T07:53:11Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T07:57:41Z] orchestrator invoked pid=4352 (output -> review_last_invocation.log)
+[2026-08-02T07:58:11Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T08:03:11Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T08:05:41Z] §4.5 review returned no verdict line (rc=0) — review skipped, bot keeps running
+[2026-08-02T08:08:11Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T08:13:12Z] heartbeat: bot=running pid=25724 objective=catch_Metapod
+[2026-08-02T08:13:29Z] supervisor interrupted — stopping bot
+[2026-08-02T08:13:29Z] bot paused (hard stop by design; resume point = last calm auto-checkpoint)
+[2026-08-02T08:13:29Z] planner shim stopped

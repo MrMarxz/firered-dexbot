@@ -1,0 +1,279 @@
+[run] stdio: {'stdout': 'reconfigured', 'stderr': 'reconfigured'} encoding=utf-8
+Running mGBA 0.10.2
+[run] fresh save — playing the intro
+[run] running scripted opening (starter/rival/parcel/Pokédex)
+┌────────────────────── Rattata♀ encountered at Route 1 ──────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 795C494D        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 3               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 28  │ 15  │ 12  │ 30↓ │ 6  │ 23↑ │ 1… │ │
+│ │       Nature │ Jolly           │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Guts            │                                          │
+│ │ Hidden Power │ Poison (66)     │Moves: Tackle, Tail Whip                  │
+│ │  Shiny Value │ 60,184          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Ratta… │ 114 /  │  60,184 /   │     4 │ 100.0… │     0 │      4 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Total  │ 114 /  │  60,184 /   │     4 │   100% │     0 │      4 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+Save state 
+C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\profiles\event1repl
+ay\states\2026-08-02_01-56-02_auto.ss1 created!
+Updated `current_state.ss1`!
+┌────────────────────── Pidgey♂ encountered at Route 1 ───────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 91559DA4        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 3               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  9  │ 12  │ 18↓ │  5  │ 9  │ 29↑ │ 82 │ │
+│ │       Nature │ Hasty           │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Keen Eye        │                                          │
+│ │ Hidden Power │ Ice (32)        │Moves: Tackle                             │
+│ │  Shiny Value │ 55,288          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Pidgey │  82 /  │  55,288 /   │     1 │ 20.00% │     0 │      1 │   N/A │ │
+│ │        │   82   │   55,288    │       │        │       │        │       │ │
+│ │ Ratta… │ 114 /  │  60,184 /   │     4 │ 80.00% │     0 │      4 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Total  │  82 /  │  55,288 /   │     5 │   100% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────── Pidgey♀ encountered at Route 1 ───────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 69A9D83B        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 2               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  5  │  1  │ 15  │ 4↑  │ 2… │ 22  │ 69 │ │
+│ │       Nature │ Rash            │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Keen Eye        │                                          │
+│ │ Hidden Power │ Flying (57)     │Moves: Tackle                             │
+│ │  Shiny Value │ 27,291          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Pidgey │  69 /  │  27,291 /   │     2 │ 33.33% │     0 │      2 │   N/A │ │
+│ │        │   82   │   55,288    │       │        │       │        │       │ │
+│ │ Ratta… │ 114 /  │  60,184 /   │     4 │ 66.67% │     0 │      4 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │  27,291 /   │     6 │   100% │     0 │      6 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────── Rattata♀ encountered at Route 1 ──────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 62803F64        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 3               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  0  │ 22↑ │ 15  │ 28  │ 7↓ │ 21  │ 93 │ │
+│ │       Nature │ Naughty         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Run Away        │                                          │
+│ │ Hidden Power │ Grass (54)      │Moves: Tackle, Tail Whip                  │
+│ │  Shiny Value │ 34,541          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Pidgey │  69 /  │  27,291 /   │     2 │ 28.57% │     0 │      2 │   N/A │ │
+│ │        │   82   │   55,288    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 71.43% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │  27,291 /   │     7 │   100% │     0 │      7 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+[run] entering planner loop
+[planner] objective catch_Pidgey: Player is early-game near Route 1/2 with only Squirtle caught; Pidgey is a very common encounter in this area, making it the fastest way to grow the living dex before tackling rarer species. (method spin)
+┌────────────────────── Pidgey♂ encountered at Route 1 ───────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 2A9A2FEF        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 4               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 22  │ 18  │ 15  │ 11  │ 8  │ 25  │ 99 │ │
+│ │       Nature │ Serious         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Keen Eye        │                                          │
+│ │ Hidden Power │ Ghost (44)      │Moves: Tackle                             │
+│ │  Shiny Value │ 56,956          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Pidgey │  69 /  │  27,291 /   │     3 │ 37.50% │     0 │      3 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 62.50% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │  27,291 /   │     8 │   100% │     0 │      8 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+[planner] caught Pidgey (50% on (3, 19))
+Save state 
+C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\profiles\event1repl
+ay\states\2026-08-02_01-56-39_caught.ss1 created!
+Updated `current_state.ss1`!
+┌────────────────────── Pidgey♀ encountered at Route 1 ───────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 604E2877        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 3               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 14  │ 14↑ │  7  │ 2↓  │ 30 │  3  │ 70 │ │
+│ │       Nature │ Adamant         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Keen Eye        │                                          │
+│ │ Hidden Power │ Poison (70)     │Moves: Tackle                             │
+│ │  Shiny Value │ 37,680          │EV Yield: 1 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 44.44% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 55.56% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │  27,291 /   │     9 │   100% │     0 │      9 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+Save state 
+C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\profiles\event1repl
+ay\states\2026-08-02_01-56-41_auto.ss1 created!
+Updated `current_state.ss1`!
+[planner] objective catch_Pikachu: In Viridian Forest, Pikachu has a much lower encounter rate than the common bugs (Caterpie/Weedle/Metapod/Kakuna) or Rattata/Spearow, so it's the priority catch to avoid grinding through many resets later. dex_owned is still just 2, and the common species will likely be encountered incidentally while searching for Pikachu anyway. (method spin)
+┌───────────────── Caterpie♂ encountered at Viridian Forest ──────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ EF1F619D        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 4               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 17  │ 7↑  │ 19  │  1  │ 2… │  3  │ 76 │ │
+│ │       Nature │ Naughty         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Dark (38)       │Moves: Tackle, String Shot                │
+│ │  Shiny Value │ 21,899          │EV Yield: 1 HP                            │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │  21,899 /   │     1 │ 10.00% │     0 │      1 │   N/A │ │
+│ │        │   76   │   21,899    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 40.00% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 50.00% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │  21,899 /   │    10 │   100% │     0 │     10 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌────────────────── Pikachu♀ encountered at Viridian Forest ──────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 45F8C22F        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 3               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 15  │ 14  │ 28  │ 29  │ 23 │ 22  │ 1… │ │
+│ │       Nature │ Bashful         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Static          │                                          │
+│ │ Hidden Power │ Electric (57)   │Moves: Thundershock, Growl                │
+│ │  Shiny Value │ 23,774          │EV Yield: 2 Speed                         │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │  21,899 /   │     1 │  9.09% │     0 │      1 │   N/A │ │
+│ │        │   76   │   21,899    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 36.36% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  9.09% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 45.45% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │  21,899 /   │    11 │   100% │     0 │     11 │   N/A │ │
+│ │        │  131   │   60,184    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+[planner] caught Pikachu (5% on (1, 0))
+Save state 
+C:\Users\marku\OneDrive\Desktop\GIT\dexbot-run\pokebot-gen3\profiles\event1repl
+ay\states\2026-08-02_01-57-05_caught.ss1 created!
+Updated `current_state.ss1`!
+[planner] objective catch_Mankey: Mankey has a lower encounter rate than the other unseen species on this route (Rattata/Spearow are common and easy to pick up later), so it's the priority catch before moving on to Viridian Forest and losing this encounter window. (method spin)
+┌────────────────────── Mankey♀ encountered at Route 22 ──────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 14233463        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 4               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 25  │  9  │ 24↓ │ 29↑ │ 8  │ 14  │ 1… │ │
+│ │       Nature │ Mild            │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Vital Spirit    │                                          │
+│ │ Hidden Power │ Rock (35)       │Moves: Scratch, Leer                      │
+│ │  Shiny Value │ 64,329          │EV Yield: 1 Attack                        │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Cater… │  76 /  │  21,899 /   │     1 │  8.33% │     0 │      1 │   N/A │ │
+│ │        │   76   │   21,899    │       │        │       │        │       │ │
+│ │ Mankey │ 109 /  │  64,329 /   │     1 │  8.33% │     0 │      1 │   N/A │ │
+│ │        │  109   │   64,329    │       │        │       │        │       │ │
+│ │ Pidgey │  69 /  │  27,291 /   │     4 │ 33.33% │     0 │      4 │   N/A │ │
+│ │        │   99   │   56,956    │       │        │       │        │       │ │
+│ │ Pikac… │ 131 /  │  23,774 /   │     1 │  8.33% │     0 │      1 │   N/A │ │
+│ │        │  131   │   23,774    │       │        │       │        │       │ │
+│ │ Ratta… │  93 /  │  34,541 /   │     5 │ 41.67% │     0 │      5 │   N/A │ │
+│ │        │  114   │   60,184    │       │        │       │        │       │ │
+│ │ Total  │  69 /  │  21,899 /   │    12 │   100% │     0 │     12 │   N/A │ │
+│ │        │  131   │   64,329    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘

@@ -1,0 +1,19 @@
+**EVENT 1 closed — PASS-WITH-CONCERNS, 4/6 exchanges. `STATE.md` reads `Open event: none`; the supervisor may resume the bot.**
+
+## What happened
+The bot died three times at the *same* frame (16633) on Route 1's first wild encounter. Not a game-logic stall at all: `supervisor.py:483` hands the bot child a binary file handle as stdout, so CPython gave it a cp1252 stdout, and Rich's legacy-Windows writer tried to encode the `♀` in `Rattata♀` on the encounter panel. `UnicodeEncodeError`, rc=1, unhandled. Deterministic, and it blocked the whole run — not just `scripted_opening`, since the same encounter listener is live for every planner skill.
+
+## Council
+- **Seat A** (claude-sonnet-5) classified it a code defect and, crucially, demanded the fix target the *class* of unmappable codepoints rather than the one glyph.
+- **Seat C** (gpt-5.5, Codex thread `019fbfac-cdf7-7ab0-8166-cd4ff43441af`) audited that, corrected two details — `♂ ♪ ─ ↑ ↓` all fail too, and the "position 7" inference needed Rich's render order to actually pin female Rattata — then set a binding §9.1 bar: no stall savestate exists, so a cold-boot headless replay is accepted only with memory-state proof past frame 16633.
+- **Seat B** (claude-opus-5) found two things that killed whole fix families: the nature-modifier arrows crash even for name-guarded Nidoran, and Rich never clears its segment buffer after a failed write — so catching the exception yields an unbounded storm with a dead console. It fixed the *stream* instead: `dexbot/stdio_safety.py` + import-time hardening + `PYTHONIOENCODING` on the bot child. Commit `4fb6c16`.
+- **Seat C** verified all three §9 legs itself: replay reached frame 52033 / seen 7 / owned 3 and cleared `SYS_POKEDEX_GET`; regression `2 failed, 136 passed` against its own `2 failed, 120 passed` control, same two BASELINE failures; and it confirmed the new tests genuinely fail on pre-fix code by running a guard-undone child (rc=1, `u2640`).
+
+I gave Seat B one verified fact up front that shaped the whole design: `pokebot-gen3/` is gitignored, so a fix there could never carry a commit hash for §6 — which is why the repair is a tracked chokepoint rather than patches to the vendored console.
+
+## Recorded
+`COUNCIL_LOG.md` EVENT 1 entry, `FINDINGS.md` **F1** (first finding in the file), `STATE.md` updated. Bookkeeping committed as `8385dee`; nothing pushed. Concern #8 from EVENT 0 is now resolved — Seat C self-served pytest.
+
+Two concerns carried forward, both deliberate: **(9)** the §9.2 regression suite appends to the live `logs/skills.jsonl` the supervisor polls (6 → 87 lines this event; harmless today because every record is `success`, but a test emitting `deferred` or `stall` would fire a phantom trigger); **(10)** `run.py` still has no top-level handler — Seat B argued and Seat C accepted that crash-exit *is* the supervisor's §4.4 trigger contract, so changing it needs its own event.
+
+The live resume point was protected: the replay ran on a throwaway profile copy and `livingdex/current_state.ss1` still does not exist, so the bot resumes from the fresh save exactly as it stood at the trigger.
