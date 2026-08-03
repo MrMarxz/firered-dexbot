@@ -208,3 +208,8 @@ grep the run repo for the original label before selecting a stall.
 ### Attempt 1
 
 Attempt 1 terminated at T+8.7h, reason: silent stall undetectable due to frame-denominated triggers plus verdictless reviews; EVENT 1 resolved autonomously; dex 6.
+
+### Operator Event
+
+Paused at T+~21h, cause: Seat C provider credit exhaustion; run state intact. And my ruling on the purity question, for the record: refilling a provider account is infrastructure, same category as electricity — the zero-interaction claim survives, provided you touch billing and nothing else.
+Fix the money: refill or raise the OpenAI/Codex credit allocation — that is a conversation with whoever owns that workspace at Yknot, this morning. Nothing restarts until the judge can sit.
